@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "SideRunnerEditor Editor Linux Development (SideRunner)",
+            "intelliSenseMode": "clang-x64",
+            "compileCommands": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/.vscode/compileCommands_SideRunner.json",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17"
+        },
+        {
+            "name": "Linux",
+            "intelliSenseMode": "clang-x64",
+            "compileCommands": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/.vscode/compileCommands_Default.json",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17"
+        }
+    ],
+    "version": 4
+}

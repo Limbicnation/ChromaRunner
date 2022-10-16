@@ -1,0 +1,121 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Launch SideRunner (Debug)",
+			"request": "launch",
+			"program": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Binaries/Linux/UnrealGame-Linux-Debug",
+			"preLaunchTask": "SideRunner Linux Debug Build",
+			"args": [
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Launch SideRunner (DebugGame)",
+			"request": "launch",
+			"program": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Binaries/Linux/UnrealGame-Linux-DebugGame",
+			"preLaunchTask": "SideRunner Linux DebugGame Build",
+			"args": [
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Launch SideRunner (Development)",
+			"request": "launch",
+			"program": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Binaries/Linux/UnrealGame",
+			"preLaunchTask": "SideRunner Linux Development Build",
+			"args": [
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Launch SideRunner (Test)",
+			"request": "launch",
+			"program": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Binaries/Linux/UnrealGame-Linux-Test",
+			"preLaunchTask": "SideRunner Linux Test Build",
+			"args": [
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Launch SideRunner (Shipping)",
+			"request": "launch",
+			"program": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Binaries/Linux/UnrealGame-Linux-Shipping",
+			"preLaunchTask": "SideRunner Linux Shipping Build",
+			"args": [
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Launch SideRunnerEditor (Debug)",
+			"request": "launch",
+			"program": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Binaries/Linux/UnrealEditor-Linux-Debug",
+			"preLaunchTask": "SideRunnerEditor Linux Debug Build",
+			"args": [
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject"
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Launch SideRunnerEditor (DebugGame)",
+			"request": "launch",
+			"program": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Binaries/Linux/UnrealEditor-Linux-DebugGame",
+			"preLaunchTask": "SideRunnerEditor Linux DebugGame Build",
+			"args": [
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject"
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Launch SideRunnerEditor (Development)",
+			"request": "launch",
+			"program": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Binaries/Linux/UnrealEditor",
+			"preLaunchTask": "SideRunnerEditor Linux Development Build",
+			"args": [
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject"
+			],
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine",
+			"type": "cppdbg",
+			"visualizerFile": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+			"showDisplayString": true
+		},
+		{
+			"name": "Generate Project Files",
+			"type": "coreclr",
+			"request": "launch",
+			"program": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Binaries/DotNET/UnrealBuildTool/UnrealBuildTool",
+			"args": [
+				"-projectfiles",
+				"-vscode",
+				"-project=/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-game",
+				"-engine"
+			],
+			"console": "internalConsole",
+			"internalConsoleOptions": "openOnSessionStart",
+			"stopAtEntry": false,
+			"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+		}
+	]
+}

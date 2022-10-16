@@ -1,0 +1,27 @@
+[
+	{
+		"file": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Source/SideRunner/RunnerCharacter.cpp",
+		"command": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v20_clang-13.0.1-centos7/x86_64-unknown-linux-gnu/bin/clang++ @/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/.vscode/compileCommands_Default/SideRunner.199.rsp",
+		"directory": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Source"
+	},
+	{
+		"file": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Source/SideRunner/RunnerCharacter.h",
+		"command": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v20_clang-13.0.1-centos7/x86_64-unknown-linux-gnu/bin/clang++ @/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/.vscode/compileCommands_Default/SideRunner.199.rsp",
+		"directory": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Source"
+	},
+	{
+		"file": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Source/SideRunner/SideRunner.Build.cs",
+		"command": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v20_clang-13.0.1-centos7/x86_64-unknown-linux-gnu/bin/clang++ @/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/.vscode/compileCommands_Default/SideRunner.199.rsp",
+		"directory": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Source"
+	},
+	{
+		"file": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Source/SideRunner/SideRunner.cpp",
+		"command": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v20_clang-13.0.1-centos7/x86_64-unknown-linux-gnu/bin/clang++ @/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/.vscode/compileCommands_Default/SideRunner.199.rsp",
+		"directory": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Source"
+	},
+	{
+		"file": "/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/Source/SideRunner/SideRunner.h",
+		"command": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64/v20_clang-13.0.1-centos7/x86_64-unknown-linux-gnu/bin/clang++ @/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/.vscode/compileCommands_Default/SideRunner.199.rsp",
+		"directory": "/media/ws-ml/Data-ml1/UnrealEngine/Engine/Source"
+	}
+]

@@ -1,0 +1,720 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "SideRunner Linux Debug Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Debug Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner Linux Debug Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Debug Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux DebugGame Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux DebugGame Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner Linux DebugGame Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux DebugGame Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Development Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Development Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner Linux Development Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Development Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Test Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Test",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Test Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Test",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner Linux Test Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Test Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Test",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Shipping Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Shipping",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Shipping Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Shipping",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner Linux Shipping Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner Linux Shipping Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"Linux",
+				"Shipping",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Debug Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Debug Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner LinuxArm64 Debug Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Debug Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 DebugGame Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 DebugGame Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner LinuxArm64 DebugGame Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 DebugGame Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Development Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Development Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner LinuxArm64 Development Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Development Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Test Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Test",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Test Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Test",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner LinuxArm64 Test Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Test Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Test",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Shipping Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Shipping",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Shipping Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Shipping",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunner LinuxArm64 Shipping Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunner LinuxArm64 Shipping Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunner",
+				"LinuxArm64",
+				"Shipping",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux Debug Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux Debug Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunnerEditor Linux Debug Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux Debug Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"Debug",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux DebugGame Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux DebugGame Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunnerEditor Linux DebugGame Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux DebugGame Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"DebugGame",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux Development Build",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux Development Rebuild",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex"
+			],
+			"problemMatcher": "$msCompile",
+			"dependsOn": [
+				"SideRunnerEditor Linux Development Clean"
+			],
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		},
+		{
+			"label": "SideRunnerEditor Linux Development Clean",
+			"group": "build",
+			"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+			"args": [
+				"SideRunnerEditor",
+				"Linux",
+				"Development",
+				"/mnt/09e53a81-41fc-46df-ab07-85b73e480158/ws-ml/GitHub/UnrealProjects/side-runner/SideRunner.uproject",
+				"-waitmutex",
+				"-clean"
+			],
+			"problemMatcher": "$msCompile",
+			"type": "shell",
+			"options": {
+				"cwd": "/media/ws-ml/Data-ml1/UnrealEngine"
+			}
+		}
+	]
+}

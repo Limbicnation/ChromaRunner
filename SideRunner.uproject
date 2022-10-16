@@ -3,6 +3,16 @@
 	"EngineAssociation": "{F0B35AFA-B690-44A3-AA15-BCCD09B8CC47}",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "SideRunner",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",
