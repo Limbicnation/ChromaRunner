@@ -43,7 +43,7 @@ public:
 private:
 
 	float zPosition;
-	FVector tempPos = FVector();
+	FVector TempPos = FVector();
 
 	bool CanMove;
 

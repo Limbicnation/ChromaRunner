@@ -42,9 +42,9 @@ ARunnerCharacter::ARunnerCharacter()
 	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 	GetCharacterMovement()->MaxFlySpeed = 600.0f;
 
-	// Find the Chacacters temporary position
-	tempPos = GetActorLocation();
-	zPosition = tempPos.Z + 300.0f;
+	// Find the Characters temporary position
+	TempPos = GetActorLocation();
+	zPosition = TempPos.Z + 300.0f;
 }
 
 // Called when the game starts or when spawned
@@ -61,10 +61,10 @@ void ARunnerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	tempPos = GetActorLocation();
-	tempPos.X -= 850.0f;
-	tempPos.Z = zPosition;
-	SideViewCamera->SetWorldLocation(tempPos);
+	TempPos = GetActorLocation();
+	TempPos.X -= 850.0f;
+	TempPos.Z = zPosition;
+	SideViewCamera->SetWorldLocation(TempPos);
 
 }
 
