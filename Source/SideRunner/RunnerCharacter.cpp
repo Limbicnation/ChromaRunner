@@ -44,6 +44,7 @@ ARunnerCharacter::ARunnerCharacter()
 
 	// Find the Characters temporary position
 	TempPos = GetActorLocation();
+	// The distance from the character to the character
 	zPosition = TempPos.Z + 300.0f;
 }
 
@@ -75,7 +76,7 @@ void ARunnerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	//Bind Character Input functionality
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAxis("MoveRight", this, &ARunnerCharacter::MoveRight);
 
