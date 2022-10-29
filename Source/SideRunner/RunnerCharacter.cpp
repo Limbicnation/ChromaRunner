@@ -44,8 +44,8 @@ ARunnerCharacter::ARunnerCharacter()
 
 	// Find the Characters temporary position
 	TempPos = GetActorLocation();
-	// The distance from the character to the character
-	zPosition = TempPos.Z + 300.0f;
+	// The Camera height position
+	zPosition = TempPos.Z + 150.0f;
 }
 
 // Called when the game starts or when spawned
@@ -63,7 +63,7 @@ void ARunnerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	TempPos = GetActorLocation();
-	TempPos.X -= 850.0f;
+	TempPos.X -= 500.0f;
 	TempPos.Z = zPosition;
 	SideViewCamera->SetWorldLocation(TempPos);
 
