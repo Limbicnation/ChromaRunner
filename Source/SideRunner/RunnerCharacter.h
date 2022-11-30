@@ -27,12 +27,15 @@ public:
 	UPROPERTY(VisibleAnywhere)
 		class UCameraComponent* SideViewCamera;
 
+	UPROPERTY(EditAnywhere)
+	float RotationRate = 180.0f;
+
 protected:
 
 	void MoveRight(float Value);
 
 public:
-
+	
 	void RestartLevel();
 
 	UFUNCTION()

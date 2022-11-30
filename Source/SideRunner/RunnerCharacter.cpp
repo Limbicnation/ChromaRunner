@@ -21,22 +21,21 @@ ARunnerCharacter::ARunnerCharacter()
 	bUseControllerRotationRoll = true;
 	bUseControllerRotationYaw = true;
 
-    // Stop the user from rotating the Camera
+	// Create the Camera
 	SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
+	// Stop the controller from rotating the Camera
 	SideViewCamera->bUsePawnControlRotation = false;
 
-	// Set the Camera to the Players movement direction on X
-
-	// Rotate towards the direction we are going
+	// Rotate the character towards the direction we are going
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
 	// Rotation Rate
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, RotationRate, 0.0f);
 
 	// Set defaults for controlling the Character
 	// i.e. Gravity Scale and Air Control, the higher the number the higher the control
-	GetCharacterMovement()->GravityScale = 2.0f;
-	GetCharacterMovement()->AirControl = 0.8f;
+	GetCharacterMovement()->GravityScale = 2.5f;
+	GetCharacterMovement()->AirControl = 0.5f;
 	GetCharacterMovement()->JumpZVelocity = 1000.0f;
 	GetCharacterMovement()->GroundFriction = 3.0f;
 	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
