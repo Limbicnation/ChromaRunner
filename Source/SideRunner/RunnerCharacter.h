@@ -16,6 +16,7 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	
 
 public:
 	// Called every frame
@@ -29,10 +30,12 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	float RotationRate = 180.0f;
+	float JumpZVelocity;
 
 protected:
 
 	void MoveRight(float Value);
+
 
 public:
 	
@@ -49,5 +52,7 @@ private:
 	FVector TempPos = FVector();
 
 	bool CanMove;
+
+	bool CanJump;
 
 };
