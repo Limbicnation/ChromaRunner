@@ -123,6 +123,9 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
 			CanJump = false;
 			JumpZVelocity = 0.0f;
 
+			// Called in character blueprint
+			DeathOfPlayer();
+
 			// restart the Level
 			FTimerHandle UnusedHandle;
 			GetWorldTimerManager().SetTimer(UnusedHandle, this, &ARunnerCharacter::RestartLevel, 2.0f, false);

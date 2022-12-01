@@ -36,6 +36,10 @@ protected:
 
 	void MoveRight(float Value);
 
+	// Handle death logic
+	UFUNCTION(BlueprintImplementableEvent)
+	void DeathOfPlayer();
+
 
 public:
 	
