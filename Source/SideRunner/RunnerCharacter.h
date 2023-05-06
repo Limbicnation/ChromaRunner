@@ -10,29 +10,39 @@ class SIDERUNNER_API ARunnerCharacter : public ACharacter
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
+
 	ARunnerCharacter();
 
 protected:
-	// Called when the game starts or when spawned
+
 	virtual void BeginPlay() override;
-	
 
 public:
-	// Called every frame
+
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	// Declare the DoubleJump function
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
+	bool bCanDoubleJump;
+
+	// initialize DoubleJumpZVelocity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
+	float DoubleJumpZVelocity;
+
 	UPROPERTY(VisibleAnywhere)
-		class UCameraComponent* SideViewCamera;
+	class UCameraComponent* SideViewCamera;
 
 	UPROPERTY(EditAnywhere)
 	float RotationRate = 180.0f;
+
 	float JumpZVelocity;
 
 protected:
+
+	// Declare the Jump function here
+	virtual void Jump() override;
 
 	void MoveRight(float Value);
 
@@ -40,15 +50,19 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void DeathOfPlayer();
 
-
 public:
-	
+
 	void RestartLevel();
 
 	UFUNCTION()
-		void OnOverlapBegin(UPrimitiveComponent* OverlappedComp,
-			AActor* OtherActor, UPrimitiveComponent* OtherComp,
-			int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnOverlapBegin(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
 
 private:
 
@@ -58,5 +72,7 @@ private:
 	bool CanMove;
 
 	bool CanJump;
+
+	bool CanDoubleJump;
 
 };
