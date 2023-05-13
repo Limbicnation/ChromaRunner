@@ -41,18 +41,23 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
 	// the main magic that will happen in our level, will happen in here!
 
 	SpawnLocation = FVector(0.0f, 1000.0f, 0.0f);
-	SpawnRotation = FRotator(0,90,0);
+	SpawnRotation = FRotator(0, 90, 0);
 
-	// if it'S not first level that we are spawning, then we are going to get the last level in out array
-	if (!IsFirst)
-	{
+	if (!IsFirst && LevelList.Num() > 0)
+
+	{	/**Updated the spawn location and rotation*/
+
 		ABaseLevel* LastLevel = LevelList.Last();
-		// get the location from the last level to know where to spawn the next level
-		SpawnLocation = LastLevel->GetSpawnLocation()->GetComponentTransform().GetTranslation();
+		if (LastLevel)
+		{
+			SpawnLocation = LastLevel->GetSpawnLocation()->GetComponentTransform().GetTranslation();
+		}
 	}
-	// Randomize the values for the list of levels spawned
-	RandomLevel = FMath::RandRange(1,6);
+
+	int32 MaxLevels = 6; // or whatever the maximum number of levels is
+	RandomLevel = FMath::RandRange(1, MaxLevels);
 	ABaseLevel* NewLevel = nullptr;
+
 
 	if (RandomLevel == 1)
 	{
