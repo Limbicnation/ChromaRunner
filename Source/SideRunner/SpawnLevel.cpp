@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 
 #include "SpawnLevel.h"
 
@@ -11,7 +9,7 @@
 // Sets default values
 ASpawnLevel::ASpawnLevel()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 }
@@ -26,7 +24,7 @@ void ASpawnLevel::BeginPlay()
 	SpawnLevel(false);
 	SpawnLevel(false);
 	SpawnLevel(false);
-	
+
 }
 
 // Called every frame
@@ -59,50 +57,55 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
 	ABaseLevel* NewLevel = nullptr;
 
 
-	if (RandomLevel == 1)
+	switch (RandomLevel)
 	{
+	case 1:
 		NewLevel = GetWorld()->SpawnActor<ABaseLevel>(Level1,
 			SpawnLocation, SpawnRotation, SpawnInfo);
-	}
-	else if (RandomLevel == 2)
-	{
+		break;
+	case 2:
 		NewLevel = GetWorld()->SpawnActor<ABaseLevel>(Level2,
 			SpawnLocation, SpawnRotation, SpawnInfo);
-	}
-	else if (RandomLevel == 3)
-	{
+		break;
+	case 3:
 		NewLevel = GetWorld()->SpawnActor<ABaseLevel>(Level3,
 			SpawnLocation, SpawnRotation, SpawnInfo);
-	}
-	else if (RandomLevel == 4)
-	{
+		break;
+	case 4:
 		NewLevel = GetWorld()->SpawnActor<ABaseLevel>(Level4,
 			SpawnLocation, SpawnRotation, SpawnInfo);
-	}
-	else if (RandomLevel == 5)
-	{
+		break;
+	case 5:
 		NewLevel = GetWorld()->SpawnActor<ABaseLevel>(Level5,
 			SpawnLocation, SpawnRotation, SpawnInfo);
-	}
-	else if (RandomLevel == 6)
-	{
+		break;
+	case 6:
 		NewLevel = GetWorld()->SpawnActor<ABaseLevel>(Level6,
 			SpawnLocation, SpawnRotation, SpawnInfo);
+		break;
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("Invalid level number: %d"), RandomLevel);
+		break;
 	}
-	// Add New Level to the level list
+
 	if (NewLevel)
 	{
-		if(NewLevel->GetTrigger())
+		if (NewLevel->GetTrigger())
 		{
 			NewLevel->GetTrigger()->OnComponentBeginOverlap.AddDynamic(this, &ASpawnLevel::OnOverlapBegin);
 		}
-	}
 
-	// Remove Levels at index 0 that exceed the number 5
-	LevelList.Add(NewLevel);
-	if(LevelList.Num() > 5)
-	{
-		LevelList.Remove(0);
+		LevelList.Add(NewLevel);
+
+		if (LevelList.Num() > MaxLevels)
+		{
+			ABaseLevel* OldestLevel = LevelList[0];
+			if (OldestLevel)
+			{
+				LevelList.RemoveAt(0);
+				OldestLevel->Destroy();
+			}
+		}
 	}
 }
 
@@ -111,4 +114,3 @@ void ASpawnLevel::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
 {
 	SpawnLevel(false);
 }
-
