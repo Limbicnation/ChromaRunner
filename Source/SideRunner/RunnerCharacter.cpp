@@ -50,6 +50,7 @@ ARunnerCharacter::ARunnerCharacter()
     TempPos = GetActorLocation();
     // The Camera height position
     zPosition = TempPos.Z + 150.0f;
+
 }
 
 // Called when the game starts or when spawned
@@ -119,9 +120,11 @@ void ARunnerCharacter::MoveRight(float Value)
 {
     if (CanMove)
     {
-        AddMovementInput(FVector(0.0f, 1.0f, 0.0f), Value);
+        FVector Direction = FVector(0.0f, 1.0f, 0.0f); // Keep movement only along the Y-axis
+        AddMovementInput(Direction, Value);
     }
 }
+
 
 void ARunnerCharacter::RestartLevel()
 {
