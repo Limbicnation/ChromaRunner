@@ -2,10 +2,11 @@
 
 #include "RunnerCharacter.h"
 
-#include "Spikes.h"
+#include "GameFramework/Actor.h"
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+
 
 #include "WallSpike.h"
 #include "Engine.h"

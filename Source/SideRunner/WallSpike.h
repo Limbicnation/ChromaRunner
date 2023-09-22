@@ -17,13 +17,10 @@ class SIDERUNNER_API AWallSpike : public ASpikes
 public:
 
 	AWallSpike();
+
+	// If you want the WallSpike to have the Tick functionality, ensure you also set PrimaryActorTick.bCanEverTick = true; in the constructor.
+	virtual void Tick(float DeltaTime) override;
+
 protected:
 	virtual void BeginPlay() override;
-
-public:
-	virtual void Tick(float DeltaTime) override;
-	
-	
 };
-
-
