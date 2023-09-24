@@ -11,6 +11,8 @@
 #include "WallSpike.h"
 #include "Engine.h"
 
+const float FALL_THRESHOLD = -1000.0f;
+
 // Sets default values
 ARunnerCharacter::ARunnerCharacter()
 {
@@ -75,6 +77,12 @@ void ARunnerCharacter::Tick(float DeltaTime)
     TempPos.X -= 800;
     TempPos.Z = zPosition;
     SideViewCamera->SetWorldLocation(TempPos);
+
+    //Check for falling beyond threshold
+    if (GetActorLocation().Z < FALL_THRESHOLD)
+    {
+        RestartLevel();
+    }
 }
 
 // Called to bind functionality to input
