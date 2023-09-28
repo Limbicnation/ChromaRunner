@@ -23,4 +23,15 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+    // Speed of spike movement, adjustable from Blueprints
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement")
+    float Speed;
+
+    // Maximum height offset the spikes should move up to from their initial position
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Movement")
+    float MaxHeightOffset;
+
+private:
+    float InitialZ; // Store the initial Z position of the spikes
+    int32 MovementDirection; // 1 means up, -1 means down
 };
