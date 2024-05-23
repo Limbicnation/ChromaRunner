@@ -1,11 +1,8 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Sound/SoundBase.h"
-#include "Components/PrimitiveComponent.h" // If required for UPrimitiveComponent
 #include "Spikes.generated.h"
 
 UCLASS()
@@ -32,23 +29,24 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sound")
     USoundBase* CollisionSound;
 
-    // Function to handle collision with the spikes
-    virtual void NotifyHit(
-        UPrimitiveComponent* MyComp,
-        AActor* Other,
-        UPrimitiveComponent* OtherComp,
-        bool bSelfMoved,
-        FVector HitLocation,
-        FVector HitNormal,
-        FVector NormalImpulse,
-        const FHitResult& Hit
-    ) override;
-
 protected:
     // Called when the game starts or when spawned
     virtual void BeginPlay() override;
 
+    // Function to handle collision with the spikes
+    UFUNCTION()
+    void NotifyHit(
+        UPrimitiveComponent* MyComp,
+        AActor* Other,
+        UPrimitiveComponent* OtherComp,
+        bool bSelfMoved,
+        const FHitResult& Hit
+    );
+
 private:
-    float InitialZ; // Store the initial Z position of the spikes
-    int32 MovementDirection; // 1 means up, -1 means down
+    // Store the initial Z position of the spikes
+    float InitialZ; 
+
+    // 1 means up, -1 means down
+    int32 MovementDirection; 
 };

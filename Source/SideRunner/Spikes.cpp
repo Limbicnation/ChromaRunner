@@ -1,7 +1,6 @@
-// Include necessary headers
 #include "Spikes.h"
-#include "Kismet/GameplayStatics.h" // Include this for sound playback
-#include "RunnerCharacter.h" // Include the header for your player character class
+#include "Kismet/GameplayStatics.h"
+#include "RunnerCharacter.h"
 
 // Sets default values
 ASpikes::ASpikes()
@@ -34,32 +33,28 @@ void ASpikes::Tick(float DeltaTime)
     FVector NewLocation = GetActorLocation();
     NewLocation.Z += Speed * DeltaTime * MovementDirection;
 
-    if (MovementDirection == 1 && NewLocation.Z >= InitialZ + MaxHeightOffset)
+    if ((MovementDirection == 1 && NewLocation.Z >= InitialZ + MaxHeightOffset) ||
+        (MovementDirection == -1 && NewLocation.Z <= InitialZ))
     {
-        MovementDirection = -1;
-    }
-    else if (MovementDirection == -1 && NewLocation.Z <= InitialZ)
-    {
-        MovementDirection = 1;
+        MovementDirection *= -1;
     }
 
     SetActorLocation(NewLocation);
 }
 
 // Override the NotifyHit function to detect collisions
-void ASpikes::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
+void ASpikes::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, const FHitResult& Hit)
 {
     // Debug message to confirm collision detection
     UE_LOG(LogTemp, Warning, TEXT("Hit detected with Spikes!"));
 
     // Check if the colliding actor is the player character
-    ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(Other);
-    if (PlayerCharacter)
+    if (ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(Other))
     {
         if (CollisionSound)
         {
             UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, GetActorLocation());
-            UE_LOG(LogTemp, Warning, TEXT("Attempting to play CollisionSound."));
+            UE_LOG(LogTemp, Warning, TEXT("Playing CollisionSound."));
         }
         else
         {
