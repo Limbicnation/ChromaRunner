@@ -9,53 +9,50 @@ class ABaseLevel;
 UCLASS()
 class SIDERUNNER_API ASpawnLevel : public AActor
 {
-	GENERATED_BODY()
-	
+    GENERATED_BODY()
+    
 public:
-	ASpawnLevel();
+    ASpawnLevel();
 
 protected:
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
 
 public:
-	virtual void Tick(float DeltaTime) override;
+    virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION()
-	void SpawnLevel(bool IsFirst);
+    UFUNCTION()
+    void SpawnLevel(bool IsFirst);
 
-	UFUNCTION()
-	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    UFUNCTION()
+    void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 protected:
-	APawn* Player;
+    APawn* Player;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<ABaseLevel> Level1;
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<ABaseLevel> Level1;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<ABaseLevel> Level2;
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<ABaseLevel> Level2;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<ABaseLevel> Level3;
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<ABaseLevel> Level3;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<ABaseLevel> Level4;
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<ABaseLevel> Level4;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<ABaseLevel> Level5;
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<ABaseLevel> Level5;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<ABaseLevel> Level6;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level Spawning")
-	int32 RandomLevel; // Randomize the spawning of the level
+    UPROPERTY(EditAnywhere)
+    TSubclassOf<ABaseLevel> Level6;
 
 private:
-	FVector SpawnLocation; // Characters Spawn location
-	FRotator SpawnRotation; // Characters Spawn rotation
-	FActorSpawnParameters SpawnInfo; // Characters info
+    FVector SpawnLocation; // Characters Spawn location
+    FRotator SpawnRotation; // Characters Spawn rotation
 
-	UPROPERTY()
-	TArray<ABaseLevel*> LevelList;
+    UPROPERTY()
+    TArray<ABaseLevel*> LevelList;
 
+    void SpawnInitialLevels();
 };
