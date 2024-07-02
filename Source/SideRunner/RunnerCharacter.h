@@ -7,72 +7,62 @@
 UCLASS()
 class SIDERUNNER_API ARunnerCharacter : public ACharacter
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-
-	ARunnerCharacter();
+    ARunnerCharacter();
 
 protected:
-
-	virtual void BeginPlay() override;
+    virtual void BeginPlay() override;
 
 public:
+    virtual void Tick(float DeltaTime) override;
+    virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	virtual void Tick(float DeltaTime) override;
+    // Declare the DoubleJump function
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
+    bool bCanDoubleJump;
 
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    // initialize DoubleJumpZVelocity
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
+    float DoubleJumpZVelocity;
 
-	// Declare the DoubleJump function
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
-	bool bCanDoubleJump;
+    UPROPERTY(VisibleAnywhere)
+    class UCameraComponent* SideViewCamera;
 
-	// initialize DoubleJumpZVelocity
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
-	float DoubleJumpZVelocity;
+    UPROPERTY(EditAnywhere)
+    float RotationRate = 180.0f;
 
-	UPROPERTY(VisibleAnywhere)
-	class UCameraComponent* SideViewCamera;
-
-	UPROPERTY(EditAnywhere)
-	float RotationRate = 180.0f;
-
-	float JumpZVelocity;
+    float JumpZVelocity;
 
 protected:
+    // Declare the Jump function here
+    virtual void Jump() override;
 
-	// Declare the Jump function here
-	virtual void Jump() override;
+    void MoveRight(float Value);
 
-	void MoveRight(float Value);
-
-	// Handle death logic
-	UFUNCTION(BlueprintImplementableEvent)
-	void DeathOfPlayer();
+    // Handle death logic
+    UFUNCTION(BlueprintImplementableEvent)
+    void DeathOfPlayer();
 
 public:
+    void RestartLevel();
 
-	void RestartLevel();
-
-	UFUNCTION()
-	void OnOverlapBegin(
-		UPrimitiveComponent* OverlappedComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult
-	);
+    UFUNCTION()
+    void OnOverlapBegin(
+        UPrimitiveComponent* OverlappedComp,
+        AActor* OtherActor,
+        UPrimitiveComponent* OtherComp,
+        int32 OtherBodyIndex,
+        bool bFromSweep,
+        const FHitResult& SweepResult
+    );
 
 private:
+    float zPosition;
+    FVector TempPos = FVector();
 
-	float zPosition;
-	FVector TempPos = FVector();
-
-	bool CanMove;
-
-	bool CanJump;
-
-	bool CanDoubleJump;
-
+    bool CanMove;
+    bool CanJump;
+    bool CanDoubleJump;
 };
