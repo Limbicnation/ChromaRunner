@@ -26,6 +26,9 @@ public:
     UFUNCTION()
     void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+    UFUNCTION()
+    void DestroyOldestLevel(); // Marked as UFUNCTION to expose it to the engine
+
 protected:
     APawn* Player;
 
@@ -47,12 +50,18 @@ protected:
     UPROPERTY(EditAnywhere)
     TSubclassOf<ABaseLevel> Level6;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level Management")
+    float LevelDestroyDelay = 1.0f; // Delay before destroying the oldest level
+
 private:
-    FVector SpawnLocation; // Characters Spawn location
-    FRotator SpawnRotation; // Characters Spawn rotation
+    FVector SpawnLocation;
+    FRotator SpawnRotation;
 
     UPROPERTY()
     TArray<ABaseLevel*> LevelList;
 
     void SpawnInitialLevels();
+    void DelayedDestroyOldestLevel();
+
+    FTimerHandle DestroyTimerHandle; // Add a timer handle for the destruction delay
 };
