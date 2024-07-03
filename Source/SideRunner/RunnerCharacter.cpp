@@ -6,8 +6,6 @@
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-
-
 #include "WallSpike.h"
 #include "Engine.h"
 
@@ -20,8 +18,7 @@ ARunnerCharacter::ARunnerCharacter()
     PrimaryActorTick.bCanEverTick = true;
 
     GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
-    GetCapsuleComponent()->SetCollisionResponseToChannel
-    (ECC_GameTraceChannel1, ECR_Overlap);
+    GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 
     // Stop the user from rotating the Character
     bUseControllerRotationPitch = true;
@@ -40,7 +37,6 @@ ARunnerCharacter::ARunnerCharacter()
     GetCharacterMovement()->RotationRate = FRotator(0.0f, RotationRate, 0.0f);
 
     // Set defaults for controlling the Character
-    // i.e. Gravity Scale and Air Control, the higher the number the higher the control
     GetCharacterMovement()->GravityScale = 2.5f;
     GetCharacterMovement()->AirControl = 0.5f;
     GetCharacterMovement()->JumpZVelocity = 1000.0f;
@@ -52,7 +48,6 @@ ARunnerCharacter::ARunnerCharacter()
     TempPos = GetActorLocation();
     // The Camera height position
     zPosition = TempPos.Z + 150.0f;
-
 }
 
 // Called when the game starts or when spawned
@@ -78,7 +73,7 @@ void ARunnerCharacter::Tick(float DeltaTime)
     TempPos.Z = zPosition;
     SideViewCamera->SetWorldLocation(TempPos);
 
-    //Check for falling beyond threshold
+    // Check for falling beyond threshold
     if (GetActorLocation().Z < FALL_THRESHOLD)
     {
         RestartLevel();
@@ -95,17 +90,6 @@ void ARunnerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
     PlayerInputComponent->BindAxis("MoveRight", this, &ARunnerCharacter::MoveRight);
-
-    // second jump
-    UCharacterMovementComponent* MovementComp = GetCharacterMovement();
-    if (MovementComp && MovementComp->IsFalling())
-    {
-        // add impulse to jump again
-        FVector JumpDirection = GetActorUpVector();
-        float JumpImpulse = MovementComp->JumpZVelocity;
-        FVector JumpImpulseVector = JumpDirection * JumpImpulse;
-        MovementComp->AddImpulse(JumpImpulseVector, true);
-    }
 }
 
 void ARunnerCharacter::Jump()
@@ -132,7 +116,6 @@ void ARunnerCharacter::MoveRight(float Value)
         AddMovementInput(Direction, Value);
     }
 }
-
 
 void ARunnerCharacter::RestartLevel()
 {

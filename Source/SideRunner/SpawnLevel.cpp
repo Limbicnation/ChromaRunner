@@ -2,6 +2,7 @@
 #include "BaseLevel.h"
 #include "Engine/World.h"
 #include "Components/BoxComponent.h"
+#include "TimerManager.h"
 
 // Sets default values
 ASpawnLevel::ASpawnLevel()
@@ -14,11 +15,9 @@ void ASpawnLevel::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Ensure the player is properly initialized
     Player = GetWorld()->GetFirstPlayerController()->GetPawn();
     if (Player)
     {
-        // Spawn the initial levels
         SpawnInitialLevels();
     }
     else
@@ -32,7 +31,6 @@ void ASpawnLevel::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // Check if the player is now available and initialize levels if needed
     if (!Player)
     {
         Player = GetWorld()->GetFirstPlayerController()->GetPawn();
@@ -68,11 +66,10 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
         }
     }
 
-    int32 MaxLevels = 6; // Adjust according to the number of level types available
+    int32 MaxLevels = 6;
     int32 RandomLevel = FMath::RandRange(1, MaxLevels);
-    ABaseLevel* NewLevel = nullptr;
-
     TSubclassOf<ABaseLevel> LevelClass = nullptr;
+
     switch (RandomLevel)
     {
     case 1: LevelClass = Level1; break;
@@ -86,32 +83,46 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
 
     if (LevelClass)
     {
-        NewLevel = GetWorld()->SpawnActor<ABaseLevel>(LevelClass, NewSpawnLocation, NewSpawnRotation, FActorSpawnParameters());
-    }
-
-    if (NewLevel)
-    {
-        if (NewLevel->GetTrigger())
+        ABaseLevel* NewLevel = GetWorld()->SpawnActor<ABaseLevel>(LevelClass, NewSpawnLocation, NewSpawnRotation, FActorSpawnParameters());
+        if (NewLevel)
         {
-            NewLevel->GetTrigger()->OnComponentBeginOverlap.AddDynamic(this, &ASpawnLevel::OnOverlapBegin);
-        }
-
-        LevelList.Add(NewLevel);
-
-        if (LevelList.Num() > MaxLevels)
-        {
-            ABaseLevel* OldestLevel = LevelList[0];
-            if (OldestLevel)
+            if (NewLevel->GetTrigger())
             {
-                LevelList.RemoveAt(0);
-                OldestLevel->Destroy();
+                NewLevel->GetTrigger()->OnComponentBeginOverlap.AddDynamic(this, &ASpawnLevel::OnOverlapBegin);
+            }
+            LevelList.Add(NewLevel);
+
+            if (LevelList.Num() > MaxLevels)
+            {
+                DelayedDestroyOldestLevel();
             }
         }
     }
 }
 
+void ASpawnLevel::DelayedDestroyOldestLevel()
+{
+    FTimerDelegate TimerDel;
+    TimerDel.BindUFunction(this, FName("DestroyOldestLevel"));
+    GetWorld()->GetTimerManager().SetTimer(DestroyTimerHandle, TimerDel, LevelDestroyDelay, false);
+}
+
+void ASpawnLevel::DestroyOldestLevel()
+{
+    if (LevelList.Num() > 0)
+    {
+        ABaseLevel* OldestLevel = LevelList[0];
+        LevelList.RemoveAt(0);
+        if (OldestLevel)
+        {
+            OldestLevel->Destroy();
+        }
+    }
+}
+
 void ASpawnLevel::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+    const FHitResult& SweepResult)
 {
     if (OtherActor && OtherActor == Player)
     {
