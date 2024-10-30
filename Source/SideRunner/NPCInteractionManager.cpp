@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #include "NPCInteractionManager.h"
 
 UNPCInteractionManager::UNPCInteractionManager()
@@ -42,13 +40,12 @@ void UNPCInteractionManager::AddDialogueEntry(const FString& NPCName, const FStr
     if (IsValidNPC(NPCName))
     {
         FNPCData& NPCData = NPCDatabase[NPCName];
-        
-        // Remove oldest entry if at capacity
+
         if (NPCData.DialogueHistory.Num() >= MaxDialogueHistory)
         {
             NPCData.DialogueHistory.RemoveAt(0);
         }
-        
+
         NPCData.DialogueHistory.Add(DialogueText);
     }
 }

@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -35,7 +33,6 @@ protected:
 public:    
     virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-    // NPC interaction functions
     UFUNCTION(BlueprintCallable, Category = "NPC")
     void InitializeNPC(const FString& NPCName);
 
@@ -51,19 +48,16 @@ public:
     UFUNCTION(BlueprintPure, Category = "NPC")
     TArray<FString> GetDialogueHistory(const FString& NPCName) const;
 
+private:
+    bool IsValidNPC(const FString& NPCName) const;
+
 protected:
-    // Map to store NPC data
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC")
     TMap<FString, FNPCData> NPCDatabase;
 
-    // Maximum relationship value
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
     float MaxRelationshipValue = 100.0f;
 
-    // Maximum dialogue history entries per NPC
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC")
     int32 MaxDialogueHistory = 20;
-
-private:
-    bool IsValidNPC(const FString& NPCName) const { return NPCDatabase.Contains(NPCName); }
 };

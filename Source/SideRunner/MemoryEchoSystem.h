@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -51,16 +49,16 @@ public:
     UFUNCTION(BlueprintPure, Category = "Memory")
     TArray<FMemoryData> GetStoredMemories() const { return StoredMemories; }
 
+    // Update playback function declaration
+    void UpdatePlayback(float DeltaTime);
+
 protected:
-    // Array to store recorded memories
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Memory")
     TArray<FMemoryData> StoredMemories;
 
-    // Current playback state
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Memory")
     bool bIsPlayingMemory;
 
-    // Maximum number of memories that can be stored
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Memory")
     int32 MaxMemories = 10;
 

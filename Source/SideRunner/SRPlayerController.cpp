@@ -49,9 +49,9 @@ void ASRPlayerController::MoveRight(float Value)
 
 void ASRPlayerController::Jump()
 {
-    if (ACharacter* Character = Cast<ACharacter>(GetPawn()))
+    if (ACharacter* LocalCharacter = Cast<ACharacter>(GetPawn()))  // Renamed variable
     {
-        Character->Jump();
+        LocalCharacter->Jump();
     }
 }
 
