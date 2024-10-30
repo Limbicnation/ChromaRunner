@@ -5,7 +5,7 @@
 #include "RunnerCharacter.generated.h"
 
 class UMemoryEchoSystem;
-class UNPCInteractionManager;
+// class UNPCInteractionManager;  // Commented out since we're not using it
 
 UCLASS()
 class SIDERUNNER_API ARunnerCharacter : public ACharacter
@@ -40,8 +40,8 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Core Systems")
     UMemoryEchoSystem* MemorySystem;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Core Systems")
-    UNPCInteractionManager* NPCManager;
+    // UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Core Systems")
+    // UNPCInteractionManager* NPCManager;  // Commented out
 
     float JumpZVelocity;
 
@@ -57,8 +57,8 @@ protected:
     UFUNCTION(BlueprintCallable, Category = "Memory")
     void RecordMemory(const FString& Content);
 
-    UFUNCTION(BlueprintCallable, Category = "NPC")
-    void InteractWithNPC(const FString& NPCName, const FString& DialogueText);
+    // UFUNCTION(BlueprintCallable, Category = "NPC")
+    // void InteractWithNPC(const FString& NPCName, const FString& DialogueText);  // Commented out
 
 public:
     void RestartLevel();

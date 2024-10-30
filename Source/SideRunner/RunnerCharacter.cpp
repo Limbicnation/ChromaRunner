@@ -3,7 +3,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "MemoryEchoSystem.h"
-#include "NPCInteractionManager.h"
+// #include "NPCInteractionManager.h"  // Commented out
 #include "Kismet/GameplayStatics.h"
 
 ARunnerCharacter::ARunnerCharacter()
@@ -26,7 +26,7 @@ ARunnerCharacter::ARunnerCharacter()
 
     // Create core systems
     MemorySystem = CreateDefaultSubobject<UMemoryEchoSystem>(TEXT("MemorySystem"));
-    NPCManager = CreateDefaultSubobject<UNPCInteractionManager>(TEXT("NPCManager"));
+    // NPCManager = CreateDefaultSubobject<UNPCInteractionManager>(TEXT("NPCManager"));  // Commented out
 
     // Set default values
     bCanDoubleJump = true;
@@ -40,7 +40,7 @@ ARunnerCharacter::ARunnerCharacter()
 void ARunnerCharacter::BeginPlay()
 {
     Super::BeginPlay();
-    
+
     if (GetCapsuleComponent())
     {
         GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &ARunnerCharacter::OnOverlapBegin);
@@ -114,6 +114,8 @@ void ARunnerCharacter::RecordMemory(const FString& Content)
     }
 }
 
+// Commented out InteractWithNPC function entirely
+/*
 void ARunnerCharacter::InteractWithNPC(const FString& NPCName, const FString& DialogueText)
 {
     if (NPCManager)
@@ -122,8 +124,5 @@ void ARunnerCharacter::InteractWithNPC(const FString& NPCName, const FString& Di
         {
             NPCManager->InitializeNPC(NPCName);
         }
-        NPCManager->AddDialogueEntry(NPCName, DialogueText);
-        // Update relationship based on interaction
-        NPCManager->UpdateRelationship(NPCName, 1.0f);
-    }
-}
+        NPCManager->AddDialogueEn
+*/
