@@ -1,0 +1,11 @@
+feat(core): Implement memory and NPC interaction systems
+
+- Add MemoryEchoSystem component for recording and playing back memories
+- Add NPCInteractionManager component for handling NPC relationships
+- Integrate both systems into RunnerCharacter for seamless gameplay
+- Add Blueprint-accessible functions for memory recording and NPC interaction
+
+The memory system allows recording and playback of player actions, while 
+the NPC system manages relationships and dialogue history. Both systems 
+are integrated as components in the RunnerCharacter class to maintain 
+compatibility with existing side-running mechanics.
