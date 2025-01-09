@@ -4,9 +4,6 @@
 #include "GameFramework/Character.h"
 #include "RunnerCharacter.generated.h"
 
-class UMemoryEchoSystem;
-// class UNPCInteractionManager;  // Commented out since we're not using it
-
 UCLASS()
 class SIDERUNNER_API ARunnerCharacter : public ACharacter
 {
@@ -36,29 +33,17 @@ public:
     UPROPERTY(EditAnywhere)
     float RotationRate = 180.0f;
 
-    // Core Systems
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Core Systems")
-    UMemoryEchoSystem* MemorySystem;
-
-    // UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Core Systems")
-    // UNPCInteractionManager* NPCManager;  // Commented out
-
     float JumpZVelocity;
 
 protected:
+    // Declare the Jump function here
     virtual void Jump() override;
+
     void MoveRight(float Value);
 
     // Handle death logic
     UFUNCTION(BlueprintImplementableEvent)
     void DeathOfPlayer();
-
-    // Core system interaction functions
-    UFUNCTION(BlueprintCallable, Category = "Memory")
-    void RecordMemory(const FString& Content);
-
-    // UFUNCTION(BlueprintCallable, Category = "NPC")
-    // void InteractWithNPC(const FString& NPCName, const FString& DialogueText);  // Commented out
 
 public:
     void RestartLevel();

@@ -1,40 +1,48 @@
 # General rule for all content files to use Git LFS
 Content/** filter=lfs diff=lfs merge=lfs -text
+
 # Specific rules for common asset types in Unreal Engine
 *.uasset filter=lfs diff=lfs merge=lfs -text
 *.umap filter=lfs diff=lfs merge=lfs -text
+
 # Images
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.tga filter=lfs diff=lfs merge=lfs -text
 *.psd filter=lfs diff=lfs merge=lfs -text
+
 # Audio
 *.wav filter=lfs diff=lfs merge=lfs -text
 *.mp3 filter=lfs diff=lfs merge=lfs -text
 *.ogg filter=lfs diff=lfs merge=lfs -text
 *.flac filter=lfs diff=lfs merge=lfs -text
+
 # Video
 *.mp4 filter=lfs diff=lfs merge=lfs -text
 *.avi filter=lfs diff=lfs merge=lfs -text
 *.mov filter=lfs diff=lfs merge=lfs -text
+
 # 3D Models
 *.fbx filter=lfs diff=lfs merge=lfs -text
 *.obj filter=lfs diff=lfs merge=lfs -text
 *.blend filter=lfs diff=lfs merge=lfs -text
+
 # Textures and Materials
 *.dds filter=lfs diff=lfs merge=lfs -text
 *.bmp filter=lfs diff=lfs merge=lfs -text
 *.uasset filter=lfs diff=lfs merge=lfs -text
 *.umap filter=lfs diff=lfs merge=lfs -text
+
 # Documents (optional)
 *.pdf filter=lfs diff=lfs merge=lfs -text
 *.doc filter=lfs diff=lfs merge=lfs -text
 *.docx filter=lfs diff=lfs merge=lfs -text
+
 # Shader files
 *.usf filter=lfs diff=lfs merge=lfs -text
 *.ush filter=lfs diff=lfs merge=lfs -text
+
 # Other Unreal Engine files
 *.ini filter=lfs diff=lfs merge=lfs -text
 *.uproject filter=lfs diff=lfs merge=lfs -text
-Config/*.ini filter=lfs diff=lfs merge=lfs -text
