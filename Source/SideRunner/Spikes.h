@@ -10,7 +10,9 @@ enum class EMovementType : uint8
     UpDown UMETA(DisplayName = "Up/Down"),
     LeftRight UMETA(DisplayName = "Left/Right"),
     FrontBack UMETA(DisplayName = "Front/Back"),
-    Static UMETA(DisplayName = "No Movement")
+    Static UMETA(DisplayName = "No Movement"),
+    Circular UMETA(DisplayName = "Circular"),
+    Zigzag UMETA(DisplayName = "Zigzag")
 };
 
 UCLASS()
@@ -40,6 +42,14 @@ public:
     // Enable or disable movement
     UFUNCTION(BlueprintCallable, Category = "Spikes")
     void SetMovementEnabled(bool bEnabled);
+    
+#if WITH_EDITOR
+    // Draw movement path for easier editing
+    void DrawDebugMovementPath();
+    
+    // Handle property changes in editor
+    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 public:
     // Components
@@ -84,6 +94,14 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
     float DamageCooldown;
     
+    // Whether spikes are triggered by proximity
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger")
+    bool bProximityTriggered;
+    
+    // Radius for proximity triggering
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger", meta = (EditCondition = "bProximityTriggered"))
+    float TriggerRadius;
+    
     // FX Properties
     
     // Sound to play when the player collides with the spikes
@@ -95,6 +113,9 @@ protected:
     virtual void BeginPlay() override;
 
 private:
+    // Last time damage was applied
+    float LastDamageTime;
+    
     // Apply damage to player with cooldown
     void ApplyDamageToPlayer(AActor* Player);
     
@@ -106,4 +127,10 @@ private:
     
     // Time until next damage can be applied
     float DamageTimer;
+    
+    // Whether spikes are currently triggered
+    bool bIsTriggered;
+    
+    // Current time for smooth oscillation-based movements
+    float CurrentTime;
 };
