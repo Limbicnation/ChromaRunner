@@ -60,7 +60,7 @@ void ASpikes::BeginPlay()
     if (ImpactEffect)
     {
         ImpactEffect->Deactivate();
-    }
+    } 
 
     // Reset damage timer
     DamageTimer = 0.0f;
