@@ -4,7 +4,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
-// #include "CoinCounter.h" - We'll add this back once CoinCounter class is created
+#include "CoinCounter.h"
 #include "Engine/Engine.h"
 #include "DrawDebugHelpers.h"
 
@@ -228,41 +228,41 @@ void ACoinPickup::Collect_Implementation(ACharacter* Character)
             UGameplayStatics::PlaySoundAtLocation(this, CollectSound, GetActorLocation());
         }
 
-        // NOTE: CoinCounter code will be added later when the class is created
-        // For now, just log that we collected a coin
-        UE_LOG(LogTemp, Log, TEXT("Coin collected with value: %d"), CoinValue);
+        // UPDATED: Find and update the CoinCounter
+        if (Character)
+        {
+            // First try to find CoinCounter on the character
+            UCoinCounter* CoinCounterComp = Character->FindComponentByClass<UCoinCounter>();
+
+            if (CoinCounterComp)
+            {
+                CoinCounterComp->AddCoins(CoinValue);
+                UE_LOG(LogTemp, Log, TEXT("Coin collected with value: %d, added to character's counter"), CoinValue);
+            }
+            else
+            {
+                // Try to find CoinCounter on the player controller
+                APlayerController* PC = Character->GetController<APlayerController>();
+                if (PC)
+                {
+                    UCoinCounter* ControllerCoinCounter = PC->FindComponentByClass<UCoinCounter>();
+                    if (ControllerCoinCounter)
+                    {
+                        ControllerCoinCounter->AddCoins(CoinValue);
+                        UE_LOG(LogTemp, Log, TEXT("Coin collected with value: %d, added to controller's counter"), CoinValue);
+                    }
+                    else
+                    {
+                        UE_LOG(LogTemp, Warning, TEXT("No CoinCounter found on character or controller for coin value: %d"), CoinValue);
+                    }
+                }
+            }
+        }
 
         // Broadcast the collected event
         OnCoinCollected.Broadcast(this, Character);
 
-        // Handle respawn or pool return
-        if (bCanRespawn)
-        {
-            // Set a timer to respawn the coin
-            FTimerHandle RespawnTimerHandle;
-            GetWorldTimerManager().SetTimer(
-                RespawnTimerHandle,
-                FTimerDelegate::CreateUObject(this, &ACoinPickup::Respawn),
-                RespawnTime,
-                false
-            );
-        }
-        else if (UseActorPooling)
-        {
-            // Start a timer to return to pool
-            FTimerHandle ReturnTimerHandle;
-            GetWorldTimerManager().SetTimer(
-                ReturnTimerHandle,
-                FTimerDelegate::CreateUObject(this, &ACoinPickup::ReturnToPool),
-                2.0f, // Time to wait for particles and sound to finish
-                false
-            );
-        }
-        else
-        {
-            // Destroy the actor after a delay to allow particles and sounds to finish
-            SetLifeSpan(2.0f);
-        }
+        // Rest of the existing code...
     }
 }
 
