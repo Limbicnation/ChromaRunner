@@ -13,6 +13,23 @@ class SIDERUNNER_API UCoinCounter : public UActorComponent
 public:    
     // Sets default values for this component's properties
     UCoinCounter();
+    
+    // Track which coins have been collected to prevent double-counting
+    UPROPERTY()
+    TSet<AActor*> CollectedCoins;
+    
+    // Track if a coin is currently being processed (prevents recursive additions)
+    UPROPERTY()
+    bool bProcessingCoin;
+    
+    // Method to check if a coin has already been counted
+    UFUNCTION(BlueprintCallable, Category = "Coins")
+    bool HasCollectedCoin(AActor* CoinActor) const;
+    
+    // Method to mark a coin as collected
+    UFUNCTION(BlueprintCallable, Category = "Coins")
+    void MarkCoinAsCollected(AActor* CoinActor);
+    
 protected:
     // Called when the game starts
     virtual void BeginPlay() override;

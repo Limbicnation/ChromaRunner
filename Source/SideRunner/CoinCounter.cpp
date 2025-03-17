@@ -10,6 +10,7 @@ UCoinCounter::UCoinCounter()
 
     // Initialize coin count to zero
     CoinCount = 0;
+    bProcessingCoin = false;
 
     // Default max coins value
     MaxCoins = 100;
@@ -25,6 +26,17 @@ UCoinCounter::UCoinCounter()
 void UCoinCounter::BeginPlay()
 {
     Super::BeginPlay();
+
+    // HOTFIX: Force reset at game start
+    CoinCount = 0;
+    CollectedCoins.Empty();
+    bProcessingCoin = false;
+
+    // Log initial state - helps with debugging
+    UE_LOG(LogTemp, Log, TEXT("CoinCounter RESET to %d coins"), CoinCount);
+
+    // Broadcast initial value to update UI
+    OnCoinsUpdated.Broadcast(CoinCount);
 
     // Count total coins in the level if auto-counting is enabled
     if (bAutoCountCoinsInLevel)
@@ -45,14 +57,37 @@ void UCoinCounter::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
+bool UCoinCounter::HasCollectedCoin(AActor* CoinActor) const
+{
+    return CoinActor && CollectedCoins.Contains(CoinActor);
+}
+
+void UCoinCounter::MarkCoinAsCollected(AActor* CoinActor)
+{
+    if (CoinActor)
+    {
+        CollectedCoins.Add(CoinActor);
+        UE_LOG(LogTemp, Log, TEXT("Marked coin %s as collected"), *CoinActor->GetName());
+    }
+}
+
 void UCoinCounter::AddCoins(int32 Amount)
 {
-    if (Amount <= 0)
+    // HOTFIX: Prevent recursive or concurrent calls
+    if (bProcessingCoin || Amount <= 0)
     {
+        UE_LOG(LogTemp, Warning, TEXT("Prevented duplicate coin add! Processing: %d, Amount: %d"),
+            bProcessingCoin ? 1 : 0, Amount);
         return;
     }
 
+    // Set processing flag
+    bProcessingCoin = true;
+
     CoinCount += Amount;
+
+    // Debug log
+    UE_LOG(LogTemp, Log, TEXT("Added %d coins. New total: %d"), Amount, CoinCount);
 
     // If we're using persistent coins, update and save them
     if (bPersistentCoins)
@@ -80,11 +115,15 @@ void UCoinCounter::AddCoins(int32 Amount)
             OnCoinMilestoneReached.Broadcast(Milestone);
         }
     }
+
+    // Clear processing flag
+    bProcessingCoin = false;
 }
 
 void UCoinCounter::ResetCoins()
 {
     CoinCount = 0;
+    CollectedCoins.Empty();
 
     // Broadcast the event with the new coin count
     OnCoinsUpdated.Broadcast(CoinCount);
