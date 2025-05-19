@@ -4,6 +4,18 @@
 #include "GameFramework/Character.h"
 #include "RunnerCharacter.generated.h"
 
+// Define character animation states
+UENUM(BlueprintType)
+enum class ECharacterState : uint8
+{
+    Idle UMETA(DisplayName = "Idle"),
+    Running UMETA(DisplayName = "Running"),
+    Jumping UMETA(DisplayName = "Jumping"),
+    Falling UMETA(DisplayName = "Falling"),
+    DoubleJumping UMETA(DisplayName = "DoubleJumping"),
+    Dead UMETA(DisplayName = "Dead")
+};
+
 UCLASS()
 class SIDERUNNER_API ARunnerCharacter : public ACharacter
 {
@@ -19,7 +31,47 @@ public:
     virtual void Tick(float DeltaTime) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-    // Declare the DoubleJump function
+    // Animation State System
+    
+    // Current animation state of the character
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+    ECharacterState CurrentState;
+    
+    // Last state before the current one (for transitions)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation")
+    ECharacterState PreviousState;
+    
+    // Function to set the character's animation state
+    UFUNCTION(BlueprintCallable, Category = "Animation")
+    void SetCharacterState(ECharacterState NewState);
+    
+    // Blueprint event that fires when the character state changes
+    // Using different parameter names to avoid shadowing
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
+    void OnCharacterStateChanged(ECharacterState NewCharacterState, ECharacterState OldCharacterState);
+    
+    // Function to update the sprite based on state - implemented in Blueprint
+    UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
+    void UpdateCharacterSprite();
+    
+    // Reference to the visual component (Sprite or Mesh) - set in Blueprint
+    // Works with any mesh component type (Skeletal Mesh, Static Mesh, or Paper2D Flipbook)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+    class UMeshComponent* CharacterVisual;
+    
+    // Blueprint-accessible function to get the current state
+    UFUNCTION(BlueprintPure, Category = "Animation")
+    ECharacterState GetCharacterState() const { return CurrentState; }
+    
+    // Check if character is in a specific state
+    UFUNCTION(BlueprintPure, Category = "Animation")
+    bool IsInState(ECharacterState StateToCheck) const { return CurrentState == StateToCheck; }
+    
+    // Get time spent in current state (useful for transitions)
+    UFUNCTION(BlueprintPure, Category = "Animation")
+    float GetTimeInCurrentState() const { return StateTimer; }
+
+    // Jump related properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
     bool bCanDoubleJump;
 
@@ -27,6 +79,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
     float DoubleJumpZVelocity;
 
+    // Camera component
     UPROPERTY(VisibleAnywhere)
     class UCameraComponent* SideViewCamera;
 
@@ -36,7 +89,7 @@ public:
     float JumpZVelocity;
 
 protected:
-    // Declare the Jump function here
+    // Override Jump function
     virtual void Jump() override;
 
     void MoveRight(float Value);
@@ -44,6 +97,9 @@ protected:
     // Handle death logic
     UFUNCTION(BlueprintImplementableEvent)
     void DeathOfPlayer();
+    
+    // Update the animation state based on character movement
+    void UpdateAnimationState();
 
 public:
     void RestartLevel();
@@ -65,4 +121,7 @@ private:
     bool CanMove;
     bool CanJump;
     bool CanDoubleJump;
+    
+    // Timer to track how long we've been in the current state
+    float StateTimer;
 };

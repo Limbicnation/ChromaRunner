@@ -8,6 +8,12 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "WallSpike.h"
 #include "Engine.h"
+#include "Kismet/GameplayStatics.h"
+#include "Spikes.h"
+
+// You need Paper2D plugin for this. Add it to your project if needed.
+// If you're not using Paper2D, you can remove this include and work with USkeletalMeshComponent instead
+// #include "PaperFlipbookComponent.h"
 
 const float FALL_THRESHOLD = -1000.0f;
 
@@ -48,6 +54,14 @@ ARunnerCharacter::ARunnerCharacter()
     TempPos = GetActorLocation();
     // The Camera height position
     zPosition = TempPos.Z + 150.0f;
+
+    // Initialize animation state variables
+    CurrentState = ECharacterState::Idle;
+    PreviousState = ECharacterState::Idle;
+    StateTimer = 0.0f;
+
+    // Set default jump properties
+    DoubleJumpZVelocity = 800.0f;
 }
 
 // Called when the game starts or when spawned
@@ -61,6 +75,9 @@ void ARunnerCharacter::BeginPlay()
     CanMove = true;
     CanJump = true;
     bCanDoubleJump = true; // set CanDoubleJump to true by default
+
+    // Initialize the character in idle state
+    SetCharacterState(ECharacterState::Idle);
 }
 
 // Called every frame
@@ -78,6 +95,92 @@ void ARunnerCharacter::Tick(float DeltaTime)
     {
         RestartLevel();
     }
+
+    // Update the animation state based on movement
+    UpdateAnimationState();
+
+    // Increment state timer
+    StateTimer += DeltaTime;
+}
+
+void ARunnerCharacter::UpdateAnimationState()
+{
+    // Skip if the character is dead
+    if (CurrentState == ECharacterState::Dead)
+        return;
+
+    // Get the character movement component
+    UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+    if (!MovementComponent)
+        return;
+
+    // Determine the character state based on movement
+    ECharacterState NewState = CurrentState;
+
+    // Check if falling
+    if (MovementComponent->IsFalling())
+    {
+        // Check if rising or falling
+        if (GetVelocity().Z > 0)
+        {
+            if (CurrentState == ECharacterState::DoubleJumping)
+            {
+                // Keep double jumping state
+                NewState = ECharacterState::DoubleJumping;
+            }
+            else
+            {
+                // Regular jump
+                NewState = ECharacterState::Jumping;
+            }
+        }
+        else
+        {
+            NewState = ECharacterState::Falling;
+        }
+    }
+    // Check if running
+    else if (FMath::Abs(GetVelocity().Y) > 10.0f)
+    {
+        NewState = ECharacterState::Running;
+    }
+    // Otherwise idle
+    else
+    {
+        NewState = ECharacterState::Idle;
+    }
+
+    // If state changed, update it
+    if (NewState != CurrentState)
+    {
+        SetCharacterState(NewState);
+    }
+}
+
+void ARunnerCharacter::SetCharacterState(ECharacterState NewState)
+{
+    // Store previous state before changing current
+    ECharacterState OldState = CurrentState;
+
+    // Set new state
+    CurrentState = NewState;
+
+    // Reset state timer
+    StateTimer = 0.0f;
+
+    // Log state change
+    UE_LOG(LogTemp, Verbose, TEXT("Character state changed from %s to %s"),
+        *UEnum::GetValueAsString(OldState),
+        *UEnum::GetValueAsString(CurrentState));
+
+    // The previous state is stored in the class member
+    PreviousState = OldState;
+
+    // Call the blueprint event to handle visual updates
+    OnCharacterStateChanged(NewState, OldState);
+
+    // Update the sprite animation
+    UpdateCharacterSprite();
 }
 
 // Called to bind functionality to input
@@ -97,14 +200,20 @@ void ARunnerCharacter::Jump()
     if (CanJump && !GetCharacterMovement()->IsFalling())
     {
         // First jump
-        Super::Jump();
+        ACharacter::Jump();
         CanDoubleJump = true;
+
+        // Set jumping state
+        SetCharacterState(ECharacterState::Jumping);
     }
     else if (CanDoubleJump)
     {
         // Double jump
         LaunchCharacter(FVector(0, 0, DoubleJumpZVelocity), false, true);
         CanDoubleJump = false;
+
+        // Set double jumping state
+        SetCharacterState(ECharacterState::DoubleJumping);
     }
 }
 
@@ -114,6 +223,22 @@ void ARunnerCharacter::MoveRight(float Value)
     {
         FVector Direction = FVector(0.0f, 1.0f, 0.0f); // Keep movement only along the Y-axis
         AddMovementInput(Direction, Value);
+
+        // Update animation state based on movement
+        if (FMath::Abs(Value) > 0.1f && !GetCharacterMovement()->IsFalling())
+        {
+            if (CurrentState != ECharacterState::Running)
+            {
+                SetCharacterState(ECharacterState::Running);
+            }
+        }
+        else if (FMath::Abs(Value) < 0.1f && !GetCharacterMovement()->IsFalling())
+        {
+            if (CurrentState != ECharacterState::Idle)
+            {
+                SetCharacterState(ECharacterState::Idle);
+            }
+        }
     }
 }
 
@@ -135,6 +260,9 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
         // Check if we collide with either Wall or Spike Actor
         if (WallSpike || Spike)
         {
+            // Set character to dead state
+            SetCharacterState(ECharacterState::Dead);
+
             // get the mesh and deactivate it
             GetMesh()->Deactivate();
             // Set the visibility of the mesh to false
