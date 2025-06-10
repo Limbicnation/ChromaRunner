@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "PlayerHealthComponent.h"
 #include "RunnerCharacter.generated.h"
 
 // Define character animation states
@@ -87,6 +88,32 @@ public:
     float RotationRate = 180.0f;
 
     float JumpZVelocity;
+    
+    // Health System
+    
+    // Health component to manage player health
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
+    UPlayerHealthComponent* HealthComponent;
+    
+    // Blueprint event that fires when health changes
+    UFUNCTION(BlueprintImplementableEvent, Category = "Health")
+    void OnHealthChanged(int32 CurrentHealth, int32 MaxHealth);
+    
+    // Blueprint event that fires when player takes damage
+    UFUNCTION(BlueprintImplementableEvent, Category = "Health")
+    void OnTakeDamage(int32 DamageAmount, EDamageType DamageType);
+    
+    // Process damage from a damage actor
+    UFUNCTION(BlueprintCallable, Category = "Health")
+    void ProcessDamage(float DamageAmount, AActor* DamageCauser);
+    
+    // Handle game over from health component
+    UFUNCTION()
+    void HandlePlayerDeath(int32 TotalHitsTaken);
+    
+    // Check if player is dead based on health
+    UFUNCTION(BlueprintPure, Category = "Health")
+    bool IsDead() const;
 
 protected:
     // Override Jump function
@@ -113,6 +140,10 @@ public:
         bool bFromSweep,
         const FHitResult& SweepResult
     );
+    
+    // Override TakeDamage to integrate with health component
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
+        class AController* EventInstigator, AActor* DamageCauser) override;
 
 private:
     float zPosition;

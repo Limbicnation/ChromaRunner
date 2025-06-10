@@ -10,6 +10,7 @@
 #include "Engine.h"
 #include "Kismet/GameplayStatics.h"
 #include "Spikes.h"
+#include "PlayerHealthComponent.h"
 
 // You need Paper2D plugin for this. Add it to your project if needed.
 // If you're not using Paper2D, you can remove this include and work with USkeletalMeshComponent instead
@@ -62,6 +63,9 @@ ARunnerCharacter::ARunnerCharacter()
 
     // Set default jump properties
     DoubleJumpZVelocity = 800.0f;
+
+    // Create and set up the health component
+    HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -78,6 +82,14 @@ void ARunnerCharacter::BeginPlay()
 
     // Initialize the character in idle state
     SetCharacterState(ECharacterState::Idle);
+
+    // Bind health events
+    if (HealthComponent)
+    {
+        HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
+        HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
+        HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+    }
 }
 
 // Called every frame
@@ -93,6 +105,11 @@ void ARunnerCharacter::Tick(float DeltaTime)
     // Check for falling beyond threshold
     if (GetActorLocation().Z < FALL_THRESHOLD)
     {
+        // Environmental hazard damage - falling off the map
+        if (HealthComponent)
+        {
+            HealthComponent->TakeDamage(HealthComponent->GetCurrentHealth(), EDamageType::EnvironmentalHazard);
+        }
         RestartLevel();
     }
 
@@ -197,6 +214,10 @@ void ARunnerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void ARunnerCharacter::Jump()
 {
+    // Don't allow jump if dead
+    if (IsDead())
+        return;
+
     if (CanJump && !GetCharacterMovement()->IsFalling())
     {
         // First jump
@@ -219,6 +240,10 @@ void ARunnerCharacter::Jump()
 
 void ARunnerCharacter::MoveRight(float Value)
 {
+    // Don't allow movement if dead
+    if (IsDead())
+        return;
+
     if (CanMove)
     {
         FVector Direction = FVector(0.0f, 1.0f, 0.0f); // Keep movement only along the Y-axis
@@ -260,26 +285,106 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
         // Check if we collide with either Wall or Spike Actor
         if (WallSpike || Spike)
         {
-            // Set character to dead state
-            SetCharacterState(ECharacterState::Dead);
+            // Process damage from the spike
+            if (HealthComponent && !HealthComponent->IsInvulnerable())
+            {
+                // Determine damage amount and type
+                float damageAmount = 0.0f;
 
-            // get the mesh and deactivate it
-            GetMesh()->Deactivate();
-            // Set the visibility of the mesh to false
-            GetMesh()->SetVisibility(false);
-            // disable movement input
-            CanMove = false;
-            // disable Jump input
-            CanJump = false;
-            CanDoubleJump = false;
-            JumpZVelocity = 0.0f;
+                if (Spike)
+                {
+                    // Use the damage amount specified by the spike
+                    damageAmount = Spike->DamageAmount;
+                }
+                else if (WallSpike)
+                {
+                    // Use a default damage amount for wall spikes
+                    damageAmount = 10.0f;
+                }
 
-            // Called in character blueprint
-            DeathOfPlayer();
+                // Apply damage
+                HealthComponent->TakeDamage(damageAmount, EDamageType::Spikes);
 
-            // restart the Level 
-            FTimerHandle UnusedHandle;
-            GetWorldTimerManager().SetTimer(UnusedHandle, this, &ARunnerCharacter::RestartLevel, 2.0f, false);
+                // Check if the player is dead after taking damage
+                if (IsDead())
+                {
+                    HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
+                }
+            }
         }
     }
+}
+
+// Process damage from a damage source
+void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
+{
+    if (!HealthComponent || HealthComponent->IsInvulnerable())
+        return;
+
+    // Determine damage type based on the causer
+    EDamageType damageType = EDamageType::EnvironmentalHazard;
+
+    // Check what type of actor caused the damage
+    if (Cast<ASpikes>(DamageCauser))
+    {
+        damageType = EDamageType::Spikes;
+    }
+    // Add more damage type checks here as you add more enemy types
+
+    // Apply the damage
+    HealthComponent->TakeDamage(DamageAmount, damageType);
+
+    // Check if the player is dead after taking damage
+    if (IsDead())
+    {
+        HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
+    }
+}
+
+// Check if the player is dead
+bool ARunnerCharacter::IsDead() const
+{
+    return HealthComponent ? (HealthComponent->GetCurrentHealth() <= 0) : false;
+}
+
+// Handle player death from health component
+void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
+{
+    // Set character to dead state if not already
+    if (CurrentState != ECharacterState::Dead)
+    {
+        SetCharacterState(ECharacterState::Dead);
+
+        // get the mesh and deactivate it
+        GetMesh()->Deactivate();
+        // Set the visibility of the mesh to false
+        GetMesh()->SetVisibility(false);
+        // disable movement input
+        CanMove = false;
+        // disable Jump input
+        CanJump = false;
+        CanDoubleJump = false;
+        JumpZVelocity = 0.0f;
+
+        // Log death information
+        UE_LOG(LogTemp, Log, TEXT("Player died after taking %d hits."), TotalHitsTaken);
+
+        // Called in character blueprint
+        DeathOfPlayer();
+
+        // restart the Level after a delay
+        FTimerHandle UnusedHandle;
+        GetWorldTimerManager().SetTimer(UnusedHandle, this, &ARunnerCharacter::RestartLevel, 2.0f, false);
+    }
+}
+
+// Override TakeDamage to use our health component
+float ARunnerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+    const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+    // Process damage through our health component
+    ProcessDamage(ActualDamage, DamageCauser);
+
+    return ActualDamage;
 }
