@@ -277,40 +277,23 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
     const FHitResult& SweepResult)
 {
-    if (OtherActor != nullptr)
+    if (OtherActor != nullptr && !IsDead())
     {
         AWallSpike* WallSpike = Cast<AWallSpike>(OtherActor);
         ASpikes* Spike = Cast<ASpikes>(OtherActor);
 
-        // Check if we collide with either Wall or Spike Actor
-        if (WallSpike || Spike)
+        // Handle WallSpike (instant death) vs regular Spikes (incremental damage) differently
+        if (WallSpike)
         {
-            // Process damage from the spike
-            if (HealthComponent && !HealthComponent->IsInvulnerable())
-            {
-                // Determine damage amount and type
-                float damageAmount = 0.0f;
-
-                if (Spike)
-                {
-                    // Use the damage amount specified by the spike
-                    damageAmount = Spike->DamageAmount;
-                }
-                else if (WallSpike)
-                {
-                    // Use a default damage amount for wall spikes
-                    damageAmount = 10.0f;
-                }
-
-                // Apply damage
-                HealthComponent->TakeDamage(damageAmount, EDamageType::Spikes);
-
-                // Check if the player is dead after taking damage
-                if (IsDead())
-                {
-                    HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
-                }
-            }
+            // WallSpike handles its own instant death logic
+            UE_LOG(LogTemp, Warning, TEXT("Player touched WallSpike - should trigger instant death!"));
+            // WallSpike will handle the death in its own Tick/overlap logic
+        }
+        else if (Spike)
+        {
+            // Regular spikes handle their own incremental damage through overlap events
+            UE_LOG(LogTemp, Log, TEXT("Player touched regular Spikes - incremental damage will be applied"));
+            // Spikes will handle the incremental damage in their own overlap logic
         }
     }
 }
