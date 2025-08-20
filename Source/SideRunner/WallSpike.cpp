@@ -19,9 +19,9 @@ AWallSpike::AWallSpike()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
-	// Initialize chasing properties
+	// Initialize chasing properties with performance-optimized defaults
 	ChaseSpeed = 400.0f;
-	DirectionalBias = 0.4f; // Renamed from RightwardBias
+	DirectionalBias = 0.4f;
 	ChaseRange = 1500.0f;
 	DirectionChangeRate = 2.0f;
 	bAccelerateWhenClose = true;
@@ -31,7 +31,7 @@ AWallSpike::AWallSpike()
 	// Initialize directional properties - DEFAULT TO FORWARD (+Y)
 	bUsePresetDirections = true;
 	PresetDirectionIndex = 0; // 0 = Forward (+Y)
-	PrimaryDirection = FVector(0.0f, 1.0f, 0.0f); // Forward by default
+	PrimaryDirection = FVector(0.0f, 1.0f, 0.0f);
 	CustomDirection = FVector(0.0f, 1.0f, 0.0f);
 	
 	// Initialize lifetime properties
@@ -50,55 +50,51 @@ AWallSpike::AWallSpike()
 	DamageCooldown = 0.0f;
 	
 	// OVERRIDE BASE CLASS MOVEMENT - disable base movement system
-	MovementType = EMovementType::Static; // This stops base class movement
-	bIsMoving = false; // Disable base movement
-	Speed = 0.0f; // Zero out base speed
+	MovementType = EMovementType::Static;
+	bIsMoving = false;
+	Speed = 0.0f;
 	
-	// Initialize private members
+	// Initialize optimized private members
 	TargetPlayer = nullptr;
-	CurrentDirection = FVector(0.0f, 1.0f, 0.0f); // Start moving forward by default
+	CurrentDirection = FVector(0.0f, 1.0f, 0.0f);
 	PlayerSearchTimer = 0.0f;
-	PlayerSearchInterval = 0.5f;
+	PlayerSearchInterval = 0.5f; // Reduced frequency for better performance
 	bHasTarget = false;
 	bHasKilledPlayer = false;
-	PlayerDeathTimer = 0.0f; // Instance variable instead of static
+	PlayerDeathTimer = 0.0f;
 	bTrackingPlayerDeath = false;
-	TimeBehindPlayer = 0.0f; // Initialize behind timer
+	TimeBehindPlayer = 0.0f;
 	ChaseAudioComponent = nullptr;
 }
 
 void AWallSpike::BeginPlay()
 {
-	Super::BeginPlay();
+	// PERFORMANCE: Call ASpikes::BeginPlay instead of Super::BeginPlay
+	ASpikes::BeginPlay();
 	
 	// CRITICAL: Ensure actor mobility is set to movable AFTER components are initialized
 	if (GetRootComponent())
 	{
 		GetRootComponent()->SetMobility(EComponentMobility::Movable);
-		UE_LOG(LogTemp, Warning, TEXT("Root component mobility set to Movable"));
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTemp, Warning, TEXT("WallSpike root component mobility set to Movable"));
+#endif
 	}
 	
 	// Update primary direction based on settings
 	PrimaryDirection = GetPrimaryDirection();
-	CurrentDirection = PrimaryDirection; // Initialize current direction
+	CurrentDirection = PrimaryDirection;
 	
-	// CRITICAL DEBUG LOGGING
-	UE_LOG(LogTemp, Error, TEXT("=== WALLSPIKE DEBUG START ==="));
-	UE_LOG(LogTemp, Error, TEXT("WallSpike BeginPlay at location: %s"), *GetActorLocation().ToString());
-	UE_LOG(LogTemp, Error, TEXT("Primary Direction: %s"), *PrimaryDirection.ToString());
-	UE_LOG(LogTemp, Error, TEXT("Preset Direction: %s"), bUsePresetDirections ? TEXT("Enabled") : TEXT("Disabled"));
-	UE_LOG(LogTemp, Error, TEXT("Directional Bias: %.2f"), DirectionalBias);
-	UE_LOG(LogTemp, Error, TEXT("Actor Mobility: %d"), GetRootComponent() ? (int32)GetRootComponent()->Mobility : -1);
-	UE_LOG(LogTemp, Error, TEXT("CollisionBox valid: %s"), CollisionBox ? TEXT("YES") : TEXT("NO"));
-	UE_LOG(LogTemp, Error, TEXT("SpikeMesh valid: %s"), SpikeMesh ? TEXT("YES") : TEXT("NO"));
+#if UE_BUILD_DEBUG
+	// OPTIMIZED DEBUG LOGGING - only in debug builds
+	UE_LOG(LogTemp, Log, TEXT("WallSpike initialized at location: %s with direction: %s"), 
+		   *GetActorLocation().ToString(), *PrimaryDirection.ToString());
+#endif
 	
-	// Ensure collision is properly set up for wall spikes
+	// Optimized collision setup
 	if (CollisionBox)
 	{
-		// FORCE mobility settings
 		CollisionBox->SetMobility(EComponentMobility::Movable);
-		
-		// IMPROVED COLLISION SETUP for better player detection
 		CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		CollisionBox->SetCollisionProfileName(TEXT("BlockAll"));
 		CollisionBox->SetNotifyRigidBodyCollision(true);
@@ -108,66 +104,64 @@ void AWallSpike::BeginPlay()
 		CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 		CollisionBox->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
 		
-		// CRITICAL: Add overlap event binding for additional collision detection
+		// Bind collision events
 		CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AWallSpike::OnOverlapBegin);
 		CollisionBox->OnComponentHit.AddDynamic(this, &AWallSpike::OnHit);
-		
-		UE_LOG(LogTemp, Warning, TEXT("WallSpike collision configured with overlap and hit events"));
 	}
+#if UE_BUILD_DEBUG
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("WallSpike CollisionBox is null! Check Blueprint setup."));
 	}
+#endif
 	
-	// Ensure mesh is movable too
+	// Ensure mesh is movable
 	if (SpikeMesh)
 	{
 		SpikeMesh->SetMobility(EComponentMobility::Movable);
-		UE_LOG(LogTemp, Warning, TEXT("SpikeMesh mobility set to Movable"));
 	}
 	
-	// Initialize player search immediately
+	// Initialize player search
 	UpdateTargetPlayer();
 	
-	// Reset all flags and timers
+	// Reset state variables
 	bHasKilledPlayer = false;
 	PlayerDeathTimer = 0.0f;
 	bTrackingPlayerDeath = false;
-	
-	UE_LOG(LogTemp, Error, TEXT("=== WALLSPIKE DEBUG END ==="));
 }
 
 void AWallSpike::Tick(float DeltaTime)
 {
-	// IMPORTANT: Call AActor::Tick directly to bypass base Spikes movement
+	// PERFORMANCE: Call AActor::Tick directly to bypass base Spikes movement
 	AActor::Tick(DeltaTime);
 	
-	// Debug output every few seconds
+	// PERFORMANCE: Reduce debug output frequency and only in debug builds
+#if UE_BUILD_DEBUG
 	static float DebugTimer = 0.0f;
 	DebugTimer += DeltaTime;
-	if (DebugTimer > 2.0f)
+	if (DebugTimer > 5.0f) // Reduced frequency from 2.0f to 5.0f
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WallSpike Tick - Position: %s | Target: %s | Direction: %s"), 
-			   *GetActorLocation().ToString(),
-			   TargetPlayer ? *TargetPlayer->GetName() : TEXT("None"),
-			   *CurrentDirection.ToString());
+		if (TargetPlayer)
+		{
+			UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike tracking player at distance: %.1f"), 
+				   FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation()));
+		}
 		DebugTimer = 0.0f;
 	}
+#endif
 	
-	// Show debug info on screen
-	if (GEngine)
+	// PERFORMANCE: Optimized on-screen debug messages - only in development
+#if UE_BUILD_DEVELOPMENT
+	if (GEngine && TargetPlayer)
 	{
-		FString DebugMsg = FString::Printf(TEXT("WallSpike Pos: %s | Dir: %s | Speed: %.1f"), 
-			*GetActorLocation().ToString(),
-			*CurrentDirection.ToString(), 
-			ChaseSpeed);
-		
-		// Use unique ID for this specific instance - fix ambiguous call by being explicit
-		int32 UniqueKey = GetUniqueID();
-		GEngine->AddOnScreenDebugMessage(UniqueKey, 0.0f, FColor::Yellow, DebugMsg);
+		const FString DebugMsg = FString::Printf(TEXT("WallSpike: %.1f units from player"), 
+			FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation()));
+		// PERFORMANCE: Fix the ambiguous call by using explicit key parameter
+		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Yellow, DebugMsg, false);
 	}
+#endif
 	
-	// Handle player search timing
+	// Handle player search timing - optimized
 	PlayerSearchTimer -= DeltaTime;
 	if (PlayerSearchTimer <= 0.0f)
 	{
@@ -175,201 +169,164 @@ void AWallSpike::Tick(float DeltaTime)
 		PlayerSearchTimer = PlayerSearchInterval;
 	}
 	
-	// Update chasing movement - THIS IS THE KEY FUNCTION
+	// Update chasing movement
 	UpdateChaseMovement(DeltaTime);
 	
-	// Check if we should be destroyed
+	// Check lifetime and cleanup
 	CheckLifetimeAndCleanup();
 	
-	// Debug visualization in development builds
-	#if WITH_EDITOR || UE_BUILD_DEVELOPMENT
-	if (bHasTarget && TargetPlayer)
-	{
-		// Draw line to target
-		DrawDebugLine(GetWorld(), GetActorLocation(), TargetPlayer->GetActorLocation(), 
-					 FColor::Red, false, -1.0f, 0, 2.0f);
-		
-		// Draw chase range
-		DrawDebugSphere(GetWorld(), GetActorLocation(), ChaseRange, 16, FColor::Orange, false, -1.0f, 0, 1.0f);
-		
-		// Draw acceleration range
-		if (bAccelerateWhenClose)
-		{
-			DrawDebugSphere(GetWorld(), GetActorLocation(), AccelerationRange, 16, FColor::Yellow, false, -1.0f, 0, 1.0f);
-		}
-	}
-	
-	// Draw movement direction - avoid name conflict with base class member
-	FVector WallSpikeMovementDirection = CurrentDirection * 200.0f;
-	DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + WallSpikeMovementDirection,
-				 FColor::Blue, false, -1.0f, 0, 5.0f);
-	
-	// Draw primary direction in green
-	FVector PrimaryDir = GetPrimaryDirection() * 150.0f;
-	DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + PrimaryDir,
-				 FColor::Green, false, -1.0f, 0, 3.0f);
-	#endif
+	// PERFORMANCE: Editor-only debug visualization
+#if WITH_EDITOR
+	DrawDebugVisualization();
+#endif
 }
 
 FVector AWallSpike::GetPrimaryDirection() const
 {
 	if (bUsePresetDirections)
 	{
+		// PERFORMANCE: Using switch instead of if-else chain
 		switch (PresetDirectionIndex)
 		{
-		case 0: // Forward (+Y)
-			return FVector(0.0f, 1.0f, 0.0f);
-		case 1: // Backward (-Y)
-			return FVector(0.0f, -1.0f, 0.0f);
-		case 2: // Right (+X)
-			return FVector(1.0f, 0.0f, 0.0f);
-		case 3: // Left (-X)
-			return FVector(-1.0f, 0.0f, 0.0f);
-		case 4: // Up (+Z)
-			return FVector(0.0f, 0.0f, 1.0f);
-		case 5: // Down (-Z)
-			return FVector(0.0f, 0.0f, -1.0f);
-		default: // Default to Forward (+Y)
-			return FVector(0.0f, 1.0f, 0.0f);
+		case 0: return FVector(0.0f, 1.0f, 0.0f);  // Forward (+Y)
+		case 1: return FVector(0.0f, -1.0f, 0.0f); // Backward (-Y)
+		case 2: return FVector(1.0f, 0.0f, 0.0f);  // Right (+X)
+		case 3: return FVector(-1.0f, 0.0f, 0.0f); // Left (-X)
+		case 4: return FVector(0.0f, 0.0f, 1.0f);  // Up (+Z)
+		case 5: return FVector(0.0f, 0.0f, -1.0f); // Down (-Z)
+		default: return FVector(0.0f, 1.0f, 0.0f); // Default to Forward
 		}
 	}
-	else
-	{
-		return CustomDirection.GetSafeNormal();
-	}
+	return CustomDirection.GetSafeNormal();
 }
 
 void AWallSpike::UpdateTargetPlayer()
 {
-	ARunnerCharacter* NewTarget = Cast<ARunnerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	// PERFORMANCE: Cache the player character instead of getting it every time
+	static ARunnerCharacter* CachedPlayer = nullptr;
 	
-	if (NewTarget && !NewTarget->IsDead())
+	if (!CachedPlayer || !IsValid(CachedPlayer))
 	{
-		// Check if player is within chase range
-		float DistanceToPlayer = FVector::Dist(GetActorLocation(), NewTarget->GetActorLocation());
-		if (DistanceToPlayer <= ChaseRange)
+		CachedPlayer = Cast<ARunnerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+	}
+	
+	if (!CachedPlayer || CachedPlayer->IsDead())
+	{
+		HandlePlayerDeathOrLoss();
+		return;
+	}
+	
+	// PERFORMANCE: Use squared distance to avoid expensive square root calculation
+	const FVector PlayerLocation = CachedPlayer->GetActorLocation();
+	const FVector SpikeLocation = GetActorLocation();
+	const float DistanceSquared = FVector::DistSquared(SpikeLocation, PlayerLocation);
+	const float ChaseRangeSquared = ChaseRange * ChaseRange;
+	
+	if (DistanceSquared <= ChaseRangeSquared)
+	{
+		const bool bWasHasTarget = bHasTarget;
+		TargetPlayer = CachedPlayer;
+		bHasTarget = true;
+		
+		// Handle sound effects for target acquisition
+		HandleChaseAudioStart(bWasHasTarget);
+		
+		// Reset death tracking if we found a living player
+		if (bTrackingPlayerDeath)
 		{
-			bool bWasHasTarget = bHasTarget; // Track if we just started chasing
-			
-			TargetPlayer = NewTarget;
-			bHasTarget = true;
-			
-			// ?? ENHANCED SOUND: Play chase start sound when we first lock onto a target
-			if (!bWasHasTarget && ChaseStartSound)
-			{
-				UGameplayStatics::PlaySoundAtLocation(this, ChaseStartSound, GetActorLocation(), 
-													 ChaseVolumeMultiplier, ChasePitchMultiplier);
-				UE_LOG(LogTemp, Log, TEXT("WallSpike playing chase start sound"));
-			}
-			
-			// ?? ENHANCED SOUND: Start looping chase sound if not already playing
-			if (!bWasHasTarget && ChaseLoopSound)
-			{
-				if (!ChaseAudioComponent)
-				{
-					ChaseAudioComponent = UGameplayStatics::SpawnSoundAttached(
-						ChaseLoopSound, GetRootComponent(), NAME_None, FVector::ZeroVector,
-						EAttachLocation::KeepRelativeOffset, false, 
-						ChaseVolumeMultiplier, ChasePitchMultiplier, 0.0f, nullptr, nullptr, true);
-				}
-				
-				if (ChaseAudioComponent && !ChaseAudioComponent->IsPlaying())
-				{
-					ChaseAudioComponent->Play();
-					UE_LOG(LogTemp, Log, TEXT("WallSpike started chase loop sound"));
-				}
-			}
-			
-			// Reset death tracking if we found a living player
-			if (bTrackingPlayerDeath)
-			{
-				bTrackingPlayerDeath = false;
-				PlayerDeathTimer = 0.0f;
-				UE_LOG(LogTemp, Log, TEXT("WallSpike: Player respawned or found new target, resetting death timer"));
-			}
-			
-			UE_LOG(LogTemp, Verbose, TEXT("WallSpike locked onto target: %s (Distance: %.1f)"), 
-				   *NewTarget->GetName(), DistanceToPlayer);
-		}
-		else
-		{
-			// Player is too far away
-			if (bHasTarget)
-			{
-				UE_LOG(LogTemp, Verbose, TEXT("WallSpike lost target - player too far (Distance: %.1f)"), DistanceToPlayer);
-				
-				// ?? Stop chase loop sound when losing target
-				if (ChaseAudioComponent && ChaseAudioComponent->IsPlaying())
-				{
-					ChaseAudioComponent->Stop();
-					UE_LOG(LogTemp, Log, TEXT("WallSpike stopped chase loop sound - target lost"));
-				}
-			}
-			TargetPlayer = nullptr;
-			bHasTarget = false;
+			bTrackingPlayerDeath = false;
+			PlayerDeathTimer = 0.0f;
 		}
 	}
 	else
 	{
-		// No valid player found or player is dead
-		if (TargetPlayer && TargetPlayer->IsDead() && !bTrackingPlayerDeath)
-		{
-			// Start tracking death timer for this specific spike
-			bTrackingPlayerDeath = true;
-			PlayerDeathTimer = 0.0f;
-			
-			// ?? Stop chase sound when player dies
-			if (ChaseAudioComponent && ChaseAudioComponent->IsPlaying())
-			{
-				ChaseAudioComponent->Stop();
-				UE_LOG(LogTemp, Log, TEXT("WallSpike stopped chase loop sound - player died"));
-			}
-			
-			UE_LOG(LogTemp, Log, TEXT("WallSpike: Player died, starting %f second cleanup timer"), DeathCleanupDelay);
-		}
+		HandlePlayerOutOfRange();
+	}
+}
+
+void AWallSpike::HandlePlayerDeathOrLoss()
+{
+	if (TargetPlayer && TargetPlayer->IsDead() && !bTrackingPlayerDeath)
+	{
+		// Start tracking death timer
+		bTrackingPlayerDeath = true;
+		PlayerDeathTimer = 0.0f;
+		StopChaseAudio();
+#if UE_BUILD_DEBUG
+		UE_LOG(LogTemp, Log, TEXT("WallSpike: Player died, starting cleanup timer"));
+#endif
+	}
+	
+	if (!bTrackingPlayerDeath)
+	{
+		StopChaseAudio();
+		TargetPlayer = nullptr;
+		bHasTarget = false;
+	}
+}
+
+void AWallSpike::HandlePlayerOutOfRange()
+{
+	if (bHasTarget)
+	{
+#if UE_BUILD_DEBUG
+		UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike lost target - player too far"));
+#endif
+		StopChaseAudio();
+	}
+	TargetPlayer = nullptr;
+	bHasTarget = false;
+}
+
+void AWallSpike::HandleChaseAudioStart(bool bWasHasTarget)
+{
+	if (!bWasHasTarget && ChaseStartSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ChaseStartSound, GetActorLocation(), 
+											 ChaseVolumeMultiplier, ChasePitchMultiplier);
+	}
+	
+	if (!bWasHasTarget && ChaseLoopSound && !ChaseAudioComponent)
+	{
+		ChaseAudioComponent = UGameplayStatics::SpawnSoundAttached(
+			ChaseLoopSound, GetRootComponent(), NAME_None, FVector::ZeroVector,
+			EAttachLocation::KeepRelativeOffset, false, 
+			ChaseVolumeMultiplier, ChasePitchMultiplier, 0.0f, nullptr, nullptr, true);
 		
-		if (!bTrackingPlayerDeath)
+		if (ChaseAudioComponent && !ChaseAudioComponent->IsPlaying())
 		{
-			// ?? Stop chase sound when no target
-			if (ChaseAudioComponent && ChaseAudioComponent->IsPlaying())
-			{
-				ChaseAudioComponent->Stop();
-			}
-			
-			TargetPlayer = nullptr;
-			bHasTarget = false;
+			ChaseAudioComponent->Play();
 		}
+	}
+}
+
+void AWallSpike::StopChaseAudio()
+{
+	if (ChaseAudioComponent && ChaseAudioComponent->IsPlaying())
+	{
+		ChaseAudioComponent->Stop();
 	}
 }
 
 FVector AWallSpike::CalculateChaseDirection() const
 {
-	FVector DesiredDirection = GetPrimaryDirection(); // Use primary direction instead of hardcoded right
-	
-	if (bHasTarget && TargetPlayer && !TargetPlayer->IsDead())
+	if (!bHasTarget || !TargetPlayer || TargetPlayer->IsDead())
 	{
-		// Calculate direction to player
-		FVector ToPlayer = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-		
-		// Blend between chasing player and moving in primary direction based on bias
-		// DirectionalBias of 0.0 = pure chase, 1.0 = pure directional movement
-		FVector PrimaryDir = GetPrimaryDirection();
-		DesiredDirection = FMath::Lerp(ToPlayer, PrimaryDir, DirectionalBias).GetSafeNormal();
-		
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike chase direction: Player(%.2f,%.2f,%.2f) + Primary(%.2f,%.2f,%.2f) bias %.2f = (%.2f,%.2f,%.2f)"),
-			   ToPlayer.X, ToPlayer.Y, ToPlayer.Z, 
-			   PrimaryDir.X, PrimaryDir.Y, PrimaryDir.Z, 
-			   DirectionalBias,
-			   DesiredDirection.X, DesiredDirection.Y, DesiredDirection.Z);
+		return GetPrimaryDirection();
 	}
 	
-	return DesiredDirection;
+	// Calculate direction to player
+	const FVector ToPlayer = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+	const FVector PrimaryDir = GetPrimaryDirection();
+	
+	// Blend between chasing player and moving in primary direction
+	return FMath::Lerp(ToPlayer, PrimaryDir, DirectionalBias).GetSafeNormal();
 }
 
 void AWallSpike::UpdateChaseMovement(float DeltaTime)
 {
 	// Calculate desired direction
-	FVector DesiredDirection = CalculateChaseDirection();
+	const FVector DesiredDirection = CalculateChaseDirection();
 	
 	// Smoothly interpolate current direction towards desired direction
 	CurrentDirection = FMath::VInterpTo(CurrentDirection, DesiredDirection, DeltaTime, DirectionChangeRate);
@@ -380,147 +337,114 @@ void AWallSpike::UpdateChaseMovement(float DeltaTime)
 	
 	if (bAccelerateWhenClose && bHasTarget && TargetPlayer && !TargetPlayer->IsDead())
 	{
-		float DistanceToPlayer = FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation());
+		// PERFORMANCE: Use squared distance comparison
+		const float DistanceSquared = FVector::DistSquared(GetActorLocation(), TargetPlayer->GetActorLocation());
+		const float AccelerationRangeSquared = AccelerationRange * AccelerationRange;
 		
-		if (DistanceToPlayer <= AccelerationRange)
+		if (DistanceSquared <= AccelerationRangeSquared)
 		{
-			// Apply speed boost when close to player
-			float AccelerationFactor = 1.0f - (DistanceToPlayer / AccelerationRange);
-			AccelerationFactor = FMath::Clamp(AccelerationFactor, 0.0f, 1.0f);
-			
-			float SpeedMultiplier = FMath::Lerp(1.0f, MaxSpeedMultiplier, AccelerationFactor);
-			CurrentSpeed *= SpeedMultiplier;
-			
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike accelerating: Distance %.1f, Factor %.2f, Speed %.1f"), 
-				   DistanceToPlayer, AccelerationFactor, CurrentSpeed);
+			const float Distance = FMath::Sqrt(DistanceSquared); // Only calculate sqrt when needed
+			const float AccelerationFactor = FMath::Clamp(1.0f - (Distance / AccelerationRange), 0.0f, 1.0f);
+			CurrentSpeed *= FMath::Lerp(1.0f, MaxSpeedMultiplier, AccelerationFactor);
 		}
 	}
 	
-	// Calculate movement delta
-	FVector MovementDelta = CurrentDirection * CurrentSpeed * DeltaTime;
-	FVector OldLocation = GetActorLocation();
-	FVector NewLocation = OldLocation + MovementDelta;
+	// Calculate and apply movement
+	const FVector MovementDelta = CurrentDirection * CurrentSpeed * DeltaTime;
+	const FVector NewLocation = GetActorLocation() + MovementDelta;
 	
-	// IMPROVED: Use sweep to detect collisions with detailed logging
+	// Use sweep for collision detection
 	FHitResult HitResult;
-	bool bHitSomething = SetActorLocation(NewLocation, true, &HitResult);
+	const bool bHitSomething = SetActorLocation(NewLocation, true, &HitResult);
 	
-	// ADDITIONAL: Check for player proximity and force collision detection
-	if (TargetPlayer && !bHasKilledPlayer)
+	// Handle collision with player
+	if (bHitSomething && HitResult.GetActor())
 	{
-		float DistanceToPlayer = FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation());
-		
-		// If we're very close to the player, ensure we detect the collision
-		if (DistanceToPlayer < 200.0f) // Within 200 units
+		if (ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(HitResult.GetActor()))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("WallSpike very close to player (Distance: %.1f) - checking collision"), DistanceToPlayer);
-			
-			// Force a sphere trace to check for player collision
-			FVector SphereCenter = GetActorLocation();
-			float SphereRadius = 150.0f; // Collision detection radius
-			
-			TArray<FHitResult> OutHits;
-			FCollisionQueryParams QueryParams;
-			QueryParams.AddIgnoredActor(this);
-			
-			bool bFoundPlayer = GetWorld()->SweepMultiByChannel(
-				OutHits,
-				SphereCenter,
-				SphereCenter + FVector(1.0f, 0.0f, 0.0f), // Small sweep
-				FQuat::Identity,
-				ECC_Pawn,
-				FCollisionShape::MakeSphere(SphereRadius),
-				QueryParams
-			);
-			
-			if (bFoundPlayer)
+			if (!bHasKilledPlayer)
 			{
-				for (const FHitResult& ProximityHit : OutHits)
-				{
-					ARunnerCharacter* ProximityPlayer = Cast<ARunnerCharacter>(ProximityHit.GetActor());
-					if (ProximityPlayer && ProximityPlayer == TargetPlayer)
-					{
-						UE_LOG(LogTemp, Error, TEXT("WallSpike PROXIMITY DETECTION! Player found within collision sphere!"));
-						ApplyInstantDeathToPlayer(ProximityPlayer, ProximityHit.Location);
-						return;
-					}
-				}
+#if UE_BUILD_DEBUG
+				UE_LOG(LogTemp, Error, TEXT("WallSpike collision detected during movement!"));
+#endif
+				ApplyInstantDeathToPlayer(HitPlayer, HitResult.Location);
 			}
 		}
 	}
 	
-	// Log movement for debugging
-	UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike Movement: Old=%s, New=%s, Delta=%s, Hit=%s"), 
-		   *OldLocation.ToString(), *GetActorLocation().ToString(), *MovementDelta.ToString(), bHitSomething ? TEXT("YES") : TEXT("NO"));
+	// Additional proximity check for enhanced collision detection
+	CheckProximityCollision();
+}
+
+void AWallSpike::CheckProximityCollision()
+{
+	if (!TargetPlayer || bHasKilledPlayer)
+		return;
 	
-	// Check if we hit the player during movement
-	if (bHitSomething && HitResult.GetActor())
+	// PERFORMANCE: Use squared distance for proximity check
+	const float ProximityThresholdSquared = 150.0f * 150.0f; // 150 units squared
+	const float DistanceSquared = FVector::DistSquared(GetActorLocation(), TargetPlayer->GetActorLocation());
+	
+	if (DistanceSquared < ProximityThresholdSquared)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WallSpike SetActorLocation detected collision with: %s"), *HitResult.GetActor()->GetName());
-		
-		ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(HitResult.GetActor());
-		if (HitPlayer && !bHasKilledPlayer)
-		{
-			UE_LOG(LogTemp, Error, TEXT("WallSpike hit player during chase movement! Applying instant death!"));
-			ApplyInstantDeathToPlayer(HitPlayer, HitResult.Location);
-		}
+#if UE_BUILD_DEBUG
+		UE_LOG(LogTemp, Warning, TEXT("WallSpike proximity collision detected!"));
+#endif
+		ApplyInstantDeathToPlayer(TargetPlayer, TargetPlayer->GetActorLocation());
 	}
 }
 
 void AWallSpike::CheckLifetimeAndCleanup()
 {
-	// Handle player death cleanup with instance timer
+	// Handle player death cleanup
 	if (bTrackingPlayerDeath)
 	{
 		PlayerDeathTimer += GetWorld()->GetDeltaSeconds();
-		
 		if (PlayerDeathTimer >= DeathCleanupDelay)
 		{
-			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - player has been dead for %.1fs"), PlayerDeathTimer);
+#if UE_BUILD_DEBUG
+			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - player dead for %.1fs"), PlayerDeathTimer);
+#endif
 			Destroy();
 			return;
 		}
-		
-		// Continue moving in primary direction while waiting for cleanup
 		return;
 	}
 	
 	if (!TargetPlayer)
 		return;
 	
-	// Check if we're too far behind the player (updated for any direction)
-	FVector PlayerLocation = TargetPlayer->GetActorLocation();
-	FVector SpikeLocation = GetActorLocation();
-	FVector PrimaryDir = GetPrimaryDirection();
+	// Check if too far behind player - optimized with squared distance
+	const FVector PlayerLocation = TargetPlayer->GetActorLocation();
+	const FVector SpikeLocation = GetActorLocation();
+	const FVector PrimaryDir = GetPrimaryDirection();
+	const FVector ToSpike = SpikeLocation - PlayerLocation;
+	const float DistanceInOppositeDirection = FVector::DotProduct(ToSpike, -PrimaryDir);
 	
-	// Calculate how far we are in the opposite direction of our primary movement
-	FVector ToSpike = SpikeLocation - PlayerLocation;
-	float DistanceInOppositeDirection = FVector::DotProduct(ToSpike, -PrimaryDir);
-	
-	if (DistanceInOppositeDirection > MaxDistanceBehindPlayer) // Spike is too far behind player
+	if (DistanceInOppositeDirection > MaxDistanceBehindPlayer)
 	{
-		// Check if we're moving further away
-		float MovingTowardsPlayer = FVector::DotProduct(CurrentDirection, PrimaryDir);
-		if (MovingTowardsPlayer <= 0.0f) // Moving away from primary direction
+		const float MovingTowardsPlayer = FVector::DotProduct(CurrentDirection, PrimaryDir);
+		if (MovingTowardsPlayer <= 0.0f)
 		{
-			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - too far behind player (Distance: %.1f)"), DistanceInOppositeDirection);
+#if UE_BUILD_DEBUG
+			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - too far behind"));
+#endif
 			Destroy();
 			return;
 		}
 		
-		// Track how long we've been behind using instance variable
 		TimeBehindPlayer += GetWorld()->GetDeltaSeconds();
-		
 		if (TimeBehindPlayer >= MaxTimeBehindPlayer)
 		{
-			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - been too far behind for %.1fs"), TimeBehindPlayer);
+#if UE_BUILD_DEBUG
+			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - behind too long"));
+#endif
 			Destroy();
 			return;
 		}
 	}
 	else
 	{
-		// Reset behind timer if we're not too far behind
 		TimeBehindPlayer = 0.0f;
 	}
 }
@@ -528,128 +452,145 @@ void AWallSpike::CheckLifetimeAndCleanup()
 void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector HitLocation)
 {
 	if (!Player || Player->IsDead() || bHasKilledPlayer)
-	{
 		return;
-	}
 	
-	// Set flag to prevent multiple kills
 	bHasKilledPlayer = true;
 	
-	UE_LOG(LogTemp, Error, TEXT("WallSpike CAUGHT PLAYER! Applying instant death!"));
+#if UE_BUILD_DEBUG
+	UE_LOG(LogTemp, Error, TEXT("WallSpike applying instant death to player!"));
+#endif
 	
-	// ?? ENHANCED DEATH SOUND: Stop chase sound and play dramatic death sound
-	if (ChaseAudioComponent && ChaseAudioComponent->IsPlaying())
-	{
-		ChaseAudioComponent->Stop();
-	}
+	// Stop chase audio and play death sound
+	StopChaseAudio();
 	
-	// Play collision sound with enhanced parameters for dramatic effect
 	if (CollisionSound)
 	{
-		// Play death sound with higher volume and pitch for impact
 		UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, HitLocation, 
-											 ChaseVolumeMultiplier * 1.5f, // 50% louder
-											 ChasePitchMultiplier * 0.8f);  // Lower pitch for dramatic effect
-		UE_LOG(LogTemp, Error, TEXT("WallSpike playing DEATH sound at location: %s"), *HitLocation.ToString());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("WallSpike: No CollisionSound set! Please assign a death sound in the Blueprint."));
+											 ChaseVolumeMultiplier * 1.5f, // Louder for death
+											 ChasePitchMultiplier * 0.8f);  // Lower pitch for drama
 	}
 	
-	// Show particle effect at hit location
+	// Show particle effect
 	if (ImpactEffect)
 	{
 		ImpactEffect->SetWorldLocation(HitLocation);
 		ImpactEffect->Activate(true);
 	}
 	
-	// Apply instant death through health component
-	UPlayerHealthComponent* HealthComp = Player->GetComponentByClass<UPlayerHealthComponent>();
-	if (HealthComp)
+	// Apply damage through health component
+	if (UPlayerHealthComponent* HealthComp = Player->GetComponentByClass<UPlayerHealthComponent>())
 	{
-		// Apply massive damage to ensure instant death
-		int32 InstantDeathDamage = HealthComp->GetMaxHealth() * 10; // Massive overkill
+		const int32 InstantDeathDamage = HealthComp->GetMaxHealth() * 10;
 		HealthComp->TakeDamage(InstantDeathDamage, EDamageType::Spikes);
 	}
 	else
 	{
-		// Fallback: Use Unreal's built-in damage system
+		// Fallback to Unreal's damage system
 		FDamageEvent DamageEvent;
 		Player->TakeDamage(9999.0f, DamageEvent, nullptr, this);
 	}
 	
-	// Stop chasing after killing the player
+	// Stop chasing and start cleanup
 	bHasTarget = false;
 	TargetPlayer = nullptr;
-	
-	// Start death tracking for cleanup
 	bTrackingPlayerDeath = true;
 	PlayerDeathTimer = 0.0f;
 	
-	// Optionally destroy the spike after a short delay using timer
+	// PERFORMANCE: Use lambda with timer for destruction
 	FTimerHandle DestroyTimer;
 	GetWorld()->GetTimerManager().SetTimer(DestroyTimer, [this]()
 	{
 		if (IsValid(this))
 		{
-			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self after successful kill"));
 			Destroy();
 		}
 	}, 1.0f, false);
 }
 
-// Override NotifyHit as backup collision detection
 void AWallSpike::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, 
 	bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 	
-	// Additional safety check - if sweep somehow missed, catch it here
-	ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(Other);
-	if (HitPlayer && !bHasKilledPlayer)
+	if (ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(Other))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("WallSpike NotifyHit backup trigger - applying instant death"));
-		ApplyInstantDeathToPlayer(HitPlayer, HitLocation);
+		if (!bHasKilledPlayer)
+		{
+#if UE_BUILD_DEBUG
+			UE_LOG(LogTemp, Warning, TEXT("WallSpike NotifyHit backup collision detection"));
+#endif
+			ApplyInstantDeathToPlayer(HitPlayer, HitLocation);
+		}
 	}
 }
 
-// Handle overlap events for collision detection
 void AWallSpike::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
 							   UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
 							   bool bFromSweep, const FHitResult& SweepResult)
 {
-	UE_LOG(LogTemp, Warning, TEXT("WallSpike OnOverlapBegin triggered with: %s"), 
-		   OtherActor ? *OtherActor->GetName() : TEXT("Unknown"));
-
-	ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(OtherActor);
-	if (HitPlayer && !bHasKilledPlayer)
+	if (ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(OtherActor))
 	{
-		UE_LOG(LogTemp, Error, TEXT("WallSpike OVERLAP with player detected! Applying instant death!"));
-		FVector HitLocation;
-		if (SweepResult.IsValidBlockingHit())
+		if (!bHasKilledPlayer)
 		{
-			HitLocation = SweepResult.Location;
+#if UE_BUILD_DEBUG
+			UE_LOG(LogTemp, Error, TEXT("WallSpike overlap collision detected!"));
+#endif
+			FVector HitLocation;
+			if (SweepResult.IsValidBlockingHit())
+			{
+				HitLocation = FVector(SweepResult.Location);
+			}
+			else
+			{
+				HitLocation = GetActorLocation();
+			}
+			ApplyInstantDeathToPlayer(HitPlayer, HitLocation);
 		}
-		else
-		{
-			HitLocation = GetActorLocation();
-		}
-		ApplyInstantDeathToPlayer(HitPlayer, HitLocation);
 	}
 }
 
-// Handle hit events for collision detection
 void AWallSpike::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, 
 					   UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	UE_LOG(LogTemp, Warning, TEXT("WallSpike OnHit triggered with: %s"), 
-		   OtherActor ? *OtherActor->GetName() : TEXT("Unknown"));
-
-	ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(OtherActor);
-	if (HitPlayer && !bHasKilledPlayer)
+	if (ARunnerCharacter* HitPlayer = Cast<ARunnerCharacter>(OtherActor))
 	{
-		UE_LOG(LogTemp, Error, TEXT("WallSpike HIT with player detected! Applying instant death!"));
-		ApplyInstantDeathToPlayer(HitPlayer, Hit.Location);
+		if (!bHasKilledPlayer)
+		{
+#if UE_BUILD_DEBUG
+			UE_LOG(LogTemp, Error, TEXT("WallSpike hit collision detected!"));
+#endif
+			ApplyInstantDeathToPlayer(HitPlayer, Hit.Location);
+		}
 	}
 }
+
+#if WITH_EDITOR
+void AWallSpike::DrawDebugVisualization()
+{
+	if (!bHasTarget || !TargetPlayer)
+		return;
+	
+	// Draw line to target
+	DrawDebugLine(GetWorld(), GetActorLocation(), TargetPlayer->GetActorLocation(), 
+				 FColor::Red, false, -1.0f, 0, 2.0f);
+	
+	// Draw chase range
+	DrawDebugSphere(GetWorld(), GetActorLocation(), ChaseRange, 16, FColor::Orange, false, -1.0f, 0, 1.0f);
+	
+	// Draw acceleration range
+	if (bAccelerateWhenClose)
+	{
+		DrawDebugSphere(GetWorld(), GetActorLocation(), AccelerationRange, 16, FColor::Yellow, false, -1.0f, 0, 1.0f);
+	}
+	
+	// Draw movement direction - renamed to avoid conflict with base class member
+	const FVector WallSpikeDirection = CurrentDirection * 200.0f;
+	DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + WallSpikeDirection,
+				 FColor::Blue, false, -1.0f, 0, 5.0f);
+	
+	// Draw primary direction
+	const FVector PrimaryDir = GetPrimaryDirection() * 150.0f;
+	DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + PrimaryDir,
+				 FColor::Green, false, -1.0f, 0, 3.0f);
+}
+#endif

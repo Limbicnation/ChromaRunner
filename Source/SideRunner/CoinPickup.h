@@ -4,12 +4,11 @@
 #include "GameFramework/Actor.h"
 #include "CoinPickup.generated.h"
 
-// Actor Pool template for object pooling
+// PERFORMANCE: Simple actor pool template for efficient object reuse
 template<class T>
 class FActorPool
 {
 public:
-    // Get an actor from the pool
     T* GetActor(FName Tag = NAME_None)
     {
         TArray<T*>& Pool = PooledActors.FindOrAdd(Tag);
@@ -22,7 +21,6 @@ public:
         return nullptr;
     }
     
-    // Return an actor to the pool
     void ReturnActor(T* Actor, FName Tag = NAME_None)
     {
         if (Actor)
@@ -33,7 +31,6 @@ public:
         }
     }
     
-    // Clear the pool
     void Clear()
     {
         PooledActors.Empty();
@@ -41,175 +38,162 @@ public:
     }
     
 private:
-    // Actors currently in the pool, organized by tag
     TMap<FName, TArray<T*>> PooledActors;
-    
-    // Actors currently in use
     TArray<T*> ActiveActors;
 };
 
+/**
+ * Performance-optimized coin pickup with magnetism, animation, and pooling support.
+ * Features distance-based tick optimization and efficient collection handling.
+ */
 UCLASS()
 class SIDERUNNER_API ACoinPickup : public AActor
 {
     GENERATED_BODY()
     
 public:    
-    // Sets default values for this actor's properties
     ACoinPickup();
 
 protected:
-    // Called when the game starts or when spawned
     virtual void BeginPlay() override;
-    
-    // Called when the actor is being removed from a level
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-    // Static mesh component for the coin visual
+public:    
+    virtual void Tick(float DeltaTime) override;
+
+    // PERFORMANCE: Core Components
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class UStaticMeshComponent* CoinMesh;
     
-    // Collision component for detecting overlap with player
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class USphereComponent* CollisionSphere;
     
-    // Particle system component for collection effect
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class UParticleSystemComponent* CollectParticles;
     
-    // Magnet component for pulling coins to player
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class USphereComponent* CoinMagnet;
     
-    // Sound to play when collected
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+    // PERFORMANCE: Audio and Value
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin")
     class USoundBase* CollectSound;
     
-    // Value of this coin (how many coins to add to counter)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin", meta = (ClampMin = "1", ClampMax = "100"))
     int32 CoinValue;
     
-    // Whether the coin has been collected
+    // PERFORMANCE: State Management
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Coin")
     bool bIsCollected;
     
-    // Replicated version of bIsCollected
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Coin")
     bool bCollected;
     
-    // Function called when player overlaps with coin
+    // PERFORMANCE: Animation Properties
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation", meta = (ClampMin = "0.0", ClampMax = "500.0"))
+    float RotationSpeed;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation", meta = (ClampMin = "0.0", ClampMax = "50.0"))
+    float HoverAmplitude;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation", meta = (ClampMin = "0.1", ClampMax = "10.0"))
+    float HoverFrequency;
+    
+    // PERFORMANCE: Optimization Settings
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Optimization")
+    bool bDisableTickWhenFar;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Optimization", meta = (EditCondition = "bDisableTickWhenFar", ClampMin = "500.0", ClampMax = "5000.0"))
+    float TickDistance;
+    
+    // PERFORMANCE: Magnetism System
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magnetism")
+    bool bEnableMagnetism;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Magnetism", meta = (EditCondition = "bEnableMagnetism", ClampMin = "100.0", ClampMax = "1000.0"))
+    float MagnetismSpeed;
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magnetism")
+    bool bMagnetActivated;
+    
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Magnetism")
+    AActor* TargetActor;
+    
+    // PERFORMANCE: Respawn System
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Respawn")
+    bool bCanRespawn;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Respawn", meta = (EditCondition = "bCanRespawn", ClampMin = "1.0", ClampMax = "60.0"))
+    float RespawnTime;
+    
+    // PERFORMANCE: Object Pooling
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pooling")
+    bool UseActorPooling;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pooling", meta = (EditCondition = "UseActorPooling"))
+    FName PoolTag;
+    
+    // Debug visualization
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+    bool bShowDebugInfo;
+
+    // PERFORMANCE: Collection Events
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCoinCollectedSignature, ACoinPickup*, Coin, class ACharacter*, Character);
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FOnCoinCollectedSignature OnCoinCollected;
+    
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCoinRespawnedSignature, ACoinPickup*, Coin);
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FOnCoinRespawnedSignature OnCoinRespawned;
+
+    // PERFORMANCE: Core Functionality
+    UFUNCTION(BlueprintNativeEvent, Category = "Coin")
+    void Collect(class ACharacter* Character);
+    virtual void Collect_Implementation(class ACharacter* Character);
+    
+    UFUNCTION(BlueprintCallable, Category = "Coin")
+    void Respawn();
+    
+    UFUNCTION(BlueprintCallable, Category = "Pooling")
+    void ReturnToPool();
+    
+    // PERFORMANCE: Static pooling functions
+    UFUNCTION(BlueprintCallable, Category = "Pooling", meta = (WorldContext = "World"))
+    static ACoinPickup* SpawnFromPool(UWorld* World, TSubclassOf<ACoinPickup> CoinClass, 
+                                   const FTransform& Transform, FName Tag = NAME_None);
+    
+    UFUNCTION(BlueprintCallable, Category = "Pooling", meta = (WorldContext = "World"))
+    static void ClearPool(UWorld* World);
+
+protected:
+    // Collision event handlers
     UFUNCTION()
     void OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
                          bool bFromSweep, const FHitResult& SweepResult);
     
-    // Function called when player enters the magnet radius
     UFUNCTION()
     void OnMagnetOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
                          bool bFromSweep, const FHitResult& SweepResult);
-    
-    // Function to handle collection logic
-    UFUNCTION(BlueprintNativeEvent, Category = "Coin")
-    void Collect(class ACharacter* Character);
-    virtual void Collect_Implementation(class ACharacter* Character);
-    
-    // Function to respawn the coin after collection
-    UFUNCTION(BlueprintCallable, Category = "Coin")
-    void Respawn();
-    
-    // Function to return the coin to the object pool
-    UFUNCTION(BlueprintCallable, Category = "Coin|Pooling")
-    void ReturnToPool();
-    
-    // Static map of coin pools by world
-    static TMap<UWorld*, FActorPool<ACoinPickup>> CoinPools;
 
-public:    
-    // Called every frame
-    virtual void Tick(float DeltaTime) override;
-
-    // Rotation speed of the coin
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Animation")
-    float RotationSpeed;
-    
-    // Hover amplitude (how far up and down the coin moves)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Animation")
-    float HoverAmplitude;
-    
-    // Hover frequency (how fast the coin moves up and down)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Animation")
-    float HoverFrequency;
-    
-    // Initial position for hovering effect
+private:
+    // PERFORMANCE: Internal state management
     FVector InitialLocation;
-    
-    // Current time for the hover animation
     float CurrentTime;
     
-    // Whether to disable tick when far from player
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Optimization")
-    bool bDisableTickWhenFar;
-    
-    // Distance at which to disable tick
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Optimization", meta = (EditCondition = "bDisableTickWhenFar"))
-    float TickDistance;
-    
-    // Whether to enable coin magnetism
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Magnetism")
-    bool bEnableMagnetism;
-    
-    // Speed at which the coin moves towards the player when magnetized
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Magnetism", meta = (EditCondition = "bEnableMagnetism"))
-    float MagnetismSpeed;
-    
-    // Whether magnetism is currently active
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Coin|Magnetism")
-    bool bMagnetActivated;
-    
-    // Target actor for magnetism
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Coin|Magnetism")
-    AActor* TargetActor;
-    
-    // Whether the coin can respawn after collection
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Respawn")
-    bool bCanRespawn;
-    
-    // Time to wait before respawning
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Respawn", meta = (EditCondition = "bCanRespawn"))
-    float RespawnTime;
-    
-    // Whether to show debug info
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Debug")
-    bool bShowDebugInfo;
-    
-    // Whether to use object pooling for coins
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Pooling")
-    bool UseActorPooling;
-    
-    // Tag for pool management
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Coin|Pooling", meta = (EditCondition = "UseActorPooling"))
-    FName PoolTag;
-    
-    // Delegate for coin collected event
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCoinCollectedSignature, ACoinPickup*, Coin, class ACharacter*, Character);
-    
-    // Event that fires when the coin is collected
-    UPROPERTY(BlueprintAssignable, Category = "Coin|Events")
-    FOnCoinCollectedSignature OnCoinCollected;
-    
-    // Delegate for coin respawned event
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCoinRespawnedSignature, ACoinPickup*, Coin);
-    
-    // Event that fires when the coin respawns
-    UPROPERTY(BlueprintAssignable, Category = "Coin|Events")
-    FOnCoinRespawnedSignature OnCoinRespawned;
-    
-    // Static function to spawn a coin from the pool
-    UFUNCTION(BlueprintCallable, Category = "Coin|Pooling", meta = (WorldContext = "World"))
-    static ACoinPickup* SpawnFromPool(UWorld* World, TSubclassOf<ACoinPickup> CoinClass, 
-                                   const FTransform& Transform, FName Tag = NAME_None);
-    
-    // Static function to clear the pool
-    UFUNCTION(BlueprintCallable, Category = "Coin|Pooling", meta = (WorldContext = "World"))
-    static void ClearPool(UWorld* World);
+    // Static pool management
+    static TMap<UWorld*, FActorPool<ACoinPickup>> CoinPools;
+
+    // PERFORMANCE: Helper functions for cleaner code
+    bool ShouldTickBasedOnDistance() const;
+    void UpdateMagnetMovement(float DeltaTime);
+    void UpdateCoinAnimation(float DeltaTime);
+    void ResetCoinState();
+    void HandleCollectionEffects();
+    void UpdateCoinCounter(ACharacter* Character);
+    void HandlePostCollection();
+
+#if WITH_EDITOR || UE_BUILD_DEVELOPMENT
+    void DrawDebugInformation() const;
+#endif
 };

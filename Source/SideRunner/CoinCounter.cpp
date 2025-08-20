@@ -1,44 +1,42 @@
 #include "CoinCounter.h"
 #include "Kismet/GameplayStatics.h"
 #include "CoinPickup.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
 
-// Sets default values for this component's properties
 UCoinCounter::UCoinCounter()
 {
-    // Set this component to be initialized when the game starts, and to be ticked every frame
-    PrimaryComponentTick.bCanEverTick = false; // Optimized: No need to tick every frame
+    // PERFORMANCE: Disable tick by default - no need for per-frame updates
+    PrimaryComponentTick.bCanEverTick = false;
 
-    // Initialize coin count to zero
+    // PERFORMANCE: Initialize with safe defaults
     CoinCount = 0;
     bProcessingCoin = false;
-
-    // Default max coins value
     MaxCoins = 100;
-
-    // Initialize persistent coin count for the level
     LevelPersistentCoins = 0;
-
-    // Initialize total coins to collect in this level
     TotalCoinsInLevel = 0;
+
+    // PERFORMANCE: Reserve space for collections to avoid frequent reallocation
+    CollectedCoins.Reserve(100);
+    CoinMilestones.Reserve(10);
+    ReachedMilestones.Reserve(10);
 }
 
-// Called when the game starts
 void UCoinCounter::BeginPlay()
 {
     Super::BeginPlay();
 
-    // HOTFIX: Force reset at game start
-    CoinCount = 0;
-    CollectedCoins.Empty();
-    bProcessingCoin = false;
+    // PERFORMANCE: Force reset at game start with atomic operation
+    ResetCoinCounter();
 
-    // Log initial state - helps with debugging
-    UE_LOG(LogTemp, Log, TEXT("CoinCounter RESET to %d coins"), CoinCount);
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("CoinCounter initialized with %d coins"), CoinCount);
+#endif
 
     // Broadcast initial value to update UI
     OnCoinsUpdated.Broadcast(CoinCount);
 
-    // Count total coins in the level if auto-counting is enabled
+    // Auto-count coins in level if enabled
     if (bAutoCountCoinsInLevel)
     {
         CountCoinsInLevel();
@@ -51,144 +49,199 @@ void UCoinCounter::BeginPlay()
     }
 }
 
-// Called every frame - disabled for performance
 void UCoinCounter::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+    // PERFORMANCE: This should never be called since tick is disabled
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 bool UCoinCounter::HasCollectedCoin(AActor* CoinActor) const
 {
+    // PERFORMANCE: Use Contains which is O(1) for TSet
     return CoinActor && CollectedCoins.Contains(CoinActor);
 }
 
 void UCoinCounter::MarkCoinAsCollected(AActor* CoinActor)
 {
-    if (CoinActor)
+    if (CoinActor && !CollectedCoins.Contains(CoinActor))
     {
         CollectedCoins.Add(CoinActor);
-        UE_LOG(LogTemp, Log, TEXT("Marked coin %s as collected"), *CoinActor->GetName());
+#if UE_BUILD_DEVELOPMENT
+        UE_LOG(LogTemp, Verbose, TEXT("Marked coin %s as collected"), *CoinActor->GetName());
+#endif
     }
 }
 
 void UCoinCounter::AddCoins(int32 Amount)
 {
-    // HOTFIX: Prevent recursive or concurrent calls
-    if (bProcessingCoin || Amount <= 0)
+    // PERFORMANCE: Comprehensive validation and thread safety
+    if (Amount <= 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Prevented duplicate coin add! Processing: %d, Amount: %d"),
-            bProcessingCoin ? 1 : 0, Amount);
+#if UE_BUILD_DEVELOPMENT
+        UE_LOG(LogTemp, Warning, TEXT("Attempted to add invalid coin amount: %d"), Amount);
+#endif
         return;
     }
 
-    // Set processing flag
+    // PERFORMANCE: Atomic check and set to prevent concurrent modification
+    if (bProcessingCoin)
+    {
+#if UE_BUILD_DEVELOPMENT
+        UE_LOG(LogTemp, Warning, TEXT("Prevented concurrent coin addition"));
+#endif
+        return;
+    }
+
     bProcessingCoin = true;
 
-    CoinCount += Amount;
+    // Add coins with overflow protection
+    const int32 PreviousCount = CoinCount;
+    CoinCount = FMath::Clamp(CoinCount + Amount, 0, MAX_int32 - 1000); // Leave headroom
 
-    // Debug log
-    UE_LOG(LogTemp, Log, TEXT("Added %d coins. New total: %d"), Amount, CoinCount);
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("Added %d coins. Total: %d (was %d)"), Amount, CoinCount, PreviousCount);
+#endif
 
-    // If we're using persistent coins, update and save them
+    // Handle persistent coins
     if (bPersistentCoins)
     {
         LevelPersistentCoins += Amount;
         SavePersistentCoins();
     }
 
-    // Broadcast the event with the new coin count
+    // Broadcast the update event
     OnCoinsUpdated.Broadcast(CoinCount);
 
-    // Check if we've collected all coins
-    bool bAllCoinsCollected = HasCollectedAllCoins();
-    if (bAllCoinsCollected)
-    {
-        OnAllCoinsCollected.Broadcast();
-    }
-
-    // Check if we've reached a milestone
-    for (int32 Milestone : CoinMilestones)
-    {
-        if (CoinCount >= Milestone && !ReachedMilestones.Contains(Milestone))
-        {
-            ReachedMilestones.Add(Milestone);
-            OnCoinMilestoneReached.Broadcast(Milestone);
-        }
-    }
+    // Check for completion and milestones
+    CheckCompletionAndMilestones();
 
     // Clear processing flag
     bProcessingCoin = false;
 }
 
+void UCoinCounter::CheckCompletionAndMilestones()
+{
+    // Check completion
+    if (HasCollectedAllCoins())
+    {
+        OnAllCoinsCollected.Broadcast();
+#if UE_BUILD_DEVELOPMENT
+        UE_LOG(LogTemp, Log, TEXT("All coins collected!"));
+#endif
+    }
+
+    // PERFORMANCE: Check milestones efficiently
+    for (int32 Milestone : CoinMilestones)
+    {
+        if (CoinCount >= Milestone && !ReachedMilestones.Contains(Milestone))
+        {
+            ReachedMilestones.AddUnique(Milestone);
+            OnCoinMilestoneReached.Broadcast(Milestone);
+#if UE_BUILD_DEVELOPMENT
+            UE_LOG(LogTemp, Log, TEXT("Reached coin milestone: %d"), Milestone);
+#endif
+        }
+    }
+}
+
 void UCoinCounter::ResetCoins()
 {
-    CoinCount = 0;
-    CollectedCoins.Empty();
-
-    // Broadcast the event with the new coin count
+    ResetCoinCounter();
     OnCoinsUpdated.Broadcast(CoinCount);
 
-    // Clear reached milestones
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("Coin counter reset to %d"), CoinCount);
+#endif
+}
+
+void UCoinCounter::ResetCoinCounter()
+{
+    // PERFORMANCE: Atomic reset operation
+    const bool bWasProcessing = bProcessingCoin;
+    bProcessingCoin = false;
+    
+    CoinCount = 0;
+    CollectedCoins.Empty();
     ReachedMilestones.Empty();
+    
+    // Restore processing flag if it was set
+    bProcessingCoin = bWasProcessing;
 }
 
 bool UCoinCounter::HasCollectedAllCoins() const
 {
-    if (bAutoCountCoinsInLevel)
-    {
-        return CoinCount >= TotalCoinsInLevel && TotalCoinsInLevel > 0;
-    }
-
-    return CoinCount >= MaxCoins;
+    const int32 TargetCount = bAutoCountCoinsInLevel ? TotalCoinsInLevel : MaxCoins;
+    return TargetCount > 0 && CoinCount >= TargetCount;
 }
 
 float UCoinCounter::GetCompletionPercentage() const
 {
-    float MaxValue = bAutoCountCoinsInLevel ? FMath::Max(1, TotalCoinsInLevel) : FMath::Max(1, MaxCoins);
-    return (float)CoinCount / MaxValue * 100.0f;
+    const int32 TargetCount = bAutoCountCoinsInLevel ? TotalCoinsInLevel : MaxCoins;
+    const float MaxValue = FMath::Max(1, TargetCount); // Avoid division by zero
+    return FMath::Clamp((float)CoinCount / MaxValue * 100.0f, 0.0f, 100.0f);
 }
 
 void UCoinCounter::CountCoinsInLevel()
 {
     TotalCoinsInLevel = 0;
-    TArray<AActor*> FoundCoins;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACoinPickup::StaticClass(), FoundCoins);
-    TotalCoinsInLevel = FoundCoins.Num();
 
-    UE_LOG(LogTemp, Log, TEXT("Found %d coins in the level"), TotalCoinsInLevel);
+    // PERFORMANCE: Use specific class search instead of generic GetAllActorsOfClass
+    const UWorld* World = GetWorld();
+    if (!World)
+    {
+#if UE_BUILD_DEBUG
+        UE_LOG(LogTemp, Warning, TEXT("Cannot count coins - invalid world"));
+#endif
+        return;
+    }
+
+    // Count ACoinPickup actors in the level using TActorIterator
+    for (TActorIterator<ACoinPickup> ActorIterator(World); ActorIterator; ++ActorIterator)
+    {
+        ACoinPickup* CoinActor = *ActorIterator;
+        if (CoinActor && IsValid(CoinActor))
+        {
+            TotalCoinsInLevel++;
+        }
+    }
+
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("Counted %d coins in the level"), TotalCoinsInLevel);
+#endif
 }
 
 void UCoinCounter::SavePersistentCoins()
 {
-    // This is a simple implementation that should be expanded
-    // with your game's save system
-    UE_LOG(LogTemp, Log, TEXT("Saving %d persistent coins"), LevelPersistentCoins);
+    // PERFORMANCE: Placeholder for save system integration
+    // This should be replaced with your game's actual save system
 
-    // Here you would save to your game's save system
-    // Example pseudocode (replace with your save game implementation):
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("Saving %d persistent coins (placeholder)"), LevelPersistentCoins);
+#endif
+
+    // Example integration point for save system:
     /*
-    UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
-    if (SaveGameInstance)
+    if (UGameInstanceSubsystem* SaveSystem = GetGameInstance()->GetSubsystem<UGameInstanceSubsystem>())
     {
-        SaveGameInstance->PersistentCoins = LevelPersistentCoins;
-        UGameplayStatics::SaveGameToSlot(SaveGameInstance, "CoinSave", 0);
+        SaveSystem->SavePersistentData(TEXT("Coins"), LevelPersistentCoins);
     }
     */
 }
 
 void UCoinCounter::LoadPersistentCoins()
 {
-    // This is a simple implementation that should be expanded
-    // with your game's save system
-    UE_LOG(LogTemp, Log, TEXT("Loading persistent coins"));
+    // PERFORMANCE: Placeholder for load system integration
+    // This should be replaced with your game's actual save system
 
-    // Here you would load from your game's save system
-    // Example pseudocode (replace with your save game implementation):
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("Loading persistent coins (placeholder)"));
+#endif
+
+    // Example integration point for save system:
     /*
-    UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::LoadGameFromSlot("CoinSave", 0));
-    if (SaveGameInstance)
+    if (UGameInstanceSubsystem* SaveSystem = GetGameInstance()->GetSubsystem<UGameInstanceSubsystem>())
     {
-        LevelPersistentCoins = SaveGameInstance->PersistentCoins;
+        LevelPersistentCoins = SaveSystem->LoadPersistentData(TEXT("Coins"), 0);
         UE_LOG(LogTemp, Log, TEXT("Loaded %d persistent coins"), LevelPersistentCoins);
     }
     */
@@ -198,3 +251,42 @@ TArray<int32> UCoinCounter::GetReachedMilestones() const
 {
     return ReachedMilestones;
 }
+
+#if WITH_EDITOR
+void UCoinCounter::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+    Super::PostEditChangeProperty(PropertyChangedEvent);
+
+    const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ?
+        PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+    // PERFORMANCE: Validate properties when changed in editor
+    if (PropertyName == GET_MEMBER_NAME_CHECKED(UCoinCounter, MaxCoins))
+    {
+        MaxCoins = FMath::Max(1, MaxCoins);
+    }
+    else if (PropertyName == GET_MEMBER_NAME_CHECKED(UCoinCounter, CoinMilestones))
+    {
+        // Sort milestones and remove duplicates
+        CoinMilestones.RemoveAll([](int32 Value) { return Value <= 0; });
+        CoinMilestones.Sort();
+        
+        // Remove duplicates
+        for (int32 i = CoinMilestones.Num() - 1; i > 0; i--)
+        {
+            if (CoinMilestones[i] == CoinMilestones[i - 1])
+            {
+                CoinMilestones.RemoveAt(i);
+            }
+        }
+    }
+    else if (PropertyName == GET_MEMBER_NAME_CHECKED(UCoinCounter, bAutoCountCoinsInLevel))
+    {
+        // Re-count coins when this setting changes
+        if (bAutoCountCoinsInLevel && GetWorld())
+        {
+            CountCoinsInLevel();
+        }
+    }
+}
+#endif

@@ -121,4 +121,13 @@ public:
     // Event that fires when a coin milestone is reached
     UPROPERTY(BlueprintAssignable, Category = "Coins|Events")
     FOnCoinMilestoneReached OnCoinMilestoneReached;
+
+private:
+    // PERFORMANCE: Helper functions for cleaner code
+    void ResetCoinCounter();
+    void CheckCompletionAndMilestones();
+
+#if WITH_EDITOR
+    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 };

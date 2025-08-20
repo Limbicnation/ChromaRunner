@@ -15,19 +15,21 @@ enum class EMovementType : uint8
     Zigzag UMETA(DisplayName = "Zigzag")
 };
 
+/**
+ * Performance-optimized spike actor with configurable movement patterns and damage system.
+ * Features proximity triggering and editor visualization tools.
+ */
 UCLASS()
 class SIDERUNNER_API ASpikes : public AActor
 {
     GENERATED_BODY()
-    
+
 public:
-    // Sets default values for this actor's properties
     ASpikes();
-    
-    // Called every frame
+
     virtual void Tick(float DeltaTime) override;
-    
-    // Called when collision happens - must match AActor's signature exactly
+
+    // Collision detection - optimized for performance
     virtual void NotifyHit(
         UPrimitiveComponent* MyComp,
         AActor* Other,
@@ -38,99 +40,82 @@ public:
         FVector NormalImpulse,
         const FHitResult& Hit
     ) override;
-    
-    // Enable or disable movement
+
+    // PERFORMANCE: Movement control
     UFUNCTION(BlueprintCallable, Category = "Spikes")
     void SetMovementEnabled(bool bEnabled);
-    
+
 #if WITH_EDITOR
-    // Draw movement path for easier editing
+    // Editor-only debug visualization
     void DrawDebugMovementPath();
-    
-    // Handle property changes in editor
     virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-public:
-    // Components
-    
-    // Box collision component
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    class UBoxComponent* CollisionBox;
-    
-    // Static mesh component
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    class UStaticMeshComponent* SpikeMesh;
-    
-    // Particle effect for impact
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    class UParticleSystemComponent* ImpactEffect;
-    
-    // Movement Properties
-    
-    // Speed of spike movement, adjustable from Blueprints
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-    float Speed;
-    
-    // Maximum offset the spikes should move from their initial position
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-    float MaxMovementOffset;
-    
-    // Type of movement pattern
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-    EMovementType MovementType;
-    
-    // Whether spikes are currently moving
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-    bool bIsMoving;
-    
-    // Gameplay Properties
-    
-    // Amount of damage to apply to the player
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
-    float DamageAmount;
-    
-    // Time in seconds between damage applications
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
-    float DamageCooldown;
-    
-    // Whether spikes are triggered by proximity
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger")
-    bool bProximityTriggered;
-    
-    // Radius for proximity triggering
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger", meta = (EditCondition = "bProximityTriggered"))
-    float TriggerRadius;
-    
-    // FX Properties
-    
-    // Sound to play when the player collides with the spikes
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
-    USoundBase* CollisionSound;
-    
 protected:
-    // Called when the game starts or when spawned
     virtual void BeginPlay() override;
 
+public:
+    // PERFORMANCE: Component setup
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    class UBoxComponent* CollisionBox;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    class UStaticMeshComponent* SpikeMesh;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    class UParticleSystemComponent* ImpactEffect;
+
+    // PERFORMANCE: Movement Properties
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement", meta = (ClampMin = "0.0", ClampMax = "1000.0"))
+    float Speed;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement", meta = (ClampMin = "0.0", ClampMax = "2000.0"))
+    float MaxMovementOffset;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    EMovementType MovementType;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+    bool bIsMoving;
+
+    // PERFORMANCE: Gameplay Properties
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay", meta = (ClampMin = "1.0", ClampMax = "1000.0"))
+    float DamageAmount;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay", meta = (ClampMin = "0.1", ClampMax = "10.0"))
+    float DamageCooldown;
+
+    // PERFORMANCE: Proximity trigger system
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger")
+    bool bProximityTriggered;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger", meta = (EditCondition = "bProximityTriggered", ClampMin = "50.0", ClampMax = "1000.0"))
+    float TriggerRadius;
+
+    // PERFORMANCE: Audio/Effects
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+    USoundBase* CollisionSound;
+
 private:
-    // Last time damage was applied
-    float LastDamageTime;
-    
-    // Apply damage to player with cooldown
-    void ApplyDamageToPlayer(AActor* Player);
-    
-    // Store the initial position of the spikes
+    // PERFORMANCE: Cached state variables
     FVector InitialPosition;
-    
-    // 1 means positive direction, -1 means negative direction
     int32 MovementDirection;
-    
-    // Time until next damage can be applied
     float DamageTimer;
-    
-    // Whether spikes are currently triggered
     bool bIsTriggered;
-    
-    // Current time for smooth oscillation-based movements
     float CurrentTime;
+
+    // PERFORMANCE: Optimized helper functions
+    void CalculateMovementLocation(FVector& OutLocation, float DeltaTime);
+    void CalculateZigzagMovement(FVector& OutLocation, float SpeedFactor);
+    void ApplyDamageToPlayer(AActor* Player);
+    void HandleCollisionEffects(const FVector& HitLocation);
+
+#if WITH_EDITOR
+    // PERFORMANCE: Editor-only debug drawing methods
+    void DrawVerticalMovementPath(UWorld* World, const FVector& BasePosition, const FColor& Color, float Thickness, float LifeTime);
+    void DrawHorizontalMovementPath(UWorld* World, const FVector& BasePosition, const FColor& Color, float Thickness, float LifeTime);
+    void DrawDepthMovementPath(UWorld* World, const FVector& BasePosition, const FColor& Color, float Thickness, float LifeTime);
+    void DrawCircularMovementPath(UWorld* World, const FVector& BasePosition, const FColor& Color, float Thickness, float LifeTime);
+    void DrawZigzagMovementPath(UWorld* World, const FVector& BasePosition, const FColor& Color, float Thickness, float LifeTime);
+#endif
 };

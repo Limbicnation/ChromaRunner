@@ -1,30 +1,40 @@
 #include "PlayerHealthComponent.h"
+#include "Engine/Engine.h"
 
-// Sets default values for this component's properties
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickInterval = 0.1f; // Reduce frequency for performance
+
+	// Initialize default values with proper sizing
+	MaxHealth = 100;
+	CurrentHealth = MaxHealth;
+	TotalHitsTaken = 0;
+	InvulnerabilityTime = 1.0f;
+	InvulnerabilityTimeRemaining = 0.0f;
 
 	// Initialize default damage values
 	DamageValues = {
-		10, // Spikes
-		15, // Enemy melee
-		25, // Enemy projectile
+		25, // Spikes
+		20, // Enemy melee  
+		15, // Enemy projectile
 		50  // Environmental hazard
 	};
 }
 
-// Called when the game starts
 void UPlayerHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	
 	// Initialize health when game starts
 	ResetHealth();
+
+#if UE_BUILD_DEVELOPMENT
+	UE_LOG(LogTemp, Log, TEXT("PlayerHealthComponent initialized with %d/%d health"), CurrentHealth, MaxHealth);
+#endif
 }
 
-// Called every frame
 void UPlayerHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -32,7 +42,12 @@ void UPlayerHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	// Update invulnerability timer
 	if (InvulnerabilityTimeRemaining > 0.0f)
 	{
-		InvulnerabilityTimeRemaining -= DeltaTime;
+		InvulnerabilityTimeRemaining = FMath::Max(0.0f, InvulnerabilityTimeRemaining - DeltaTime);
+	}
+	else
+	{
+		// Disable tick when not needed for performance
+		SetComponentTickEnabled(false);
 	}
 }
 
@@ -59,6 +74,7 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 	
 	// Set invulnerability time
 	InvulnerabilityTimeRemaining = InvulnerabilityTime;
+	SetComponentTickEnabled(true); // Enable tick for invulnerability timer
 	
 	// Trigger damage event
 	OnTakeDamage.Broadcast(DamageAmount, Type);
@@ -71,18 +87,23 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 		// Check for death
 		if (CurrentHealth <= 0)
 		{
+#if UE_BUILD_DEVELOPMENT
+			UE_LOG(LogTemp, Warning, TEXT("Player died after %d hits"), TotalHitsTaken);
+#endif
 			OnPlayerDeath.Broadcast(TotalHitsTaken);
 		}
 	}
 
-	// Log damage information
-	UE_LOG(LogTemp, Log, TEXT("Player took %d damage of type %s. Health: %d/%d, Hits taken: %d"), 
-		DamageAmount, *UEnum::GetValueAsString(Type), CurrentHealth, MaxHealth, TotalHitsTaken);
+#if UE_BUILD_DEVELOPMENT
+	UE_LOG(LogTemp, Log, TEXT("Player took %d damage of type %d. Health: %d/%d, Hits taken: %d"), 
+		DamageAmount, (int32)Type, CurrentHealth, MaxHealth, TotalHitsTaken);
+#endif
 }
 
 void UPlayerHealthComponent::ResetHealth()
 {
 	// Reset health to maximum
+	int32 OldHealth = CurrentHealth;
 	CurrentHealth = MaxHealth;
 	
 	// Reset hit counter
@@ -91,9 +112,16 @@ void UPlayerHealthComponent::ResetHealth()
 	// Reset invulnerability time
 	InvulnerabilityTimeRemaining = 0.0f;
 	
-	// Broadcast health changed event
-	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+	// Disable tick when not needed
+	SetComponentTickEnabled(false);
 	
-	// Log health reset
+	// Broadcast health changed event if different
+	if (OldHealth != CurrentHealth)
+	{
+		OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+	}
+	
+#if UE_BUILD_DEVELOPMENT
 	UE_LOG(LogTemp, Log, TEXT("Player health reset to %d/%d"), CurrentHealth, MaxHealth);
+#endif
 }

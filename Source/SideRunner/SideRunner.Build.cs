@@ -8,16 +8,36 @@ public class SideRunner : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", /* ... other modules ... */ });
+		// PERFORMANCE: Core dependencies for optimized builds
+        PublicDependencyModuleNames.AddRange(new string[] { 
+			"Core", 
+			"CoreUObject", 
+			"Engine", 
+			"InputCore" 
+		});
 
-        PrivateDependencyModuleNames.AddRange(new string[] {  });
+		// PERFORMANCE: Private dependencies for specific features
+        PrivateDependencyModuleNames.AddRange(new string[] { 
+			"AudioMixer"			// For optimized audio
+		});
 
-		// Uncomment if you are using Slate UI
-		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		// PERFORMANCE: Enable optimizations for shipping builds
+		if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+		{
+			bUseUnity = true;
+			MinFilesUsingPrecompiledHeaderOverride = 1;
+		}
+
+		// PERFORMANCE: Enable faster compilation in development
+		if (Target.Configuration == UnrealTargetConfiguration.Development)
+		{
+			bUseUnity = true;
+		}
+
+		// PERFORMANCE: Compiler optimizations
+		OptimizeCode = CodeOptimization.InShippingBuildsOnly;
 		
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
+		// PERFORMANCE: Use precompiled headers for faster builds
+		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	}
 }

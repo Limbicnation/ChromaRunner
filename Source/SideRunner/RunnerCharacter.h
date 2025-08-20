@@ -5,6 +5,10 @@
 #include "PlayerHealthComponent.h"
 #include "RunnerCharacter.generated.h"
 
+// Forward declarations for better compilation performance
+class AWallSpike;
+class ASpikes;
+
 // Define character animation states
 UENUM(BlueprintType)
 enum class ECharacterState : uint8
@@ -17,6 +21,10 @@ enum class ECharacterState : uint8
     Dead UMETA(DisplayName = "Dead")
 };
 
+/**
+ * Performance-optimized runner character with state management and health system.
+ * Features double-jump mechanics and efficient animation state handling.
+ */
 UCLASS()
 class SIDERUNNER_API ARunnerCharacter : public ACharacter
 {
@@ -32,105 +40,88 @@ public:
     virtual void Tick(float DeltaTime) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-    // Animation State System
-    
-    // Current animation state of the character
+    // PERFORMANCE: Animation State System
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
     ECharacterState CurrentState;
     
-    // Last state before the current one (for transitions)
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Animation")
     ECharacterState PreviousState;
     
-    // Function to set the character's animation state
+    // State management functions
     UFUNCTION(BlueprintCallable, Category = "Animation")
     void SetCharacterState(ECharacterState NewState);
     
-    // Blueprint event that fires when the character state changes
-    // Using different parameter names to avoid shadowing
+    // Blueprint events for state changes
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void OnCharacterStateChanged(ECharacterState NewCharacterState, ECharacterState OldCharacterState);
     
-    // Function to update the sprite based on state - implemented in Blueprint
     UFUNCTION(BlueprintImplementableEvent, Category = "Animation")
     void UpdateCharacterSprite();
     
-    // Reference to the visual component (Sprite or Mesh) - set in Blueprint
-    // Works with any mesh component type (Skeletal Mesh, Static Mesh, or Paper2D Flipbook)
+    // Reference to visual component - configurable in Blueprint
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
     class UMeshComponent* CharacterVisual;
     
-    // Blueprint-accessible function to get the current state
+    // PERFORMANCE: State query functions
     UFUNCTION(BlueprintPure, Category = "Animation")
     ECharacterState GetCharacterState() const { return CurrentState; }
     
-    // Check if character is in a specific state
     UFUNCTION(BlueprintPure, Category = "Animation")
     bool IsInState(ECharacterState StateToCheck) const { return CurrentState == StateToCheck; }
     
-    // Get time spent in current state (useful for transitions)
     UFUNCTION(BlueprintPure, Category = "Animation")
     float GetTimeInCurrentState() const { return StateTimer; }
 
-    // Jump related properties
+    // PERFORMANCE: Jump Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
     bool bCanDoubleJump;
 
-    // initialize DoubleJumpZVelocity
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump")
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump", meta = (ClampMin = "200.0", ClampMax = "2000.0"))
     float DoubleJumpZVelocity;
 
     // Camera component
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class UCameraComponent* SideViewCamera;
 
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera", meta = (ClampMin = "90.0", ClampMax = "360.0"))
     float RotationRate = 180.0f;
-
-    float JumpZVelocity;
     
-    // Health System
-    
-    // Health component to manage player health
+    // PERFORMANCE: Health System
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
     UPlayerHealthComponent* HealthComponent;
     
-    // Blueprint event that fires when health changes
+    // Blueprint events for health system
     UFUNCTION(BlueprintImplementableEvent, Category = "Health")
     void OnHealthChanged(int32 CurrentHealth, int32 MaxHealth);
     
-    // Blueprint event that fires when player takes damage
     UFUNCTION(BlueprintImplementableEvent, Category = "Health")
     void OnTakeDamage(int32 DamageAmount, EDamageType DamageType);
     
-    // Process damage from a damage actor
+    // PERFORMANCE: Damage and death handling
     UFUNCTION(BlueprintCallable, Category = "Health")
     void ProcessDamage(float DamageAmount, AActor* DamageCauser);
     
-    // Handle game over from health component
     UFUNCTION()
     void HandlePlayerDeath(int32 TotalHitsTaken);
     
-    // Check if player is dead based on health
     UFUNCTION(BlueprintPure, Category = "Health")
     bool IsDead() const;
 
 protected:
-    // Override Jump function
+    // PERFORMANCE: Input handling
     virtual void Jump() override;
-
     void MoveRight(float Value);
 
-    // Handle death logic
-    UFUNCTION(BlueprintImplementableEvent)
+    // Death handling
+    UFUNCTION(BlueprintImplementableEvent, Category = "Health")
     void DeathOfPlayer();
-    
-    // Update the animation state based on character movement
-    void UpdateAnimationState();
 
 public:
+    // Level management
+    UFUNCTION(BlueprintCallable, Category = "Game")
     void RestartLevel();
 
+    // Collision handling
     UFUNCTION()
     void OnOverlapBegin(
         UPrimitiveComponent* OverlappedComp,
@@ -141,18 +132,29 @@ public:
         const FHitResult& SweepResult
     );
     
-    // Override TakeDamage to integrate with health component
+    // Override TakeDamage for health component integration
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, 
         class AController* EventInstigator, AActor* DamageCauser) override;
 
 private:
+    // PERFORMANCE: Cached positioning variables
     float zPosition;
-    FVector TempPos = FVector();
+    FVector TempPos;
 
+    // PERFORMANCE: Movement state
     bool CanMove;
     bool CanJump;
     bool CanDoubleJump;
     
-    // Timer to track how long we've been in the current state
+    // PERFORMANCE: State timing
     float StateTimer;
+    
+    // PERFORMANCE: Helper functions for cleaner code
+    void UpdateCameraPosition();
+    void HandleEnvironmentalDeath();
+    void UpdateAnimationState();
+    ECharacterState DetermineAirborneState() const;
+    bool IsMovingHorizontally() const;
+    void HandleWallSpikeOverlap(AWallSpike* WallSpike);
+    void HandleRegularSpikeOverlap(ASpikes* RegularSpike);
 };
