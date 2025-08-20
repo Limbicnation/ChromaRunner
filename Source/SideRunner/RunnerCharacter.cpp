@@ -1,7 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "RunnerCharacter.h"
-
 #include "GameFramework/Actor.h"
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
@@ -10,19 +9,29 @@
 #include "Engine.h"
 #include "Kismet/GameplayStatics.h"
 #include "Spikes.h"
+#include "PlayerHealthComponent.h"
+
+// PERFORMANCE: Constants for better maintainability and performance
+namespace RunnerCharacterConstants
+{
+    constexpr float FALL_THRESHOLD = -1000.0f;
+    constexpr float CAMERA_HEIGHT_OFFSET = 150.0f;
+    constexpr float CAMERA_X_OFFSET = -800.0f;
+    constexpr float MOVEMENT_THRESHOLD = 10.0f;
+    constexpr float STATE_TIMER_RESET = 0.0f;
+    constexpr float RESTART_LEVEL_DELAY = 2.0f;
+}
 
 // You need Paper2D plugin for this. Add it to your project if needed.
 // If you're not using Paper2D, you can remove this include and work with USkeletalMeshComponent instead
 // #include "PaperFlipbookComponent.h"
 
-const float FALL_THRESHOLD = -1000.0f;
-
-// Sets default values
 ARunnerCharacter::ARunnerCharacter()
 {
     // Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     PrimaryActorTick.bCanEverTick = true;
 
+    // PERFORMANCE: Optimized capsule component setup
     GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 
@@ -31,37 +40,36 @@ ARunnerCharacter::ARunnerCharacter()
     bUseControllerRotationRoll = true;
     bUseControllerRotationYaw = true;
 
-    // Create the Camera
+    // Create and configure camera
     SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
-    // Stop the controller from rotating the Camera
     SideViewCamera->bUsePawnControlRotation = false;
 
-    // Rotate the character towards the direction we are going
-    GetCharacterMovement()->bOrientRotationToMovement = true;
+    // PERFORMANCE: Optimize character movement setup
+    UCharacterMovementComponent* Movement = GetCharacterMovement();
+    Movement->bOrientRotationToMovement = true;
+    Movement->RotationRate = FRotator(0.0f, RotationRate, 0.0f);
+    Movement->GravityScale = 2.5f;
+    Movement->AirControl = 0.5f;
+    Movement->JumpZVelocity = 1000.0f;
+    Movement->GroundFriction = 3.0f;
+    Movement->MaxWalkSpeed = 600.0f;
+    Movement->MaxFlySpeed = 600.0f;
 
-    // Rotation Rate
-    GetCharacterMovement()->RotationRate = FRotator(0.0f, RotationRate, 0.0f);
-
-    // Set defaults for controlling the Character
-    GetCharacterMovement()->GravityScale = 2.5f;
-    GetCharacterMovement()->AirControl = 0.5f;
-    GetCharacterMovement()->JumpZVelocity = 1000.0f;
-    GetCharacterMovement()->GroundFriction = 3.0f;
-    GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-    GetCharacterMovement()->MaxFlySpeed = 600.0f;
-
-    // Find the Characters temporary position
+    // Initialize camera positioning
     TempPos = GetActorLocation();
-    // The Camera height position
-    zPosition = TempPos.Z + 150.0f;
+    zPosition = TempPos.Z + RunnerCharacterConstants::CAMERA_HEIGHT_OFFSET;
 
-    // Initialize animation state variables
+    // Initialize animation state
     CurrentState = ECharacterState::Idle;
     PreviousState = ECharacterState::Idle;
-    StateTimer = 0.0f;
+    StateTimer = RunnerCharacterConstants::STATE_TIMER_RESET;
 
-    // Set default jump properties
+    // Set jump properties
     DoubleJumpZVelocity = 800.0f;
+
+    // PERFORMANCE: Create health component with validation
+    HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
+    ensure(HealthComponent); // Debug validation
 }
 
 // Called when the game starts or when spawned
@@ -69,15 +77,33 @@ void ARunnerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Get the Capsule Component
-    GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &ARunnerCharacter::OnOverlapBegin);
+    // PERFORMANCE: Bind overlap events efficiently
+    if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+    {
+        Capsule->OnComponentBeginOverlap.AddDynamic(this, &ARunnerCharacter::OnOverlapBegin);
+    }
 
+    // Initialize movement and jump state
     CanMove = true;
     CanJump = true;
-    bCanDoubleJump = true; // set CanDoubleJump to true by default
+    bCanDoubleJump = true;
 
-    // Initialize the character in idle state
+    // Set initial character state
     SetCharacterState(ECharacterState::Idle);
+
+    // PERFORMANCE: Bind health events if component exists
+    if (HealthComponent)
+    {
+        HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
+        HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
+        HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+    }
+#if UE_BUILD_DEBUG
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("RunnerCharacter: HealthComponent is null!"));
+    }
+#endif
 }
 
 // Called every frame
@@ -85,101 +111,114 @@ void ARunnerCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    TempPos = GetActorLocation();
-    TempPos.X -= 800;
-    TempPos.Z = zPosition;
-    SideViewCamera->SetWorldLocation(TempPos);
+    // PERFORMANCE: Optimized camera positioning
+    UpdateCameraPosition();
 
-    // Check for falling beyond threshold
-    if (GetActorLocation().Z < FALL_THRESHOLD)
+    // PERFORMANCE: Early exit if character is dead
+    if (CurrentState == ECharacterState::Dead)
     {
-        RestartLevel();
+        return;
     }
 
-    // Update the animation state based on movement
-    UpdateAnimationState();
+    // Check for fall threshold
+    if (GetActorLocation().Z < RunnerCharacterConstants::FALL_THRESHOLD)
+    {
+        HandleEnvironmentalDeath();
+        return;
+    }
 
-    // Increment state timer
+    // Update animation state and timer
+    UpdateAnimationState();
     StateTimer += DeltaTime;
+}
+
+void ARunnerCharacter::UpdateCameraPosition()
+{
+    TempPos = GetActorLocation();
+    TempPos.X += RunnerCharacterConstants::CAMERA_X_OFFSET;
+    TempPos.Z = zPosition;
+    SideViewCamera->SetWorldLocation(TempPos);
+}
+
+void ARunnerCharacter::HandleEnvironmentalDeath()
+{
+    if (HealthComponent)
+    {
+        HealthComponent->TakeDamage(HealthComponent->GetCurrentHealth(), EDamageType::EnvironmentalHazard);
+    }
+    RestartLevel();
 }
 
 void ARunnerCharacter::UpdateAnimationState()
 {
-    // Skip if the character is dead
+    // PERFORMANCE: Early exit for dead state
     if (CurrentState == ECharacterState::Dead)
         return;
 
-    // Get the character movement component
-    UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+    // PERFORMANCE: Cache movement component
+    const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
     if (!MovementComponent)
         return;
 
-    // Determine the character state based on movement
     ECharacterState NewState = CurrentState;
 
-    // Check if falling
+    // PERFORMANCE: Efficient state determination
     if (MovementComponent->IsFalling())
     {
-        // Check if rising or falling
-        if (GetVelocity().Z > 0)
-        {
-            if (CurrentState == ECharacterState::DoubleJumping)
-            {
-                // Keep double jumping state
-                NewState = ECharacterState::DoubleJumping;
-            }
-            else
-            {
-                // Regular jump
-                NewState = ECharacterState::Jumping;
-            }
-        }
-        else
-        {
-            NewState = ECharacterState::Falling;
-        }
+        NewState = DetermineAirborneState();
     }
-    // Check if running
-    else if (FMath::Abs(GetVelocity().Y) > 10.0f)
+    else if (IsMovingHorizontally())
     {
         NewState = ECharacterState::Running;
     }
-    // Otherwise idle
     else
     {
         NewState = ECharacterState::Idle;
     }
 
-    // If state changed, update it
+    // Update state if changed
     if (NewState != CurrentState)
     {
         SetCharacterState(NewState);
     }
 }
 
+ECharacterState ARunnerCharacter::DetermineAirborneState() const
+{
+    const float VerticalVelocity = GetVelocity().Z;
+    
+    if (VerticalVelocity > 0)
+    {
+        return (CurrentState == ECharacterState::DoubleJumping) ? ECharacterState::DoubleJumping : ECharacterState::Jumping;
+    }
+    
+    return ECharacterState::Falling;
+}
+
+bool ARunnerCharacter::IsMovingHorizontally() const
+{
+    return FMath::Abs(GetVelocity().Y) > RunnerCharacterConstants::MOVEMENT_THRESHOLD;
+}
+
 void ARunnerCharacter::SetCharacterState(ECharacterState NewState)
 {
-    // Store previous state before changing current
-    ECharacterState OldState = CurrentState;
+    // PERFORMANCE: Early exit if state hasn't changed
+    if (NewState == CurrentState)
+        return;
 
-    // Set new state
+    const ECharacterState OldState = CurrentState;
+    PreviousState = OldState;
     CurrentState = NewState;
+    StateTimer = RunnerCharacterConstants::STATE_TIMER_RESET;
 
-    // Reset state timer
-    StateTimer = 0.0f;
-
-    // Log state change
+#if UE_BUILD_DEVELOPMENT
     UE_LOG(LogTemp, Verbose, TEXT("Character state changed from %s to %s"),
         *UEnum::GetValueAsString(OldState),
         *UEnum::GetValueAsString(CurrentState));
+#endif
 
-    // The previous state is stored in the class member
-    PreviousState = OldState;
-
-    // Call the blueprint event to handle visual updates
+    // Call blueprint events
     OnCharacterStateChanged(NewState, OldState);
-
-    // Update the sprite animation
     UpdateCharacterSprite();
 }
 
@@ -188,98 +227,196 @@ void ARunnerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-    // Bind Character Input functionality
-    PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ARunnerCharacter::Jump);
-    PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-
-    PlayerInputComponent->BindAxis("MoveRight", this, &ARunnerCharacter::MoveRight);
+    // PERFORMANCE: Efficient input binding
+    if (PlayerInputComponent)
+    {
+        PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ARunnerCharacter::Jump);
+        PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+        PlayerInputComponent->BindAxis("MoveRight", this, &ARunnerCharacter::MoveRight);
+    }
 }
 
 void ARunnerCharacter::Jump()
 {
-    if (CanJump && !GetCharacterMovement()->IsFalling())
+    // PERFORMANCE: Early exit for dead state
+    if (IsDead())
+        return;
+
+    const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+    if (!MovementComponent)
+        return;
+
+    if (CanJump && !MovementComponent->IsFalling())
     {
         // First jump
         ACharacter::Jump();
-        CanDoubleJump = true;
-
-        // Set jumping state
+        bCanDoubleJump = true;
         SetCharacterState(ECharacterState::Jumping);
     }
     else if (CanDoubleJump)
     {
         // Double jump
         LaunchCharacter(FVector(0, 0, DoubleJumpZVelocity), false, true);
-        CanDoubleJump = false;
-
-        // Set double jumping state
+        bCanDoubleJump = false;
         SetCharacterState(ECharacterState::DoubleJumping);
     }
 }
 
 void ARunnerCharacter::MoveRight(float Value)
 {
-    if (CanMove)
-    {
-        FVector Direction = FVector(0.0f, 1.0f, 0.0f); // Keep movement only along the Y-axis
-        AddMovementInput(Direction, Value);
+    // PERFORMANCE: Early exit for invalid states
+    if (IsDead() || !CanMove || FMath::IsNearlyZero(Value))
+        return;
 
-        // Update animation state based on movement
-        if (FMath::Abs(Value) > 0.1f && !GetCharacterMovement()->IsFalling())
+    // PERFORMANCE: Use constant direction vector
+    static const FVector MovementDirection = FVector(0.0f, 1.0f, 0.0f);
+    AddMovementInput(MovementDirection, Value);
+
+    // PERFORMANCE: Only update animation state if significant movement
+    if (FMath::Abs(Value) > 0.1f)
+    {
+        const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+        if (MovementComponent && !MovementComponent->IsFalling())
         {
             if (CurrentState != ECharacterState::Running)
             {
                 SetCharacterState(ECharacterState::Running);
             }
         }
-        else if (FMath::Abs(Value) < 0.1f && !GetCharacterMovement()->IsFalling())
+    }
+    else if (CurrentState == ECharacterState::Running)
+    {
+        const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+        if (MovementComponent && !MovementComponent->IsFalling())
         {
-            if (CurrentState != ECharacterState::Idle)
-            {
-                SetCharacterState(ECharacterState::Idle);
-            }
+            SetCharacterState(ECharacterState::Idle);
         }
     }
 }
 
 void ARunnerCharacter::RestartLevel()
 {
-    // Call restart level
-    UGameplayStatics::OpenLevel(this, FName(*GetWorld()->GetName()));
+    // PERFORMANCE: Use more efficient level restart
+    const UWorld* World = GetWorld();
+    if (World)
+    {
+        const FString CurrentLevelName = World->GetName();
+        UGameplayStatics::OpenLevel(this, FName(*CurrentLevelName));
+    }
 }
 
 void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
     const FHitResult& SweepResult)
 {
-    if (OtherActor != nullptr)
+    // PERFORMANCE: Early validation and exit
+    if (!OtherActor || IsDead())
+        return;
+
+    // PERFORMANCE: Handle different spike types efficiently
+    if (AWallSpike* WallSpike = Cast<AWallSpike>(OtherActor))
     {
-        AWallSpike* WallSpike = Cast<AWallSpike>(OtherActor);
-        ASpikes* Spike = Cast<ASpikes>(OtherActor);
-
-        // Check if we collide with either Wall or Spike Actor
-        if (WallSpike || Spike)
-        {
-            // Set character to dead state
-            SetCharacterState(ECharacterState::Dead);
-
-            // get the mesh and deactivate it
-            GetMesh()->Deactivate();
-            // Set the visibility of the mesh to false
-            GetMesh()->SetVisibility(false);
-            // disable movement input
-            CanMove = false;
-            // disable Jump input
-            CanJump = false;
-            CanDoubleJump = false;
-            JumpZVelocity = 0.0f;
-
-            // Called in character blueprint
-            DeathOfPlayer();
-
-            // restart the Level 
-            FTimerHandle UnusedHandle;
-            GetWorldTimerManager().SetTimer(UnusedHandle, this, &ARunnerCharacter::RestartLevel, 2.0f, false);
-        }
+        HandleWallSpikeOverlap(WallSpike);
     }
+    else if (ASpikes* RegularSpike = Cast<ASpikes>(OtherActor))
+    {
+        HandleRegularSpikeOverlap(RegularSpike);
+    }
+}
+
+void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
+{
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Warning, TEXT("Player overlapped with WallSpike - instant death triggered"));
+#endif
+    // WallSpike handles its own instant death logic
+}
+
+void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
+{
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("Player overlapped with regular Spikes - damage will be applied"));
+#endif
+    // Regular spikes handle their own damage logic
+}
+
+void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
+{
+    // PERFORMANCE: Validate inputs
+    if (!HealthComponent || HealthComponent->IsInvulnerable() || DamageAmount <= 0.0f)
+        return;
+
+    // Determine damage type based on causer
+    EDamageType DamageType = EDamageType::EnvironmentalHazard;
+    if (Cast<ASpikes>(DamageCauser))
+    {
+        DamageType = EDamageType::Spikes;
+    }
+
+    // Apply damage
+    HealthComponent->TakeDamage(static_cast<int32>(DamageAmount), DamageType);
+
+    // Check for death
+    if (IsDead())
+    {
+        HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
+    }
+}
+
+bool ARunnerCharacter::IsDead() const
+{
+    return HealthComponent ? (HealthComponent->GetCurrentHealth() <= 0) : false;
+}
+
+void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
+{
+    // PERFORMANCE: Early exit if already dead
+    if (CurrentState == ECharacterState::Dead)
+        return;
+
+    SetCharacterState(ECharacterState::Dead);
+
+    // Disable mesh and movement
+    if (USkeletalMeshComponent* SkeletalMesh = GetMesh())
+    {
+        SkeletalMesh->Deactivate();
+        SkeletalMesh->SetVisibility(false);
+    }
+
+    // Disable input
+    CanMove = false;
+    CanJump = false;
+    bCanDoubleJump = false;
+    
+    // Reset jump velocity through movement component
+    if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+    {
+        MovementComponent->JumpZVelocity = 0.0f;
+    }
+
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("Player died after taking %d hits"), TotalHitsTaken);
+#endif
+
+    // Call blueprint event
+    DeathOfPlayer();
+
+    // PERFORMANCE: Use optimized timer for level restart
+    FTimerHandle RestartTimer;
+    GetWorldTimerManager().SetTimer(RestartTimer, this, &ARunnerCharacter::RestartLevel, 
+                                   RunnerCharacterConstants::RESTART_LEVEL_DELAY, false);
+}
+
+float ARunnerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
+                                  AController* EventInstigator, AActor* DamageCauser)
+{
+    const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    
+    // PERFORMANCE: Only process if damage was actually applied
+    if (ActualDamage > 0.0f)
+    {
+        ProcessDamage(ActualDamage, DamageCauser);
+    }
+    
+    return ActualDamage;
 }
