@@ -359,17 +359,39 @@ ACoinPickup* ACoinPickup::SpawnFromPool(UWorld* World, TSubclassOf<ACoinPickup> 
         return nullptr;
     }
 
-    // Simple spawn if pooling is disabled
-    ACoinPickup* NewCoin = World->SpawnActor<ACoinPickup>(CoinClass, Transform);
-    if (!NewCoin || !NewCoin->UseActorPooling)
+    // Check if pooling is enabled by checking the class default object
+    const ACoinPickup* CDO = GetDefault<ACoinPickup>(CoinClass);
+    if (!CDO || !CDO->UseActorPooling)
     {
-        return NewCoin;
+        return World->SpawnActor<ACoinPickup>(CoinClass, Transform);
     }
 
-    // Setup for pooled coin
-    NewCoin->PoolTag = Tag;
-    NewCoin->InitialLocation = Transform.GetLocation();
-    NewCoin->ResetCoinState();
+    // Get or create the pool for this world
+    FActorPool<ACoinPickup>& Pool = CoinPools.FindOrAdd(World);
+    
+    // Try to get an actor from the pool first
+    if (ACoinPickup* Coin = Pool.GetActor(Tag))
+    {
+        // Reset and reuse the existing coin
+        Coin->SetActorTransform(Transform);
+        Coin->InitialLocation = Transform.GetLocation();
+        Coin->PoolTag = Tag;
+        Coin->ResetCoinState();
+        Coin->SetActorHiddenInGame(false);
+        Coin->SetActorEnableCollision(true);
+        Coin->SetActorTickEnabled(true);
+        
+        return Coin;
+    }
+    
+    // If no pooled actor available, spawn a new one
+    ACoinPickup* NewCoin = World->SpawnActor<ACoinPickup>(CoinClass, Transform);
+    if (NewCoin)
+    {
+        NewCoin->PoolTag = Tag;
+        NewCoin->InitialLocation = Transform.GetLocation();
+        NewCoin->ResetCoinState();
+    }
     
     return NewCoin;
 }
@@ -382,13 +404,26 @@ void ACoinPickup::ReturnToPool()
         return;
     }
 
-    // Hide and disable
-    SetActorHiddenInGame(true);
-    SetActorEnableCollision(false);
-    SetActorTickEnabled(false);
+    // Get the pool for this world
+    FActorPool<ACoinPickup>* Pool = CoinPools.Find(GetWorld());
+    if (Pool)
+    {
+        // Hide and disable the actor
+        SetActorHiddenInGame(true);
+        SetActorEnableCollision(false);
+        SetActorTickEnabled(false);
 
-    // Reset state for reuse
-    ResetCoinState();
+        // Reset state for reuse
+        ResetCoinState();
+
+        // Return to pool - this is the critical step that was missing
+        Pool->ReturnActor(this, PoolTag);
+    }
+    else
+    {
+        // If no pool exists, just destroy the actor
+        Destroy();
+    }
 }
 
 void ACoinPickup::ClearPool(UWorld* World)
