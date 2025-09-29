@@ -43,9 +43,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Spikes")
     void SetMovementEnabled(bool bEnabled);
     
-    // Reset damage tracking manually
-    UFUNCTION(BlueprintCallable, Category = "Spikes")
-    void ResetDamageTracking();
     
 #if WITH_EDITOR
     // Draw movement path for easier editing
@@ -94,13 +91,9 @@ public:
     
     // Gameplay Properties
     
-    // Amount of damage to apply to the player
+    // Amount of damage to apply to the player (used by RunnerCharacter for damage calculation)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
     float DamageAmount;
-    
-    // Time in seconds between damage applications
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
-    float DamageCooldown;
     
     // Whether spikes are triggered by proximity
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger")
@@ -126,9 +119,6 @@ protected:
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 private:
-    // Apply damage to player with cooldown
-    void ApplyDamageToPlayer(AActor* Player);
-    
     // NEW: Optimized player proximity checking
     void CheckPlayerProximity();
     
@@ -144,9 +134,6 @@ private:
     // 1 means positive direction, -1 means negative direction
     int32 MovementDirection;
     
-    // Time until next damage can be applied
-    float DamageTimer;
-    
     // Whether spikes are currently triggered
     bool bIsTriggered;
     
@@ -156,8 +143,4 @@ private:
     // NEW: Performance optimization variables
     float LastPlayerCheckTime;
     float PlayerCheckInterval;
-    
-    // NEW: Track damaged actors to prevent spam damage
-    UPROPERTY()
-    TSet<AActor*> DamagedActors;
 };

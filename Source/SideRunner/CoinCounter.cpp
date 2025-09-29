@@ -54,18 +54,33 @@ void UCoinCounter::BeginPlay()
     UE_LOG(LogTemp, Log, TEXT("CoinCounter RESET to %d coins"), CoinCount);
 
     // Broadcast initial value to update UI (delayed to avoid race conditions)
-    FTimerHandle InitTimer;
-    GetWorld()->GetTimerManager().SetTimer(InitTimer, [this]()
+    if (UWorld* World = GetWorld())
     {
-        OnCoinsUpdated.Broadcast(CoinCount);
-    }, 0.1f, false);  // Delay broadcast by 0.1 seconds
+        FTimerHandle InitTimer;
+        TWeakObjectPtr<UCoinCounter> WeakThis(this);
+        World->GetTimerManager().SetTimer(InitTimer, [WeakThis]()
+        {
+            if (WeakThis.IsValid())
+            {
+                int32 CurrentCount;
+                {
+                    FScopeLock Lock(&WeakThis->CoinMutex);
+                    CurrentCount = WeakThis->CoinCount;
+                }
+                WeakThis->OnCoinsUpdated.Broadcast(CurrentCount);
+            }
+        }, 0.1f, false);  // Delay broadcast by 0.1 seconds
+    }
 
     // Count total coins in the level if auto-counting is enabled
     if (bAutoCountCoinsInLevel)
     {
         // Delay this operation to avoid race conditions during level loading
-        FTimerHandle CountTimer;
-        GetWorld()->GetTimerManager().SetTimer(CountTimer, this, &UCoinCounter::CountCoinsInLevel, 0.5f, false);
+        if (UWorld* World = GetWorld())
+        {
+            FTimerHandle CountTimer;
+            World->GetTimerManager().SetTimer(CountTimer, this, &UCoinCounter::CountCoinsInLevel, 0.5f, false);
+        }
     }
 
     // Load persistent coins if enabled
@@ -140,17 +155,18 @@ void UCoinCounter::AddCoins(int32 Amount)
         bProcessingCoin = true;
     }
 
-    // Store previous values for comparison
-    int32 PreviousCoinCount = CoinCount;
-    
-    // Update coin count
+    // Store previous values and update coin count atomically
+    int32 PreviousCoinCount;
+    int32 NewCoinCount;
     {
         FScopeLock Lock(&CoinMutex);
+        PreviousCoinCount = CoinCount;
         CoinCount += Amount;
+        NewCoinCount = CoinCount;
     }
 
     // Debug log (outside critical section)
-    UE_LOG(LogTemp, Log, TEXT("Added %d coins. New total: %d"), Amount, CoinCount);
+    UE_LOG(LogTemp, Log, TEXT("Added %d coins. New total: %d"), Amount, NewCoinCount);
 
     // If we're using persistent coins, update and save them
     if (bPersistentCoins)
@@ -161,19 +177,29 @@ void UCoinCounter::AddCoins(int32 Amount)
 
     // OPTIMIZATION: Batch UI updates to prevent spam
     bool bShouldBroadcast = true;
-    if (GetWorld())
+    if (UWorld* World = GetWorld())
     {
-        float CurrentTime = GetWorld()->GetTimeSeconds();
+        float CurrentTime = World->GetTimeSeconds();
         if (CurrentTime - LastUpdateTime < UpdateInterval)
         {
             bShouldBroadcast = false;
             
             // Schedule a delayed update instead
             FTimerHandle DelayedUpdateTimer;
-            GetWorld()->GetTimerManager().SetTimer(DelayedUpdateTimer, [this]()
+            TWeakObjectPtr<UCoinCounter> WeakThis(this);
+            World->GetTimerManager().SetTimer(DelayedUpdateTimer, [WeakThis]()
             {
-                OnCoinsUpdated.Broadcast(CoinCount);
-            }, UpdateInterval, false);
+                if (WeakThis.IsValid())
+                {
+                    // Read current count safely for delayed broadcast
+                    int32 CurrentCount;
+                    {
+                        FScopeLock Lock(&WeakThis->CoinMutex);
+                        CurrentCount = WeakThis->CoinCount;
+                    }
+                    WeakThis->OnCoinsUpdated.Broadcast(CurrentCount);
+                }
+            }, WeakThis->UpdateInterval, false);
         }
         else
         {
@@ -184,12 +210,12 @@ void UCoinCounter::AddCoins(int32 Amount)
     // Broadcast the event with the new coin count
     if (bShouldBroadcast)
     {
-        OnCoinsUpdated.Broadcast(CoinCount);
+        OnCoinsUpdated.Broadcast(NewCoinCount);
     }
 
-    // Check if we've collected all coins
+    // Check if we've collected all coins (using thread-safe method)
     bool bAllCoinsCollected = HasCollectedAllCoins();
-    if (bAllCoinsCollected && PreviousCoinCount != CoinCount)  // Only trigger once
+    if (bAllCoinsCollected && PreviousCoinCount != NewCoinCount)  // Only trigger once
     {
         OnAllCoinsCollected.Broadcast();
     }
@@ -197,7 +223,7 @@ void UCoinCounter::AddCoins(int32 Amount)
     // Check if we've reached a milestone
     for (int32 Milestone : CoinMilestones)
     {
-        if (CoinCount >= Milestone && PreviousCoinCount < Milestone && !ReachedMilestones.Contains(Milestone))
+        if (NewCoinCount >= Milestone && PreviousCoinCount < Milestone && !ReachedMilestones.Contains(Milestone))
         {
             ReachedMilestones.Add(Milestone);
             OnCoinMilestoneReached.Broadcast(Milestone);
@@ -222,26 +248,40 @@ void UCoinCounter::ResetCoins()
         bProcessingCoin = false;
     }
 
-    // Broadcast the event with the new coin count
-    OnCoinsUpdated.Broadcast(CoinCount);
+    // Broadcast the event with the new coin count (using known value 0)
+    OnCoinsUpdated.Broadcast(0);
 
     UE_LOG(LogTemp, Log, TEXT("CoinCounter reset to 0 coins"));
 }
 
 bool UCoinCounter::HasCollectedAllCoins() const
 {
+    // Thread-safe read
+    int32 CurrentCoinCount;
+    {
+        FScopeLock Lock(&CoinMutex);
+        CurrentCoinCount = CoinCount;
+    }
+    
     if (bAutoCountCoinsInLevel)
     {
-        return CoinCount >= TotalCoinsInLevel && TotalCoinsInLevel > 0;
+        return CurrentCoinCount >= TotalCoinsInLevel && TotalCoinsInLevel > 0;
     }
 
-    return CoinCount >= MaxCoins;
+    return CurrentCoinCount >= MaxCoins;
 }
 
 float UCoinCounter::GetCompletionPercentage() const
 {
+    // Thread-safe read
+    int32 CurrentCoinCount;
+    {
+        FScopeLock Lock(&CoinMutex);
+        CurrentCoinCount = CoinCount;
+    }
+    
     float MaxValue = bAutoCountCoinsInLevel ? FMath::Max(1, TotalCoinsInLevel) : FMath::Max(1, MaxCoins);
-    return (float)CoinCount / MaxValue * 100.0f;
+    return (float)CurrentCoinCount / MaxValue * 100.0f;
 }
 
 void UCoinCounter::CountCoinsInLevel()

@@ -421,8 +421,8 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
         }
         else if (WallSpike)
         {
-            // Use a default damage amount for wall spikes
-            damageAmount = 10.0f;
+            // FIXED: Use the damage amount specified by the WallSpike (should be 9999.0f for instant death)
+            damageAmount = WallSpike->DamageAmount;
         }
 
         // Apply damage

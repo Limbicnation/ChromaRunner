@@ -47,9 +47,7 @@ ASpikes::ASpikes()
     Speed = 100.0f;
     MaxMovementOffset = 100.0f;
     MovementDirection = 1;
-    DamageAmount = 10.0f;
-    DamageCooldown = 1.0f;
-    DamageTimer = 0.0f;
+    DamageAmount = 10.0f;  // Keep for reference by RunnerCharacter, but damage logic removed
     bIsMoving = true;
     MovementType = EMovementType::UpDown;
 
@@ -62,9 +60,6 @@ ASpikes::ASpikes()
     // NEW: Initialize performance optimizations
     LastPlayerCheckTime = 0.0f;
     PlayerCheckInterval = 0.1f;  // Check for player every 0.1 seconds instead of every frame
-    
-    // NEW: Damage tracking
-    DamagedActors.Empty();
 }
 
 // Called when the game starts or when spawned
@@ -80,9 +75,6 @@ void ASpikes::BeginPlay()
     {
         ImpactEffect->Deactivate();
     } 
-
-    // Reset damage timer
-    DamageTimer = 0.0f;
 
     // Reset time for smooth movements
     CurrentTime = 0.0f;
@@ -110,18 +102,6 @@ void ASpikes::BeginPlay()
 void ASpikes::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-
-    // Decrease damage timer if active
-    if (DamageTimer > 0.0f)
-    {
-        DamageTimer -= DeltaTime;
-        
-        // Clean up damaged actors list when cooldown expires
-        if (DamageTimer <= 0.0f)
-        {
-            DamagedActors.Empty();
-        }
-    }
 
     // If not moving, exit early
     if (!bIsMoving)
@@ -216,7 +196,7 @@ void ASpikes::UpdateMovement()
     SetActorLocation(NewLocation);
 }
 
-// NEW: Improved overlap detection system
+// FIXED: Spike overlap handles only effects, damage handled by character
 void ASpikes::OnSpikeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -229,12 +209,6 @@ void ASpikes::OnSpikeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* O
     ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(OtherActor);
     if (PlayerCharacter)
     {
-        // OPTIMIZATION: Prevent multiple damage to same actor during cooldown
-        if (DamagedActors.Contains(OtherActor))
-        {
-            return;
-        }
-
         // Play collision sound with better audio management
         PlayCollisionSound();
 
@@ -250,8 +224,8 @@ void ASpikes::OnSpikeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* O
             ImpactEffect->Activate(true);
         }
 
-        // Apply damage to player (with cooldown)
-        ApplyDamageToPlayer(PlayerCharacter);
+        // NOTE: Damage is now handled by ARunnerCharacter::OnOverlapBegin to prevent double damage
+        // Spikes are responsible only for audio/visual effects
     }
 }
 
@@ -304,33 +278,7 @@ void ASpikes::SetMovementEnabled(bool bEnabled)
     }
 }
 
-void ASpikes::ApplyDamageToPlayer(AActor* Player)
-{
-    // Check if cooldown has expired and player hasn't been damaged recently
-    if (DamageTimer <= 0.0f && !DamagedActors.Contains(Player))
-    {
-        // Apply damage to player
-        FDamageEvent DamageEvent;
-        Player->TakeDamage(DamageAmount, DamageEvent, nullptr, this);
 
-        // Set cooldown timer
-        DamageTimer = DamageCooldown;
-        
-        // Add player to damaged actors list
-        DamagedActors.Add(Player);
-
-        // Log damage application
-        UE_LOG(LogTemp, Log, TEXT("%s: Applied %.1f damage to %s"),
-            *GetName(), DamageAmount, *Player->GetName());
-    }
-}
-
-// NEW: Reset damage tracking manually if needed
-void ASpikes::ResetDamageTracking()
-{
-    DamageTimer = 0.0f;
-    DamagedActors.Empty();
-}
 
 #if WITH_EDITOR
 // Draw debug visualization for editor
