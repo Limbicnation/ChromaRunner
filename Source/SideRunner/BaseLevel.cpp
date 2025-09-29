@@ -10,8 +10,8 @@ ABaseLevel::ABaseLevel()
     : LevelLength(1000.0f)     // FIXED: Initialize in correct order
     , DifficultyLevel(1)
     , bIsEndLevel(false)
-    , bShowDebugBoxes(false)
     , bLevelTriggered(false)  // NEW: Prevent multiple triggers
+    , bShowDebugBoxes(false)
 {
     // Disable tick by default for performance - enable only if needed
     PrimaryActorTick.bCanEverTick = false;
