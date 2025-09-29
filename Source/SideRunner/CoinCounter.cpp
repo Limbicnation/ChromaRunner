@@ -1,6 +1,7 @@
 #include "CoinCounter.h"
 #include "Kismet/GameplayStatics.h"
 #include "CoinPickup.h"
+#include "Engine/World.h"
 
 // Sets default values for this component's properties
 UCoinCounter::UCoinCounter()
@@ -20,6 +21,11 @@ UCoinCounter::UCoinCounter()
 
     // Initialize total coins to collect in this level
     TotalCoinsInLevel = 0;
+    
+    // NEW: Initialize optimization variables
+    bIsInitialized = false;
+    LastUpdateTime = 0.0f;
+    UpdateInterval = 0.1f;  // Batch UI updates every 0.1 seconds
 }
 
 // Called when the game starts
@@ -27,21 +33,39 @@ void UCoinCounter::BeginPlay()
 {
     Super::BeginPlay();
 
-    // HOTFIX: Force reset at game start
-    CoinCount = 0;
-    CollectedCoins.Empty();
-    bProcessingCoin = false;
+    // CRITICAL FIX: Use thread-safe initialization
+    if (bIsInitialized)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("CoinCounter already initialized, preventing duplicate initialization"));
+        return;
+    }
+
+    // HOTFIX: Force reset at game start with thread safety
+    {
+        FScopeLock Lock(&CoinMutex);
+        CoinCount = 0;
+        CollectedCoins.Empty();
+        bProcessingCoin = false;
+        ReachedMilestones.Empty();
+        bIsInitialized = true;
+    }
 
     // Log initial state - helps with debugging
     UE_LOG(LogTemp, Log, TEXT("CoinCounter RESET to %d coins"), CoinCount);
 
-    // Broadcast initial value to update UI
-    OnCoinsUpdated.Broadcast(CoinCount);
+    // Broadcast initial value to update UI (delayed to avoid race conditions)
+    FTimerHandle InitTimer;
+    GetWorld()->GetTimerManager().SetTimer(InitTimer, [this]()
+    {
+        OnCoinsUpdated.Broadcast(CoinCount);
+    }, 0.1f, false);  // Delay broadcast by 0.1 seconds
 
     // Count total coins in the level if auto-counting is enabled
     if (bAutoCountCoinsInLevel)
     {
-        CountCoinsInLevel();
+        // Delay this operation to avoid race conditions during level loading
+        FTimerHandle CountTimer;
+        GetWorld()->GetTimerManager().SetTimer(CountTimer, this, &UCoinCounter::CountCoinsInLevel, 0.5f, false);
     }
 
     // Load persistent coins if enabled
@@ -59,34 +83,73 @@ void UCoinCounter::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 bool UCoinCounter::HasCollectedCoin(AActor* CoinActor) const
 {
-    return CoinActor && CollectedCoins.Contains(CoinActor);
+    if (!CoinActor)
+    {
+        return false;
+    }
+    
+    // Thread-safe access
+    FScopeLock Lock(&CoinMutex);
+    return CollectedCoins.Contains(CoinActor);
 }
 
 void UCoinCounter::MarkCoinAsCollected(AActor* CoinActor)
 {
-    if (CoinActor)
+    if (!CoinActor)
     {
-        CollectedCoins.Add(CoinActor);
-        UE_LOG(LogTemp, Log, TEXT("Marked coin %s as collected"), *CoinActor->GetName());
+        return;
     }
+    
+    // Thread-safe access
+    FScopeLock Lock(&CoinMutex);
+    
+    // Prevent duplicate marking
+    if (CollectedCoins.Contains(CoinActor))
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Coin %s already marked as collected"), *CoinActor->GetName());
+        return;
+    }
+    
+    CollectedCoins.Add(CoinActor);
+    UE_LOG(LogTemp, Verbose, TEXT("Marked coin %s as collected"), *CoinActor->GetName());
 }
 
 void UCoinCounter::AddCoins(int32 Amount)
 {
-    // HOTFIX: Prevent recursive or concurrent calls
-    if (bProcessingCoin || Amount <= 0)
+    // CRITICAL FIX: Thread-safe coin addition with better validation
+    if (!bIsInitialized)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Prevented duplicate coin add! Processing: %d, Amount: %d"),
-            bProcessingCoin ? 1 : 0, Amount);
+        UE_LOG(LogTemp, Error, TEXT("CoinCounter not initialized, cannot add coins"));
+        return;
+    }
+    
+    if (Amount <= 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Invalid coin amount: %d"), Amount);
         return;
     }
 
-    // Set processing flag
-    bProcessingCoin = true;
+    // Thread-safe processing flag check
+    {
+        FScopeLock Lock(&CoinMutex);
+        if (bProcessingCoin)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Prevented duplicate coin add! Amount: %d"), Amount);
+            return;
+        }
+        bProcessingCoin = true;
+    }
 
-    CoinCount += Amount;
+    // Store previous values for comparison
+    int32 PreviousCoinCount = CoinCount;
+    
+    // Update coin count
+    {
+        FScopeLock Lock(&CoinMutex);
+        CoinCount += Amount;
+    }
 
-    // Debug log
+    // Debug log (outside critical section)
     UE_LOG(LogTemp, Log, TEXT("Added %d coins. New total: %d"), Amount, CoinCount);
 
     // If we're using persistent coins, update and save them
@@ -96,12 +159,37 @@ void UCoinCounter::AddCoins(int32 Amount)
         SavePersistentCoins();
     }
 
+    // OPTIMIZATION: Batch UI updates to prevent spam
+    bool bShouldBroadcast = true;
+    if (GetWorld())
+    {
+        float CurrentTime = GetWorld()->GetTimeSeconds();
+        if (CurrentTime - LastUpdateTime < UpdateInterval)
+        {
+            bShouldBroadcast = false;
+            
+            // Schedule a delayed update instead
+            FTimerHandle DelayedUpdateTimer;
+            GetWorld()->GetTimerManager().SetTimer(DelayedUpdateTimer, [this]()
+            {
+                OnCoinsUpdated.Broadcast(CoinCount);
+            }, UpdateInterval, false);
+        }
+        else
+        {
+            LastUpdateTime = CurrentTime;
+        }
+    }
+
     // Broadcast the event with the new coin count
-    OnCoinsUpdated.Broadcast(CoinCount);
+    if (bShouldBroadcast)
+    {
+        OnCoinsUpdated.Broadcast(CoinCount);
+    }
 
     // Check if we've collected all coins
     bool bAllCoinsCollected = HasCollectedAllCoins();
-    if (bAllCoinsCollected)
+    if (bAllCoinsCollected && PreviousCoinCount != CoinCount)  // Only trigger once
     {
         OnAllCoinsCollected.Broadcast();
     }
@@ -109,7 +197,7 @@ void UCoinCounter::AddCoins(int32 Amount)
     // Check if we've reached a milestone
     for (int32 Milestone : CoinMilestones)
     {
-        if (CoinCount >= Milestone && !ReachedMilestones.Contains(Milestone))
+        if (CoinCount >= Milestone && PreviousCoinCount < Milestone && !ReachedMilestones.Contains(Milestone))
         {
             ReachedMilestones.Add(Milestone);
             OnCoinMilestoneReached.Broadcast(Milestone);
@@ -117,19 +205,27 @@ void UCoinCounter::AddCoins(int32 Amount)
     }
 
     // Clear processing flag
-    bProcessingCoin = false;
+    {
+        FScopeLock Lock(&CoinMutex);
+        bProcessingCoin = false;
+    }
 }
 
 void UCoinCounter::ResetCoins()
 {
-    CoinCount = 0;
-    CollectedCoins.Empty();
+    // Thread-safe reset
+    {
+        FScopeLock Lock(&CoinMutex);
+        CoinCount = 0;
+        CollectedCoins.Empty();
+        ReachedMilestones.Empty();
+        bProcessingCoin = false;
+    }
 
     // Broadcast the event with the new coin count
     OnCoinsUpdated.Broadcast(CoinCount);
 
-    // Clear reached milestones
-    ReachedMilestones.Empty();
+    UE_LOG(LogTemp, Log, TEXT("CoinCounter reset to 0 coins"));
 }
 
 bool UCoinCounter::HasCollectedAllCoins() const
@@ -150,12 +246,37 @@ float UCoinCounter::GetCompletionPercentage() const
 
 void UCoinCounter::CountCoinsInLevel()
 {
-    TotalCoinsInLevel = 0;
+    if (!GetWorld())
+    {
+        UE_LOG(LogTemp, Error, TEXT("Cannot count coins - World is null"));
+        return;
+    }
+
     TArray<AActor*> FoundCoins;
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACoinPickup::StaticClass(), FoundCoins);
-    TotalCoinsInLevel = FoundCoins.Num();
+    
+    // Filter out invalid coins
+    TotalCoinsInLevel = 0;
+    for (AActor* Coin : FoundCoins)
+    {
+        if (IsValid(Coin))
+        {
+            TotalCoinsInLevel++;
+        }
+    }
 
     UE_LOG(LogTemp, Log, TEXT("Found %d coins in the level"), TotalCoinsInLevel);
+}
+
+int32 UCoinCounter::GetCurrentCoinCount() const
+{
+    FScopeLock Lock(&CoinMutex);
+    return CoinCount;
+}
+
+int32 UCoinCounter::GetTotalCoinsInLevel() const
+{
+    return TotalCoinsInLevel;
 }
 
 void UCoinCounter::SavePersistentCoins()
@@ -196,5 +317,6 @@ void UCoinCounter::LoadPersistentCoins()
 
 TArray<int32> UCoinCounter::GetReachedMilestones() const
 {
+    FScopeLock Lock(&CoinMutex);
     return ReachedMilestones;
 }

@@ -43,6 +43,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Spikes")
     void SetMovementEnabled(bool bEnabled);
     
+    // Reset damage tracking manually
+    UFUNCTION(BlueprintCallable, Category = "Spikes")
+    void ResetDamageTracking();
+    
 #if WITH_EDITOR
     // Draw movement path for easier editing
     void DrawDebugMovementPath();
@@ -65,6 +69,10 @@ public:
     // Particle effect for impact
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class UParticleSystemComponent* ImpactEffect;
+    
+    // NEW: Audio component for better sound management
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    class UAudioComponent* AudioComponent;
     
     // Movement Properties
     
@@ -111,13 +119,24 @@ public:
 protected:
     // Called when the game starts or when spawned
     virtual void BeginPlay() override;
+    
+    // NEW: Optimized overlap detection
+    UFUNCTION()
+    void OnSpikeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 private:
-    // Last time damage was applied
-    float LastDamageTime;
-    
     // Apply damage to player with cooldown
     void ApplyDamageToPlayer(AActor* Player);
+    
+    // NEW: Optimized player proximity checking
+    void CheckPlayerProximity();
+    
+    // NEW: Centralized movement update
+    void UpdateMovement();
+    
+    // NEW: Better audio management
+    void PlayCollisionSound();
     
     // Store the initial position of the spikes
     FVector InitialPosition;
@@ -133,4 +152,12 @@ private:
     
     // Current time for smooth oscillation-based movements
     float CurrentTime;
+    
+    // NEW: Performance optimization variables
+    float LastPlayerCheckTime;
+    float PlayerCheckInterval;
+    
+    // NEW: Track damaged actors to prevent spam damage
+    UPROPERTY()
+    TSet<AActor*> DamagedActors;
 };

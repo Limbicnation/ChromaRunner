@@ -127,6 +127,14 @@ protected:
     
     // Update the animation state based on character movement
     void UpdateAnimationState();
+    
+    // NEW: Camera and movement optimization functions
+    void UpdateCameraPosition(float DeltaTime);
+    void HandleStuckDetection(float DeltaTime);
+    void ResolveStuckCharacter();
+    
+    UFUNCTION()
+    void TeleportStuckCharacter();
 
 public:
     void RestartLevel();
@@ -155,4 +163,8 @@ private:
     
     // Timer to track how long we've been in the current state
     float StateTimer;
+    
+    // NEW: Stuck detection variables
+    float StuckTimer = 0.0f;
+    FVector PreviousLocation = FVector::ZeroVector;
 };
