@@ -55,12 +55,24 @@ public:
     UFUNCTION(BlueprintCallable, Category="Level Generation")
     void DeactivateLevel();
     
+    /** Sets debug visualization on/off and optimizes tick accordingly */
+    UFUNCTION(BlueprintCallable, Category="Debug")
+    void SetDebugVisualization(bool bEnabled);
+    
+    /** Gets the bounds of this level segment for culling/streaming optimization */
+    UFUNCTION(BlueprintPure, Category="Level Generation")
+    FBox GetLevelBounds() const;
+    
 protected:
     /** Callback for trigger box overlap events */
     UFUNCTION()
     void OnTriggerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
                          bool bFromSweep, const FHitResult& SweepResult);
+    
+    /** Resets the trigger state to allow retriggering */
+    UFUNCTION()
+    void ResetTrigger();
     
     /** Trigger box that detects when player enters this level segment */
     UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Level Generation", meta=(DisplayName="Trigger Box"))
@@ -89,4 +101,8 @@ protected:
     /** Whether to display debug visualization boxes */
     UPROPERTY(EditAnywhere, Category="Debug")
     bool bShowDebugBoxes;
+    
+    /** Prevents multiple trigger events in quick succession */
+    UPROPERTY(BlueprintReadOnly, Category="Level Generation")
+    bool bLevelTriggered;
 };

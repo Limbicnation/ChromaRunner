@@ -5,6 +5,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
+#include "TimerManager.h"
+#include "Components/AudioComponent.h"
 
 // Sets default values
 ASpikes::ASpikes()
@@ -15,11 +17,16 @@ ASpikes::ASpikes()
     // Create root component
     RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
 
-    // Create collision box
+    // Create collision box with optimized settings
     CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
     CollisionBox->SetupAttachment(RootComponent);
     CollisionBox->SetCollisionProfileName(TEXT("BlockAll"));
     CollisionBox->SetNotifyRigidBodyCollision(true); // Enable hit notifications
+    
+    // OPTIMIZATION: Better collision detection settings
+    CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+    CollisionBox->SetGenerateOverlapEvents(true);
 
     // Create mesh component
     SpikeMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SpikeMesh"));
@@ -30,6 +37,11 @@ ASpikes::ASpikes()
     ImpactEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ImpactEffect"));
     ImpactEffect->SetupAttachment(RootComponent);
     ImpactEffect->bAutoActivate = false;
+    
+    // NEW: Create audio component for better sound management
+    AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+    AudioComponent->SetupAttachment(RootComponent);
+    AudioComponent->bAutoActivate = false;
 
     // Initialize default values
     Speed = 100.0f;
@@ -46,6 +58,13 @@ ASpikes::ASpikes()
     TriggerRadius = 300.0f;
     bIsTriggered = false;
     CurrentTime = 0.0f;
+    
+    // NEW: Initialize performance optimizations
+    LastPlayerCheckTime = 0.0f;
+    PlayerCheckInterval = 0.1f;  // Check for player every 0.1 seconds instead of every frame
+    
+    // NEW: Damage tracking
+    DamagedActors.Empty();
 }
 
 // Called when the game starts or when spawned
@@ -67,11 +86,23 @@ void ASpikes::BeginPlay()
 
     // Reset time for smooth movements
     CurrentTime = 0.0f;
+    
+    // NEW: Setup audio component
+    if (AudioComponent && CollisionSound)
+    {
+        AudioComponent->SetSound(CollisionSound);
+    }
 
     // Log warning if collision sound is not set
     if (!CollisionSound)
     {
         UE_LOG(LogTemp, Warning, TEXT("%s: CollisionSound is not set in the editor!"), *GetName());
+    }
+    
+    // OPTIMIZATION: Register overlap events for better collision detection
+    if (CollisionBox)
+    {
+        CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &ASpikes::OnSpikeOverlap);
     }
 }
 
@@ -84,6 +115,12 @@ void ASpikes::Tick(float DeltaTime)
     if (DamageTimer > 0.0f)
     {
         DamageTimer -= DeltaTime;
+        
+        // Clean up damaged actors list when cooldown expires
+        if (DamageTimer <= 0.0f)
+        {
+            DamagedActors.Empty();
+        }
     }
 
     // If not moving, exit early
@@ -92,20 +129,20 @@ void ASpikes::Tick(float DeltaTime)
         return;
     }
 
-    // For proximity triggered spikes, check if player is nearby
+    // OPTIMIZATION: For proximity triggered spikes, check player less frequently
     if (bProximityTriggered)
     {
-        ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
-        if (PlayerCharacter)
+        LastPlayerCheckTime += DeltaTime;
+        if (LastPlayerCheckTime >= PlayerCheckInterval)
         {
-            float DistanceToPlayer = FVector::Dist(GetActorLocation(), PlayerCharacter->GetActorLocation());
-            bIsTriggered = (DistanceToPlayer <= TriggerRadius);
+            CheckPlayerProximity();
+            LastPlayerCheckTime = 0.0f;
+        }
 
-            // If not triggered, don't move
-            if (!bIsTriggered)
-            {
-                return;
-            }
+        // If not triggered, don't move
+        if (!bIsTriggered)
+        {
+            return;
         }
     }
 
@@ -113,6 +150,21 @@ void ASpikes::Tick(float DeltaTime)
     CurrentTime += DeltaTime;
 
     // Handle movement based on selected type
+    UpdateMovement();
+}
+
+void ASpikes::CheckPlayerProximity()
+{
+    ACharacter* PlayerCharacter = UGameplayStatics::GetPlayerCharacter(this, 0);
+    if (PlayerCharacter)
+    {
+        float DistanceToPlayer = FVector::Dist(GetActorLocation(), PlayerCharacter->GetActorLocation());
+        bIsTriggered = (DistanceToPlayer <= TriggerRadius);
+    }
+}
+
+void ASpikes::UpdateMovement()
+{
     FVector NewLocation = GetActorLocation();
 
     switch (MovementType)
@@ -164,7 +216,46 @@ void ASpikes::Tick(float DeltaTime)
     SetActorLocation(NewLocation);
 }
 
-// Override the NotifyHit function to detect collisions
+// NEW: Improved overlap detection system
+void ASpikes::OnSpikeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+    if (!IsValid(OtherActor))
+    {
+        return;
+    }
+
+    // Check if the overlapping actor is the player character
+    ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(OtherActor);
+    if (PlayerCharacter)
+    {
+        // OPTIMIZATION: Prevent multiple damage to same actor during cooldown
+        if (DamagedActors.Contains(OtherActor))
+        {
+            return;
+        }
+
+        // Play collision sound with better audio management
+        PlayCollisionSound();
+
+        // Show particle effect at collision point - FIXED: Handle FVector conversion properly
+        if (ImpactEffect)
+        {
+            FVector ImpactLocation = GetActorLocation();  // Default to actor location
+            if (!SweepResult.Location.IsNearlyZero())
+            {
+                ImpactLocation = FVector(SweepResult.Location);  // FIXED: Explicit conversion
+            }
+            ImpactEffect->SetWorldLocation(ImpactLocation);
+            ImpactEffect->Activate(true);
+        }
+
+        // Apply damage to player (with cooldown)
+        ApplyDamageToPlayer(PlayerCharacter);
+    }
+}
+
+// Override the NotifyHit function to detect collisions (legacy support)
 void ASpikes::NotifyHit(
     UPrimitiveComponent* MyComp,
     AActor* Other,
@@ -177,40 +268,46 @@ void ASpikes::NotifyHit(
 {
     Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 
-    // Debug message to confirm collision detection
-    UE_LOG(LogTemp, Verbose, TEXT("%s: Hit detected with %s"), *GetName(), *Other->GetName());
+    // Forward to overlap system for consistency
+    OnSpikeOverlap(MyComp, Other, OtherComp, 0, false, Hit);
+}
 
-    // Check if the colliding actor is the player character
-    ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(Other);
-    if (PlayerCharacter)
+void ASpikes::PlayCollisionSound()
+{
+    if (AudioComponent && CollisionSound)
     {
-        // Play collision sound
-        if (CollisionSound)
+        // OPTIMIZATION: Use AudioComponent for better performance
+        if (!AudioComponent->IsPlaying())
         {
-            UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, GetActorLocation());
+            AudioComponent->Play();
         }
-
-        // Show particle effect at collision point
-        if (ImpactEffect)
-        {
-            ImpactEffect->SetWorldLocation(HitLocation);
-            ImpactEffect->Activate(true);
-        }
-
-        // Apply damage to player (with cooldown)
-        ApplyDamageToPlayer(PlayerCharacter);
+    }
+    else if (CollisionSound)
+    {
+        // Fallback to old system if AudioComponent not available
+        UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, GetActorLocation());
     }
 }
 
 void ASpikes::SetMovementEnabled(bool bEnabled)
 {
     bIsMoving = bEnabled;
+    
+    // OPTIMIZATION: Disable tick if not moving and not proximity triggered
+    if (!bEnabled && !bProximityTriggered)
+    {
+        SetActorTickEnabled(false);
+    }
+    else
+    {
+        SetActorTickEnabled(true);
+    }
 }
 
 void ASpikes::ApplyDamageToPlayer(AActor* Player)
 {
-    // Check if cooldown has expired
-    if (DamageTimer <= 0.0f)
+    // Check if cooldown has expired and player hasn't been damaged recently
+    if (DamageTimer <= 0.0f && !DamagedActors.Contains(Player))
     {
         // Apply damage to player
         FDamageEvent DamageEvent;
@@ -218,11 +315,21 @@ void ASpikes::ApplyDamageToPlayer(AActor* Player)
 
         // Set cooldown timer
         DamageTimer = DamageCooldown;
+        
+        // Add player to damaged actors list
+        DamagedActors.Add(Player);
 
         // Log damage application
         UE_LOG(LogTemp, Log, TEXT("%s: Applied %.1f damage to %s"),
             *GetName(), DamageAmount, *Player->GetName());
     }
+}
+
+// NEW: Reset damage tracking manually if needed
+void ASpikes::ResetDamageTracking()
+{
+    DamageTimer = 0.0f;
+    DamagedActors.Empty();
 }
 
 #if WITH_EDITOR
@@ -354,6 +461,15 @@ void ASpikes::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
         PropertyName == GET_MEMBER_NAME_CHECKED(ASpikes, TriggerRadius))
     {
         DrawDebugMovementPath();
+    }
+    
+    // If collision sound was set, update audio component
+    if (PropertyName == GET_MEMBER_NAME_CHECKED(ASpikes, CollisionSound))
+    {
+        if (AudioComponent && CollisionSound)
+        {
+            AudioComponent->SetSound(CollisionSound);
+        }
     }
 }
 #endif
