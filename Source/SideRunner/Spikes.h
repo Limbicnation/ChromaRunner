@@ -54,6 +54,11 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    // PERFORMANCE: Optimized overlap detection
+    UFUNCTION()
+    void OnSpikeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
 public:
     // PERFORMANCE: Component setup
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -64,6 +69,10 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class UParticleSystemComponent* ImpactEffect;
+
+    // PERFORMANCE: Audio component for better sound management
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    class UAudioComponent* AudioComponent;
 
     // PERFORMANCE: Movement Properties
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement", meta = (ClampMin = "0.0", ClampMax = "1000.0"))
@@ -82,9 +91,6 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay", meta = (ClampMin = "1.0", ClampMax = "1000.0"))
     float DamageAmount;
 
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay", meta = (ClampMin = "0.1", ClampMax = "10.0"))
-    float DamageCooldown;
-
     // PERFORMANCE: Proximity trigger system
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Trigger")
     bool bProximityTriggered;
@@ -100,15 +106,18 @@ private:
     // PERFORMANCE: Cached state variables
     FVector InitialPosition;
     int32 MovementDirection;
-    float DamageTimer;
     bool bIsTriggered;
     float CurrentTime;
 
     // PERFORMANCE: Optimized helper functions
+    void CheckPlayerProximity();
+    void PlayCollisionSound();
     void CalculateMovementLocation(FVector& OutLocation, float DeltaTime);
     void CalculateZigzagMovement(FVector& OutLocation, float SpeedFactor);
-    void ApplyDamageToPlayer(AActor* Player);
-    void HandleCollisionEffects(const FVector& HitLocation);
+
+    // PERFORMANCE: Performance optimization variables
+    float LastPlayerCheckTime;
+    float PlayerCheckInterval;
 
 #if WITH_EDITOR
     // PERFORMANCE: Editor-only debug drawing methods

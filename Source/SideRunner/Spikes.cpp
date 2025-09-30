@@ -4,6 +4,7 @@
 #include "Components/BoxComponent.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Engine/DamageEvents.h"
+#include "Components/AudioComponent.h"
 
 #if WITH_EDITOR
 #include "DrawDebugHelpers.h"
@@ -23,23 +24,31 @@ ASpikes::ASpikes()
 	CollisionBox->SetCollisionProfileName(TEXT("BlockAll"));
 	CollisionBox->SetNotifyRigidBodyCollision(true);
 
+	// PERFORMANCE: Better collision detection settings
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	CollisionBox->SetGenerateOverlapEvents(true);
+
 	// Create mesh component with optimized collision settings
 	SpikeMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("SpikeMesh"));
 	SpikeMesh->SetupAttachment(CollisionBox);
-	SpikeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Collision handled by box
+	SpikeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// Create particle effect component
 	ImpactEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ImpactEffect"));
 	ImpactEffect->SetupAttachment(RootComponent);
 	ImpactEffect->bAutoActivate = false;
 
+	// PERFORMANCE: Create audio component for better sound management
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+	AudioComponent->SetupAttachment(RootComponent);
+	AudioComponent->bAutoActivate = false;
+
 	// PERFORMANCE: Initialize with sensible defaults
 	Speed = 100.0f;
 	MaxMovementOffset = 100.0f;
 	MovementDirection = 1;
 	DamageAmount = 10.0f;
-	DamageCooldown = 1.0f;
-	DamageTimer = 0.0f;
 	bIsMoving = true;
 	MovementType = EMovementType::UpDown;
 
@@ -48,6 +57,10 @@ ASpikes::ASpikes()
 	TriggerRadius = 300.0f;
 	bIsTriggered = false;
 	CurrentTime = 0.0f;
+
+	// PERFORMANCE: Initialize optimization variables
+	LastPlayerCheckTime = 0.0f;
+	PlayerCheckInterval = 0.1f;
 }
 
 void ASpikes::BeginPlay()
@@ -63,9 +76,14 @@ void ASpikes::BeginPlay()
 		ImpactEffect->Deactivate();
 	}
 
-	// Reset timers
-	DamageTimer = 0.0f;
+	// Reset time for smooth movements
 	CurrentTime = 0.0f;
+
+	// PERFORMANCE: Setup audio component
+	if (AudioComponent && CollisionSound)
+	{
+		AudioComponent->SetSound(CollisionSound);
+	}
 
 #if UE_BUILD_DEBUG
 	// PERFORMANCE: Only log warnings in debug builds
@@ -74,6 +92,12 @@ void ASpikes::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("%s: CollisionSound is not set in the editor!"), *GetName());
 	}
 #endif
+
+	// PERFORMANCE: Register overlap events for better collision detection
+	if (CollisionBox)
+	{
+		CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &ASpikes::OnSpikeOverlap);
+	}
 }
 
 void ASpikes::Tick(float DeltaTime)
@@ -83,46 +107,22 @@ void ASpikes::Tick(float DeltaTime)
 	// PERFORMANCE: Early exit for immobile spikes
 	if (!bIsMoving)
 	{
-		// Still need to handle damage cooldown even when not moving
-		if (DamageTimer > 0.0f)
-		{
-			DamageTimer -= DeltaTime;
-		}
 		return;
-	}
-
-	// Update damage timer
-	if (DamageTimer > 0.0f)
-	{
-		DamageTimer -= DeltaTime;
 	}
 
 	// PERFORMANCE: Handle proximity triggering efficiently
 	if (bProximityTriggered)
 	{
-		static APawn* CachedPlayer = nullptr;
-		
-		// Cache player reference to avoid repeated GetPlayerCharacter calls
-		if (!CachedPlayer || !IsValid(CachedPlayer))
+		LastPlayerCheckTime += DeltaTime;
+		if (LastPlayerCheckTime >= PlayerCheckInterval)
 		{
-			CachedPlayer = UGameplayStatics::GetPlayerCharacter(this, 0);
+			CheckPlayerProximity();
+			LastPlayerCheckTime = 0.0f;
 		}
-		
-		if (CachedPlayer)
+
+		if (!bIsTriggered)
 		{
-			// PERFORMANCE: Use squared distance to avoid expensive square root
-			const float DistanceSquared = FVector::DistSquared(GetActorLocation(), CachedPlayer->GetActorLocation());
-			const float TriggerRadiusSquared = TriggerRadius * TriggerRadius;
-			bIsTriggered = (DistanceSquared <= TriggerRadiusSquared);
-			
-			if (!bIsTriggered)
-			{
-				return; // Don't move if not triggered
-			}
-		}
-		else
-		{
-			return; // No player found
+			return;
 		}
 	}
 
@@ -132,19 +132,38 @@ void ASpikes::Tick(float DeltaTime)
 	// PERFORMANCE: Calculate movement based on type using optimized math
 	FVector NewLocation;
 	CalculateMovementLocation(NewLocation, DeltaTime);
-	
+
 	SetActorLocation(NewLocation);
+}
+
+void ASpikes::CheckPlayerProximity()
+{
+	static APawn* CachedPlayer = nullptr;
+
+	// Cache player reference to avoid repeated GetPlayerCharacter calls
+	if (!CachedPlayer || !IsValid(CachedPlayer))
+	{
+		CachedPlayer = UGameplayStatics::GetPlayerCharacter(this, 0);
+	}
+
+	if (CachedPlayer)
+	{
+		// PERFORMANCE: Use squared distance to avoid expensive square root
+		const float DistanceSquared = FVector::DistSquared(GetActorLocation(), CachedPlayer->GetActorLocation());
+		const float TriggerRadiusSquared = TriggerRadius * TriggerRadius;
+		bIsTriggered = (DistanceSquared <= TriggerRadiusSquared);
+	}
 }
 
 void ASpikes::CalculateMovementLocation(FVector& OutLocation, float DeltaTime)
 {
 	OutLocation = GetActorLocation();
-	
+
 	// PERFORMANCE: Precompute common values
 	const float SpeedFactor = Speed / 100.0f;
 	const float SinValue = FMath::Sin(CurrentTime * SpeedFactor);
 	const float CosValue = FMath::Cos(CurrentTime * SpeedFactor);
-	
+
 	switch (MovementType)
 	{
 	case EMovementType::UpDown:
@@ -179,7 +198,7 @@ void ASpikes::CalculateZigzagMovement(FVector& OutLocation, float SpeedFactor)
 {
 	// PERFORMANCE: Optimized zigzag calculation
 	const float CyclePosition = FMath::Fmod(CurrentTime * SpeedFactor * 2.0f, 4.0f);
-	
+
 	if (CyclePosition < 1.0f)
 	{
 		OutLocation.X = InitialPosition.X + CyclePosition * MaxMovementOffset;
@@ -201,72 +220,84 @@ void ASpikes::CalculateZigzagMovement(FVector& OutLocation, float SpeedFactor)
 	OutLocation.Z = InitialPosition.Z + FMath::Sin(CurrentTime * SpeedFactor) * (MaxMovementOffset * 0.2f);
 }
 
+// CRITICAL FIX: Spike overlap handles only effects, damage handled by character to prevent double damage
+void ASpikes::OnSpikeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!IsValid(OtherActor))
+	{
+		return;
+	}
+
+	// Check if the overlapping actor is the player character
+	ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(OtherActor);
+	if (PlayerCharacter)
+	{
+		// Play collision sound with better audio management
+		PlayCollisionSound();
+
+		// Show particle effect at collision point
+		if (ImpactEffect)
+		{
+			FVector ImpactLocation = GetActorLocation();
+			if (!SweepResult.Location.IsNearlyZero())
+			{
+				ImpactLocation = SweepResult.Location;
+			}
+			ImpactEffect->SetWorldLocation(ImpactLocation);
+			ImpactEffect->Activate(true);
+		}
+
+		// NOTE: Damage is now handled by ARunnerCharacter::OnOverlapBegin to prevent double damage
+		// Spikes are responsible only for audio/visual effects
+	}
+}
+
 void ASpikes::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp,
 	bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 
-	// PERFORMANCE: Early type check and null validation
-	ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(Other);
-	if (!PlayerCharacter)
-	{
-		return;
-	}
-
-#if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Verbose, TEXT("%s: Hit detected with player"), *GetName());
-#endif
-
-	// Handle collision effects and damage
-	HandleCollisionEffects(HitLocation);
-	ApplyDamageToPlayer(PlayerCharacter);
+	// Forward to overlap system for consistency
+	OnSpikeOverlap(MyComp, Other, OtherComp, 0, false, Hit);
 }
 
-void ASpikes::HandleCollisionEffects(const FVector& HitLocation)
+void ASpikes::PlayCollisionSound()
 {
-	// Play collision sound
-	if (CollisionSound)
+	if (AudioComponent && CollisionSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, GetActorLocation());
+		// PERFORMANCE: Use AudioComponent for better performance
+		if (!AudioComponent->IsPlaying())
+		{
+			AudioComponent->Play();
+		}
 	}
-
-	// Show particle effect at collision point
-	if (ImpactEffect)
+	else if (CollisionSound)
 	{
-		ImpactEffect->SetWorldLocation(HitLocation);
-		ImpactEffect->Activate(true);
+		// Fallback to old system if AudioComponent not available
+		UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, GetActorLocation());
 	}
 }
 
 void ASpikes::SetMovementEnabled(bool bEnabled)
 {
 	bIsMoving = bEnabled;
-	
-	// PERFORMANCE: Reset time when enabling/disabling to prevent jarring transitions
+
+	// PERFORMANCE: Reset time when enabling to prevent jarring transitions
 	if (bEnabled)
 	{
 		CurrentTime = 0.0f;
 	}
-}
 
-void ASpikes::ApplyDamageToPlayer(AActor* Player)
-{
-	// PERFORMANCE: Check cooldown first to avoid unnecessary work
-	if (DamageTimer > 0.0f)
+	// PERFORMANCE: Disable tick if not moving and not proximity triggered
+	if (!bEnabled && !bProximityTriggered)
 	{
-		return;
+		SetActorTickEnabled(false);
 	}
-
-	// Apply damage to player
-	FDamageEvent DamageEvent;
-	Player->TakeDamage(DamageAmount, DamageEvent, nullptr, this);
-
-	// Set cooldown timer
-	DamageTimer = DamageCooldown;
-
-#if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Log, TEXT("%s: Applied %.1f damage to %s"), *GetName(), DamageAmount, *Player->GetName());
-#endif
+	else
+	{
+		SetActorTickEnabled(true);
+	}
 }
 
 #if WITH_EDITOR
@@ -328,7 +359,7 @@ void ASpikes::DrawVerticalMovementPath(UWorld* World, const FVector& BasePositio
 {
 	const FVector TopPoint = BasePosition + FVector(0, 0, MaxMovementOffset);
 	const FVector BottomPoint = BasePosition - FVector(0, 0, MaxMovementOffset);
-	
+
 	DrawDebugLine(World, TopPoint, BottomPoint, Color, true, LifeTime, 0, Thickness);
 	DrawDebugString(World, TopPoint, TEXT("Max Height"), nullptr, FColor::White, LifeTime, true);
 	DrawDebugString(World, BottomPoint, TEXT("Min Height"), nullptr, FColor::White, LifeTime, true);
@@ -338,7 +369,7 @@ void ASpikes::DrawHorizontalMovementPath(UWorld* World, const FVector& BasePosit
 {
 	const FVector LeftPoint = BasePosition - FVector(MaxMovementOffset, 0, 0);
 	const FVector RightPoint = BasePosition + FVector(MaxMovementOffset, 0, 0);
-	
+
 	DrawDebugLine(World, LeftPoint, RightPoint, Color, true, LifeTime, 0, Thickness);
 	DrawDebugString(World, LeftPoint, TEXT("Left Extent"), nullptr, FColor::White, LifeTime, true);
 	DrawDebugString(World, RightPoint, TEXT("Right Extent"), nullptr, FColor::White, LifeTime, true);
@@ -348,7 +379,7 @@ void ASpikes::DrawDepthMovementPath(UWorld* World, const FVector& BasePosition, 
 {
 	const FVector FrontPoint = BasePosition + FVector(0, MaxMovementOffset, 0);
 	const FVector BackPoint = BasePosition - FVector(0, MaxMovementOffset, 0);
-	
+
 	DrawDebugLine(World, FrontPoint, BackPoint, Color, true, LifeTime, 0, Thickness);
 	DrawDebugString(World, FrontPoint, TEXT("Front Extent"), nullptr, FColor::White, LifeTime, true);
 	DrawDebugString(World, BackPoint, TEXT("Back Extent"), nullptr, FColor::White, LifeTime, true);
@@ -358,7 +389,7 @@ void ASpikes::DrawCircularMovementPath(UWorld* World, const FVector& BasePositio
 {
 	constexpr int32 NumSegments = 32;
 	constexpr float AngleIncrement = 2.0f * PI / NumSegments;
-	
+
 	for (int32 i = 0; i < NumSegments; ++i)
 	{
 		const float Angle1 = i * AngleIncrement;
@@ -407,16 +438,21 @@ void ASpikes::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 		PropertyChangedEvent.Property->GetFName() : NAME_None;
 
 	// PERFORMANCE: Only update visualization when relevant properties change
-	static const TArray<FName> RelevantProperties = {
-		GET_MEMBER_NAME_CHECKED(ASpikes, MovementType),
-		GET_MEMBER_NAME_CHECKED(ASpikes, MaxMovementOffset),
-		GET_MEMBER_NAME_CHECKED(ASpikes, bProximityTriggered),
-		GET_MEMBER_NAME_CHECKED(ASpikes, TriggerRadius)
-	};
-
-	if (RelevantProperties.Contains(PropertyName))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ASpikes, MovementType) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(ASpikes, MaxMovementOffset) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(ASpikes, bProximityTriggered) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(ASpikes, TriggerRadius))
 	{
 		DrawDebugMovementPath();
+	}
+
+	// If collision sound was set, update audio component
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ASpikes, CollisionSound))
+	{
+		if (AudioComponent && CollisionSound)
+		{
+			AudioComponent->SetSound(CollisionSound);
+		}
 	}
 }
 #endif

@@ -144,7 +144,7 @@ private:
     // PERFORMANCE: Movement state
     bool CanMove;
     bool CanJump;
-    bool CanDoubleJump;
+    // Note: Double jump uses public bCanDoubleJump UPROPERTY instead
     
     // PERFORMANCE: State timing
     float StateTimer;
