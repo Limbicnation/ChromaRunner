@@ -2,6 +2,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "CoinPickup.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 
 // Sets default values for this component's properties
 UCoinCounter::UCoinCounter()
@@ -60,14 +61,15 @@ void UCoinCounter::BeginPlay()
         TWeakObjectPtr<UCoinCounter> WeakThis(this);
         World->GetTimerManager().SetTimer(InitTimer, [WeakThis]()
         {
-            if (WeakThis.IsValid())
+            UCoinCounter* CoinCounter = WeakThis.Get();
+            if (CoinCounter)
             {
                 int32 CurrentCount;
                 {
-                    FScopeLock Lock(&WeakThis->CoinMutex);
-                    CurrentCount = WeakThis->CoinCount;
+                    FScopeLock Lock(&CoinCounter->CoinMutex);
+                    CurrentCount = CoinCounter->CoinCount;
                 }
-                WeakThis->OnCoinsUpdated.Broadcast(CurrentCount);
+                CoinCounter->OnCoinsUpdated.Broadcast(CurrentCount);
             }
         }, 0.1f, false);  // Delay broadcast by 0.1 seconds
     }
@@ -155,13 +157,13 @@ void UCoinCounter::AddCoins(int32 Amount)
         bProcessingCoin = true;
     }
 
-    // Store previous values and update coin count atomically
+    // Store previous values and update coin count atomically with overflow protection
     int32 PreviousCoinCount;
     int32 NewCoinCount;
     {
         FScopeLock Lock(&CoinMutex);
         PreviousCoinCount = CoinCount;
-        CoinCount += Amount;
+        CoinCount = FMath::Clamp(CoinCount + Amount, 0, INT32_MAX);  // Prevent overflow
         NewCoinCount = CoinCount;
     }
 
@@ -183,23 +185,25 @@ void UCoinCounter::AddCoins(int32 Amount)
         if (CurrentTime - LastUpdateTime < UpdateInterval)
         {
             bShouldBroadcast = false;
-            
+
             // Schedule a delayed update instead
             FTimerHandle DelayedUpdateTimer;
             TWeakObjectPtr<UCoinCounter> WeakThis(this);
+            float UpdateIntervalCopy = UpdateInterval;  // Capture by value to avoid accessing member after destruction
             World->GetTimerManager().SetTimer(DelayedUpdateTimer, [WeakThis]()
             {
-                if (WeakThis.IsValid())
+                UCoinCounter* CoinCounter = WeakThis.Get();
+                if (CoinCounter)
                 {
                     // Read current count safely for delayed broadcast
                     int32 CurrentCount;
                     {
-                        FScopeLock Lock(&WeakThis->CoinMutex);
-                        CurrentCount = WeakThis->CoinCount;
+                        FScopeLock Lock(&CoinCounter->CoinMutex);
+                        CurrentCount = CoinCounter->CoinCount;
                     }
-                    WeakThis->OnCoinsUpdated.Broadcast(CurrentCount);
+                    CoinCounter->OnCoinsUpdated.Broadcast(CurrentCount);
                 }
-            }, WeakThis->UpdateInterval, false);
+            }, UpdateIntervalCopy, false);
         }
         else
         {
@@ -258,14 +262,16 @@ bool UCoinCounter::HasCollectedAllCoins() const
 {
     // Thread-safe read
     int32 CurrentCoinCount;
+    int32 TotalCoins;
     {
         FScopeLock Lock(&CoinMutex);
         CurrentCoinCount = CoinCount;
+        TotalCoins = TotalCoinsInLevel;
     }
-    
+
     if (bAutoCountCoinsInLevel)
     {
-        return CurrentCoinCount >= TotalCoinsInLevel && TotalCoinsInLevel > 0;
+        return CurrentCoinCount >= TotalCoins && TotalCoins > 0;
     }
 
     return CurrentCoinCount >= MaxCoins;
@@ -275,13 +281,15 @@ float UCoinCounter::GetCompletionPercentage() const
 {
     // Thread-safe read
     int32 CurrentCoinCount;
+    int32 TotalCoins;
     {
         FScopeLock Lock(&CoinMutex);
         CurrentCoinCount = CoinCount;
+        TotalCoins = TotalCoinsInLevel;
     }
-    
-    float MaxValue = bAutoCountCoinsInLevel ? FMath::Max(1, TotalCoinsInLevel) : FMath::Max(1, MaxCoins);
-    return (float)CurrentCoinCount / MaxValue * 100.0f;
+
+    float MaxValue = bAutoCountCoinsInLevel ? FMath::Max(1, TotalCoins) : FMath::Max(1, MaxCoins);
+    return FMath::Clamp((float)CurrentCoinCount / MaxValue * 100.0f, 0.0f, 100.0f);
 }
 
 void UCoinCounter::CountCoinsInLevel()
@@ -292,20 +300,23 @@ void UCoinCounter::CountCoinsInLevel()
         return;
     }
 
-    TArray<AActor*> FoundCoins;
-    UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACoinPickup::StaticClass(), FoundCoins);
-    
-    // Filter out invalid coins
-    TotalCoinsInLevel = 0;
-    for (AActor* Coin : FoundCoins)
+    // PERFORMANCE: Use TActorIterator instead of GetAllActorsOfClass to avoid memory allocation
+    int32 NewTotal = 0;
+    for (TActorIterator<ACoinPickup> It(GetWorld()); It; ++It)
     {
-        if (IsValid(Coin))
+        if (IsValid(*It))
         {
-            TotalCoinsInLevel++;
+            NewTotal++;
         }
     }
 
-    UE_LOG(LogTemp, Log, TEXT("Found %d coins in the level"), TotalCoinsInLevel);
+    // Thread-safe write
+    {
+        FScopeLock Lock(&CoinMutex);
+        TotalCoinsInLevel = NewTotal;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Found %d coins in the level"), NewTotal);
 }
 
 int32 UCoinCounter::GetCurrentCoinCount() const
@@ -316,6 +327,7 @@ int32 UCoinCounter::GetCurrentCoinCount() const
 
 int32 UCoinCounter::GetTotalCoinsInLevel() const
 {
+    FScopeLock Lock(&CoinMutex);
     return TotalCoinsInLevel;
 }
 
@@ -360,3 +372,42 @@ TArray<int32> UCoinCounter::GetReachedMilestones() const
     FScopeLock Lock(&CoinMutex);
     return ReachedMilestones;
 }
+
+#if WITH_EDITOR
+void UCoinCounter::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+    Super::PostEditChangeProperty(PropertyChangedEvent);
+
+    const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ?
+        PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+    // PERFORMANCE: Validate properties when changed in editor
+    if (PropertyName == GET_MEMBER_NAME_CHECKED(UCoinCounter, MaxCoins))
+    {
+        MaxCoins = FMath::Max(1, MaxCoins);
+    }
+    else if (PropertyName == GET_MEMBER_NAME_CHECKED(UCoinCounter, CoinMilestones))
+    {
+        // Sort milestones and remove duplicates
+        CoinMilestones.RemoveAll([](int32 Value) { return Value <= 0; });
+        CoinMilestones.Sort();
+
+        // Remove duplicates
+        for (int32 i = CoinMilestones.Num() - 1; i > 0; i--)
+        {
+            if (CoinMilestones[i] == CoinMilestones[i - 1])
+            {
+                CoinMilestones.RemoveAt(i);
+            }
+        }
+    }
+    else if (PropertyName == GET_MEMBER_NAME_CHECKED(UCoinCounter, bAutoCountCoinsInLevel))
+    {
+        // Re-count coins when this setting changes
+        if (bAutoCountCoinsInLevel && GetWorld())
+        {
+            CountCoinsInLevel();
+        }
+    }
+}
+#endif

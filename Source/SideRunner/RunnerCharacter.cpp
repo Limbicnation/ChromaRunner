@@ -326,18 +326,44 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
 
 void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 {
+    // CRITICAL FIX: Centralized damage handling to prevent double damage
+    if (!WallSpike || !HealthComponent)
+        return;
+
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Warning, TEXT("Player overlapped with WallSpike - instant death triggered"));
+    UE_LOG(LogTemp, Warning, TEXT("Player overlapped with WallSpike - applying instant death damage"));
 #endif
-    // WallSpike handles its own instant death logic
+
+    // Apply instant death damage through health component
+    const int32 InstantDeathDamage = HealthComponent->GetMaxHealth() * 10;
+    HealthComponent->TakeDamage(InstantDeathDamage, EDamageType::Spikes);
+
+    // Check for death and handle accordingly
+    if (IsDead())
+    {
+        HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
+    }
 }
 
 void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 {
+    // CRITICAL FIX: Centralized damage handling to prevent double damage
+    if (!RegularSpike || !HealthComponent || HealthComponent->IsInvulnerable())
+        return;
+
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Player overlapped with regular Spikes - damage will be applied"));
+    UE_LOG(LogTemp, Log, TEXT("Player overlapped with regular Spikes - applying damage"));
 #endif
-    // Regular spikes handle their own damage logic
+
+    // Apply regular spike damage through health component
+    const int32 SpikeDamage = static_cast<int32>(RegularSpike->DamageAmount);
+    HealthComponent->TakeDamage(SpikeDamage, EDamageType::Spikes);
+
+    // Check for death and handle accordingly
+    if (IsDead())
+    {
+        HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
+    }
 }
 
 void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)

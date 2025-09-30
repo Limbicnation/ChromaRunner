@@ -62,6 +62,11 @@ protected:
     // Called when the game starts
     virtual void BeginPlay() override;
 
+#if WITH_EDITOR
+    // Called when a property is changed in the editor
+    virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
     // Current coin count
     UPROPERTY(BlueprintReadOnly, Category = "Coins")
     int32 CoinCount;

@@ -47,7 +47,6 @@ AWallSpike::AWallSpike()
 	
 	// Set wall spike specific damage (instant death)
 	DamageAmount = 9999.0f;
-	DamageCooldown = 0.0f;
 	
 	// OVERRIDE BASE CLASS MOVEMENT - disable base movement system
 	MovementType = EMovementType::Static;
@@ -453,49 +452,39 @@ void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector Hit
 {
 	if (!Player || Player->IsDead() || bHasKilledPlayer)
 		return;
-	
+
 	bHasKilledPlayer = true;
-	
+
 #if UE_BUILD_DEBUG
-	UE_LOG(LogTemp, Error, TEXT("WallSpike applying instant death to player!"));
+	UE_LOG(LogTemp, Error, TEXT("WallSpike collision with player - playing effects only!"));
 #endif
-	
+
+	// NOTE: Damage is now handled by ARunnerCharacter::HandleWallSpikeOverlap to prevent double damage
+	// This function only handles audio/visual effects
+
 	// Stop chase audio and play death sound
 	StopChaseAudio();
-	
+
 	if (CollisionSound)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, HitLocation, 
+		UGameplayStatics::PlaySoundAtLocation(this, CollisionSound, HitLocation,
 											 ChaseVolumeMultiplier * 1.5f, // Louder for death
 											 ChasePitchMultiplier * 0.8f);  // Lower pitch for drama
 	}
-	
+
 	// Show particle effect
 	if (ImpactEffect)
 	{
 		ImpactEffect->SetWorldLocation(HitLocation);
 		ImpactEffect->Activate(true);
 	}
-	
-	// Apply damage through health component
-	if (UPlayerHealthComponent* HealthComp = Player->GetComponentByClass<UPlayerHealthComponent>())
-	{
-		const int32 InstantDeathDamage = HealthComp->GetMaxHealth() * 10;
-		HealthComp->TakeDamage(InstantDeathDamage, EDamageType::Spikes);
-	}
-	else
-	{
-		// Fallback to Unreal's damage system
-		FDamageEvent DamageEvent;
-		Player->TakeDamage(9999.0f, DamageEvent, nullptr, this);
-	}
-	
+
 	// Stop chasing and start cleanup
 	bHasTarget = false;
 	TargetPlayer = nullptr;
 	bTrackingPlayerDeath = true;
 	PlayerDeathTimer = 0.0f;
-	
+
 	// PERFORMANCE: Use lambda with timer for destruction
 	FTimerHandle DestroyTimer;
 	GetWorld()->GetTimerManager().SetTimer(DestroyTimer, [this]()

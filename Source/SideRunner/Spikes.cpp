@@ -155,11 +155,6 @@ void ASpikes::CheckPlayerProximity()
 	}
 }
 
-void ASpikes::UpdateMovement()
-{
-	// This function is now integrated into CalculateMovementLocation for better performance
-}
-
 void ASpikes::CalculateMovementLocation(FVector& OutLocation, float DeltaTime)
 {
 	OutLocation = GetActorLocation();

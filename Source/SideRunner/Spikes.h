@@ -111,7 +111,6 @@ private:
 
     // PERFORMANCE: Optimized helper functions
     void CheckPlayerProximity();
-    void UpdateMovement();
     void PlayCollisionSound();
     void CalculateMovementLocation(FVector& OutLocation, float DeltaTime);
     void CalculateZigzagMovement(FVector& OutLocation, float SpeedFactor);
