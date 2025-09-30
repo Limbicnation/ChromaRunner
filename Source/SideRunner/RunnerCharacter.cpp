@@ -179,6 +179,15 @@ void ARunnerCharacter::UpdateAnimationState()
     // Update state if changed
     if (NewState != CurrentState)
     {
+        // CRITICAL FIX: Reset double-jump when landing on ground
+        if ((NewState == ECharacterState::Running || NewState == ECharacterState::Idle) &&
+            (CurrentState == ECharacterState::Falling ||
+             CurrentState == ECharacterState::Jumping ||
+             CurrentState == ECharacterState::DoubleJumping))
+        {
+            bCanDoubleJump = true;  // Reset for next jump sequence
+        }
+
         SetCharacterState(NewState);
     }
 }
@@ -253,8 +262,9 @@ void ARunnerCharacter::Jump()
         bCanDoubleJump = true;
         SetCharacterState(ECharacterState::Jumping);
     }
-    else if (CanDoubleJump)
+    else if (bCanDoubleJump && MovementComponent->IsFalling())
     {
+        // CRITICAL FIX: Use bCanDoubleJump (public UPROPERTY) and ensure we're airborne
         // Double jump
         LaunchCharacter(FVector(0, 0, DoubleJumpZVelocity), false, true);
         bCanDoubleJump = false;
