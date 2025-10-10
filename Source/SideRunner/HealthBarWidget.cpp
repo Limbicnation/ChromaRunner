@@ -5,6 +5,7 @@
 #include "Components/TextBlock.h"
 #include "RunnerCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
 
 UHealthBarWidget::UHealthBarWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -24,24 +25,18 @@ void UHealthBarWidget::NativeConstruct()
 		return;
 	}
 
-	// Attempt to bind to health component
-	if (BindToHealthComponent())
-	{
-#if UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTemp, Log, TEXT("HealthBarWidget: Successfully bound to health component"));
-#endif
-		// Initialize visual state
-		UpdateHealthBar();
-		UpdateHitCounter();
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: Failed to bind to health component - will retry"));
-	}
+	// Attempt to bind to health component (with retry mechanism)
+	TryBindToHealthComponent();
 }
 
 void UHealthBarWidget::NativeDestruct()
 {
+	// Clear retry timer if still running
+	if (BindRetryTimerHandle.IsValid())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(BindRetryTimerHandle);
+	}
+
 	// Unbind from health component to prevent dangling references
 	UnbindFromHealthComponent();
 
@@ -77,8 +72,11 @@ void UHealthBarWidget::OnHealthChanged(int32 NewHealth, int32 NewMaxHealth)
 
 void UHealthBarWidget::OnTakeDamage(int32 DamageAmount, EDamageType DamageType)
 {
-	// Increment hit counter
-	HitCount++;
+	// Fetch hit count from health component (single source of truth)
+	if (HealthComponent)
+	{
+		HitCount = HealthComponent->GetTotalHitsTaken();
+	}
 
 #if UE_BUILD_DEVELOPMENT
 	UE_LOG(LogTemp, Log, TEXT("HealthBarWidget: Took %d damage (Type: %d), Total hits: %d"),
@@ -143,9 +141,9 @@ void UHealthBarWidget::UpdateHitCounter()
 		return;
 	}
 
-	// Format hit counter text
+	// Format hit counter text using configurable format
 	const FText FormattedText = FText::Format(
-		FText::FromString(TEXT("Hits: {0}")),
+		HitCounterFormat,
 		FText::AsNumber(HitCount)
 	);
 
@@ -208,6 +206,44 @@ float UHealthBarWidget::GetHealthPercent() const
 // ============================================================================
 // Health Component Binding
 // ============================================================================
+
+void UHealthBarWidget::TryBindToHealthComponent()
+{
+	// Attempt binding
+	if (BindToHealthComponent())
+	{
+		// Success - clear retry timer if it was set
+		if (BindRetryTimerHandle.IsValid())
+		{
+			GetWorld()->GetTimerManager().ClearTimer(BindRetryTimerHandle);
+		}
+
+#if UE_BUILD_DEVELOPMENT
+		UE_LOG(LogTemp, Log, TEXT("HealthBarWidget: Successfully bound to health component"));
+#endif
+
+		// Initialize visual state
+		UpdateHealthBar();
+		UpdateHitCounter();
+	}
+	else
+	{
+		// Failed - set up retry timer if not already running
+		if (!BindRetryTimerHandle.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: Failed to bind to health component - retrying every 0.1s"));
+
+			// Retry every 0.1 seconds until successful
+			GetWorld()->GetTimerManager().SetTimer(
+				BindRetryTimerHandle,
+				this,
+				&UHealthBarWidget::TryBindToHealthComponent,
+				0.1f,
+				true  // Loop
+			);
+		}
+	}
+}
 
 bool UHealthBarWidget::BindToHealthComponent()
 {

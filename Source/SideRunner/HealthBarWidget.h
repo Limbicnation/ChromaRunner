@@ -108,6 +108,9 @@ private:
 	UPROPERTY()
 	ARunnerCharacter* OwningCharacter;
 
+	/** Timer handle for retrying health component binding */
+	FTimerHandle BindRetryTimerHandle;
+
 	// PERFORMANCE: Helper functions
 
 	/** Updates the progress bar visual state */
@@ -124,6 +127,9 @@ private:
 
 	/** Attempts to find and bind to the player's health component */
 	bool BindToHealthComponent();
+
+	/** Retry function called by timer to bind to health component */
+	void TryBindToHealthComponent();
 
 	/** Unbinds from health component delegates */
 	void UnbindFromHealthComponent();
