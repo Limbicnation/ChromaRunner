@@ -9,11 +9,14 @@ public class SideRunner : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		// PERFORMANCE: Core dependencies for optimized builds
-        PublicDependencyModuleNames.AddRange(new string[] { 
-			"Core", 
-			"CoreUObject", 
-			"Engine", 
-			"InputCore" 
+        PublicDependencyModuleNames.AddRange(new string[] {
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"UMG",				// For C++ UMG widgets
+			"Slate",			// Required for UMG
+			"SlateCore"			// Required for UMG
 		});
 
 		// PERFORMANCE: Private dependencies for specific features
