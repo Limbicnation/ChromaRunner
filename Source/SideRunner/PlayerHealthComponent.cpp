@@ -95,7 +95,7 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 	}
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Log, TEXT("Player took %d damage of type %d. Health: %d/%d, Hits taken: %d"), 
+	UE_LOG(LogTemp, VeryVerbose, TEXT("Player took %d damage of type %d. Health: %d/%d, Hits taken: %d"),
 		DamageAmount, (int32)Type, CurrentHealth, MaxHealth, TotalHitsTaken);
 #endif
 }

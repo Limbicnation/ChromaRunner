@@ -307,7 +307,7 @@ void ACoinPickup::UpdateCoinCounter(ACharacter* Character)
     {
         CoinCounterComp->AddCoins(CoinValue);
 #if UE_BUILD_DEVELOPMENT
-        UE_LOG(LogTemp, Log, TEXT("Coin collected with value: %d"), CoinValue);
+        UE_LOG(LogTemp, VeryVerbose, TEXT("Coin collected with value: %d"), CoinValue);
 #endif
     }
 #if UE_BUILD_DEVELOPMENT

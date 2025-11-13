@@ -51,7 +51,7 @@ void USideRunnerGameInstance::UpdateDistanceScore(float PlayerXPosition)
             OnScoreUpdated.Broadcast(CurrentScore);
 
 #if UE_BUILD_DEVELOPMENT
-            UE_LOG(LogTemp, Verbose, TEXT("Distance score updated: +%d points | Total: %d | Distance: %.1fm"),
+            UE_LOG(LogTemp, VeryVerbose, TEXT("Distance score updated: +%d points | Total: %d | Distance: %.1fm"),
                 DistancePoints, CurrentScore, DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS);
 #endif
         }
@@ -87,7 +87,7 @@ void USideRunnerGameInstance::AddCoinBonus(int32 CoinValue)
     OnScoreUpdated.Broadcast(CurrentScore);
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Coin bonus added: +%d points | Total score: %d"), CoinValue, CurrentScore);
+    UE_LOG(LogTemp, VeryVerbose, TEXT("Coin bonus added: +%d points | Total score: %d"), CoinValue, CurrentScore);
 #endif
 }
 
