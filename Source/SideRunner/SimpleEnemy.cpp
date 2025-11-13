@@ -12,7 +12,7 @@
 namespace EnemyConstants
 {
 	/** Collision box half-extents (X, Y, Z) in centimeters */
-	constexpr FVector CollisionBoxExtent(50.0f, 50.0f, 100.0f);
+	static const FVector CollisionBoxExtent{50.0f, 50.0f, 100.0f};
 
 	/** Damage cooldown duration in seconds (matches typical invulnerability frames) */
 	constexpr float DamageCooldownDuration = 1.5f;
