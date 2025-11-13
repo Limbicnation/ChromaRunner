@@ -75,6 +75,10 @@ void UGameHUDWidget::UpdateScoreDisplay(int32 CurrentScore)
         const FString ScoreString = FString::Printf(TEXT("Score: %d"), CurrentScore);
         ScoreText->SetText(FText::FromString(ScoreString));
     }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameHUDWidget: ScoreText not bound!"));
+    }
 }
 
 void UGameHUDWidget::UpdateDistanceDisplay(float DistanceMeters)
@@ -83,6 +87,10 @@ void UGameHUDWidget::UpdateDistanceDisplay(float DistanceMeters)
     {
         const FString DistString = FString::Printf(TEXT("Distance: %.0f m"), DistanceMeters);
         DistanceText->SetText(FText::FromString(DistString));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("GameHUDWidget: DistanceText not bound!"));
     }
 }
 

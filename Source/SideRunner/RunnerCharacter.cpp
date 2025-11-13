@@ -32,6 +32,9 @@ namespace RunnerCharacterConstants
     constexpr float MOVEMENT_THRESHOLD = 10.0f;
     constexpr float STATE_TIMER_RESET = 0.0f;
     constexpr float RESTART_LEVEL_DELAY = 2.0f;
+
+    // Fallback spawn location when no PlayerStart found
+    const FVector FALLBACK_RESPAWN_LOCATION = FVector(0.0f, 0.0f, 200.0f);
 }
 
 // You need Paper2D plugin for this. Add it to your project if needed.
@@ -606,7 +609,7 @@ void ARunnerCharacter::RespawnPlayer()
         else
         {
             // Fallback to origin if no PlayerStart found
-            RespawnLocation = FVector(0.0f, 0.0f, 200.0f);
+            RespawnLocation = RunnerCharacterConstants::FALLBACK_RESPAWN_LOCATION;
             UE_LOG(LogTemp, Warning, TEXT("No PlayerStart found - using fallback location"));
         }
     }
@@ -631,7 +634,6 @@ void ARunnerCharacter::CleanupBeforeDestroy()
     {
         if (FTimerManager* TimerManager = &World->GetTimerManager())
         {
-            TimerManager->ClearTimer(RestartTimerHandle);
             TimerManager->ClearTimer(RespawnTimerHandle);  // CRITICAL FIX: Clear respawn timer
             TimerManager->ClearAllTimersForObject(this);
         }

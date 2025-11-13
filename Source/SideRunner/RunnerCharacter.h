@@ -180,9 +180,6 @@ private:
     void HandleRegularSpikeOverlap(ASpikes* RegularSpike);
 
     // CRITICAL FIX: Timer management for access violation prevention
-    /** Timer handle for restart delay - needs cleanup on destroy */
-    FTimerHandle RestartTimerHandle;
-
     /** Timer handle for respawn delay after death - MUST be member variable to prevent stack corruption */
     FTimerHandle RespawnTimerHandle;
 
