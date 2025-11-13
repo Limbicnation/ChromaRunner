@@ -27,6 +27,25 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameWon);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameLost);
 
 /**
+ * Performance constants for game instance calculations
+ * Centralized to ensure consistency and improve maintainability
+ */
+namespace SideRunnerGameInstanceConstants
+{
+    /** Conversion factor: Unreal units to meters (100 units = 1 meter) */
+    constexpr float METERS_TO_UNREAL_UNITS = 100.0f;
+
+    /** Default coin bonus points */
+    constexpr int32 DEFAULT_COIN_BONUS = 10;
+
+    /** Default enemy kill bonus points */
+    constexpr int32 DEFAULT_ENEMY_KILL_BONUS = 50;
+
+    /** Default win distance in meters */
+    constexpr float DEFAULT_WIN_DISTANCE = 5000.0f;
+}
+
+/**
  * ChromaRunner Game Instance - Persistent game state and scoring system.
  *
  * Features:
@@ -100,7 +119,7 @@ public:
      * @return Distance traveled in meters
      */
     UFUNCTION(BlueprintPure, Category = "Score")
-    float GetDistanceTraveled() const { return DistanceTraveled / 100.0f; } // Convert to meters
+    float GetDistanceTraveled() const { return DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS; }
 
     /**
      * Returns the high score achieved in any session.
@@ -221,7 +240,7 @@ private:
      */
     FORCEINLINE int32 ConvertDistanceToPoints(float DeltaDistance) const
     {
-        return FMath::FloorToInt(DeltaDistance / 100.0f);
+        return FMath::FloorToInt(DeltaDistance / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS);
     }
 
     /**

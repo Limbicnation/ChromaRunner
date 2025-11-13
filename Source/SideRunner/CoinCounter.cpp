@@ -168,7 +168,7 @@ void UCoinCounter::AddCoins(int32 Amount)
     }
 
     // Debug log (outside critical section)
-    UE_LOG(LogTemp, Log, TEXT("Added %d coins. New total: %d"), Amount, NewCoinCount);
+    UE_LOG(LogTemp, VeryVerbose, TEXT("Added %d coins. New total: %d"), Amount, NewCoinCount);
 
     // If we're using persistent coins, update and save them
     if (bPersistentCoins)

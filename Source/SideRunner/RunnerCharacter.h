@@ -141,6 +141,10 @@ private:
     float zPosition;
     FVector TempPos;
 
+    // PERFORMANCE: Cached game instance reference (avoid 60 casts/second in Tick)
+    UPROPERTY()
+    class USideRunnerGameInstance* CachedGameInstance;
+
     // PERFORMANCE: Movement state
     bool CanMove;
     bool CanJump;

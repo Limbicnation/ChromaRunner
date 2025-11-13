@@ -12,7 +12,7 @@
 ## Files Created
 
 ### C++ Source Code
-All files created in: `/home/gero/unreal-projects-2025/ChromaRunner/Source/SideRunner/`
+All files created in: `<PROJECT_ROOT>/Source/SideRunner/`
 
 1. **SimpleEnemy.h** (268 lines)
    - Complete class declaration
@@ -28,7 +28,7 @@ All files created in: `/home/gero/unreal-projects-2025/ChromaRunner/Source/SideR
    - Extensive inline comments
 
 ### Documentation
-All files created in: `/home/gero/unreal-projects-2025/ChromaRunner/`
+All files created in: `<PROJECT_ROOT>/`
 
 3. **ENEMY_SYSTEM_INTEGRATION.md** (650+ lines)
    - Complete integration guide
@@ -212,7 +212,7 @@ UPlayerHealthComponent* HealthComp = Player->HealthComponent;
 
 ### Option 1: Using Makefile (if paths are correct)
 ```bash
-cd /home/gero/unreal-projects-2025/ChromaRunner
+cd <PROJECT_ROOT>
 
 # Build editor
 make SideRunnerEditor
@@ -228,7 +228,7 @@ make SideRunner
 ```bash
 # Example path (update to your UE installation)
 UNREAL_ENGINE="/path/to/UnrealEngine"
-PROJECT_FILE="/home/gero/unreal-projects-2025/ChromaRunner/SideRunner.uproject"
+PROJECT_FILE="<PROJECT_ROOT>/SideRunner.uproject"
 
 # Build editor
 "${UNREAL_ENGINE}/Engine/Build/BatchFiles/Linux/Build.sh" \

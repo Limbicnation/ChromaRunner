@@ -246,7 +246,7 @@ void ACoinPickup::Collect_Implementation(ACharacter* Character)
     // Add coin bonus to game instance scoring system
     if (USideRunnerGameInstance* GameInstance = Cast<USideRunnerGameInstance>(GetWorld()->GetGameInstance()))
     {
-        GameInstance->AddCoinBonus(10); // 10 points per coin
+        GameInstance->AddCoinBonus(); // 10 points per coin
     }
 
     // Broadcast collection event
@@ -307,7 +307,7 @@ void ACoinPickup::UpdateCoinCounter(ACharacter* Character)
     {
         CoinCounterComp->AddCoins(CoinValue);
 #if UE_BUILD_DEVELOPMENT
-        UE_LOG(LogTemp, Log, TEXT("Coin collected with value: %d"), CoinValue);
+        UE_LOG(LogTemp, VeryVerbose, TEXT("Coin collected with value: %d"), CoinValue);
 #endif
     }
 #if UE_BUILD_DEVELOPMENT

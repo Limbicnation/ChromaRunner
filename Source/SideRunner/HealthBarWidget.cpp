@@ -62,7 +62,7 @@ void UHealthBarWidget::OnHealthChanged(int32 NewHealth, int32 NewMaxHealth)
 	MaxHealth = static_cast<float>(NewMaxHealth);
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Log, TEXT("HealthBarWidget: Health changed to %d / %d (%.1f%%)"),
+	UE_LOG(LogTemp, VeryVerbose, TEXT("HealthBarWidget: Health changed to %d / %d (%.1f%%)"),
 		NewHealth, NewMaxHealth, GetHealthPercent() * 100.0f);
 #endif
 
@@ -79,7 +79,7 @@ void UHealthBarWidget::OnTakeDamage(int32 DamageAmount, EDamageType DamageType)
 	}
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Log, TEXT("HealthBarWidget: Took %d damage (Type: %d), Total hits: %d"),
+	UE_LOG(LogTemp, VeryVerbose, TEXT("HealthBarWidget: Took %d damage (Type: %d), Total hits: %d"),
 		DamageAmount, static_cast<int32>(DamageType), HitCount);
 #endif
 

@@ -99,6 +99,9 @@ void ARunnerCharacter::BeginPlay()
         HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
         HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
     }
+
+    // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
+    CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 #if UE_BUILD_DEBUG
     else
     {
@@ -122,12 +125,9 @@ void ARunnerCharacter::Tick(float DeltaTime)
     }
 
     // Update distance score in game instance
-    if (!IsDead())
+    if (!IsDead() && CachedGameInstance)
     {
-        if (USideRunnerGameInstance* GameInstance = Cast<USideRunnerGameInstance>(GetGameInstance()))
-        {
-            GameInstance->UpdateDistanceScore(GetActorLocation().X);
-        }
+        CachedGameInstance->UpdateDistanceScore(GetActorLocation().X);
     }
 
     // Check for fall threshold
@@ -372,7 +372,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
         return;
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Player overlapped with regular Spikes - applying damage"));
+    UE_LOG(LogTemp, VeryVerbose, TEXT("Player overlapped with regular Spikes - applying damage"));
 #endif
 
     // Apply regular spike damage through health component
@@ -445,9 +445,9 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
 #endif
 
     // Trigger game over in game instance
-    if (USideRunnerGameInstance* GameInstance = Cast<USideRunnerGameInstance>(GetGameInstance()))
+    if (CachedGameInstance)
     {
-        GameInstance->TriggerGameOver(false); // false = player lost (died)
+        CachedGameInstance->TriggerGameOver(false); // false = player lost (died)
     }
 
     // Call blueprint event
