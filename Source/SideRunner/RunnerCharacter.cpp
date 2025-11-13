@@ -13,6 +13,16 @@
 #include "SideRunnerGameInstance.h"
 #include "GameFramework/PlayerStart.h"
 
+// CRITICAL FIX: Comprehensive validation macro for HealthComponent access
+// Prevents access violations by validating component before use
+#define VALIDATE_HEALTH_COMPONENT_VOID() \
+    if (!HealthComponent || !HealthComponent->IsValidLowLevel() || HealthComponent->IsPendingKill()) \
+    { \
+        UE_LOG(LogTemp, Error, TEXT("%s: HealthComponent invalid! Address: %p"), \
+               *FString(__FUNCTION__), HealthComponent); \
+        return; \
+    }
+
 // PERFORMANCE: Constants for better maintainability and performance
 namespace RunnerCharacterConstants
 {
@@ -161,7 +171,9 @@ void ARunnerCharacter::HandleEnvironmentalDeath()
 {
     // CRITICAL FIX: Use same death system as obstacles - respects lives system
     // TakeDamage triggers OnPlayerDeath → HandlePlayerDeath → lives system
-    if (HealthComponent && !IsDead())
+    VALIDATE_HEALTH_COMPONENT_VOID();
+
+    if (!IsDead())
     {
         HealthComponent->TakeDamage(HealthComponent->GetCurrentHealth(), EDamageType::EnvironmentalHazard);
     }
@@ -434,7 +446,7 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 
 bool ARunnerCharacter::IsDead() const
 {
-    return HealthComponent ? (HealthComponent->GetCurrentHealth() <= 0) : false;
+    return IsHealthComponentValid() && (HealthComponent->GetCurrentHealth() <= 0);
 }
 
 void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
@@ -482,8 +494,8 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
             // Player has lives remaining - respawn after brief pause
             UE_LOG(LogTemp, Log, TEXT("Player has lives remaining - respawning"));
 
+            // CRITICAL FIX: Use member variable RespawnTimerHandle (NOT local variable)
             // Brief delay to show death state, then respawn
-            FTimerHandle RespawnTimerHandle;
             GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &ARunnerCharacter::RespawnPlayer,
                                            0.2f, false);  // POLISH FIX: Reduced from 0.5s to 0.2s for faster feedback
         }
@@ -521,6 +533,13 @@ void ARunnerCharacter::RespawnPlayer()
 {
     UE_LOG(LogTemp, Log, TEXT("RespawnPlayer called"));
 
+    // CRITICAL FIX: Validate 'this' pointer itself (timer may fire on destroyed object)
+    if (!this || !IsValidLowLevel() || IsPendingKill())
+    {
+        UE_LOG(LogTemp, Error, TEXT("RespawnPlayer: 'this' pointer is invalid!"));
+        return;
+    }
+
     // CRITICAL FIX: Validate world before proceeding
     UWorld* World = GetWorld();
     if (!World)
@@ -532,16 +551,9 @@ void ARunnerCharacter::RespawnPlayer()
     // Clear death processing flag
     bIsProcessingDeath = false;
 
-    // Reset health component
-    if (HealthComponent && HealthComponent->IsValidLowLevel())
-    {
-        HealthComponent->ResetHealth();
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("RespawnPlayer: HealthComponent is invalid!"));
-        return;
-    }
+    // CRITICAL FIX: Use validation macro for consistency
+    VALIDATE_HEALTH_COMPONENT_VOID();
+    HealthComponent->ResetHealth();
 
     // Re-enable mesh and movement
     if (USkeletalMeshComponent* SkeletalMesh = GetMesh())
@@ -620,12 +632,13 @@ void ARunnerCharacter::CleanupBeforeDestroy()
         if (FTimerManager* TimerManager = &World->GetTimerManager())
         {
             TimerManager->ClearTimer(RestartTimerHandle);
+            TimerManager->ClearTimer(RespawnTimerHandle);  // CRITICAL FIX: Clear respawn timer
             TimerManager->ClearAllTimersForObject(this);
         }
     }
 
-    // Unbind health component delegates
-    if (HealthComponent && HealthComponent->IsValidLowLevel())
+    // Unbind health component delegates - use validation helper
+    if (IsHealthComponentValid())
     {
         HealthComponent->OnHealthChanged.RemoveAll(this);
         HealthComponent->OnTakeDamage.RemoveAll(this);

@@ -183,6 +183,20 @@ private:
     /** Timer handle for restart delay - needs cleanup on destroy */
     FTimerHandle RestartTimerHandle;
 
+    /** Timer handle for respawn delay after death - MUST be member variable to prevent stack corruption */
+    FTimerHandle RespawnTimerHandle;
+
     /** Flag to prevent duplicate death processing */
     bool bIsProcessingDeath;
+
+    /**
+     * Safely validates HealthComponent before access.
+     * Returns true if component is safe to use.
+     */
+    FORCEINLINE bool IsHealthComponentValid() const
+    {
+        return HealthComponent &&
+               HealthComponent->IsValidLowLevel() &&
+               !HealthComponent->IsPendingKill();
+    }
 };
