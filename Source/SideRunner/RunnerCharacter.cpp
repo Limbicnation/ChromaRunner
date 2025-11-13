@@ -107,11 +107,13 @@ void ARunnerCharacter::BeginPlay()
     // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 
-    // Store initial spawn location as respawn point
+    // Store initial spawn location as respawn point AND initialize score tracking
     if (CachedGameInstance)
     {
-        CachedGameInstance->SetRespawnLocation(GetActorLocation());
-        UE_LOG(LogTemp, Log, TEXT("Initial spawn location stored: %s"), *GetActorLocation().ToString());
+        const FVector SpawnLocation = GetActorLocation();
+        CachedGameInstance->SetRespawnLocation(SpawnLocation);
+        CachedGameInstance->InitializeDistanceTracking(SpawnLocation.X); // CRITICAL FIX: Start score from spawn X
+        UE_LOG(LogTemp, Log, TEXT("Initial spawn location stored: %s"), *SpawnLocation.ToString());
     }
 }
 
@@ -157,11 +159,12 @@ void ARunnerCharacter::UpdateCameraPosition()
 
 void ARunnerCharacter::HandleEnvironmentalDeath()
 {
-    if (HealthComponent)
+    // CRITICAL FIX: Use same death system as obstacles - respects lives system
+    // TakeDamage triggers OnPlayerDeath → HandlePlayerDeath → lives system
+    if (HealthComponent && !IsDead())
     {
         HealthComponent->TakeDamage(HealthComponent->GetCurrentHealth(), EDamageType::EnvironmentalHazard);
     }
-    RestartLevel();
 }
 
 void ARunnerCharacter::UpdateAnimationState()
@@ -476,13 +479,13 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
 
         if (bHasLivesRemaining)
         {
-            // Player has lives remaining - respawn immediately (no delay)
+            // Player has lives remaining - respawn after brief pause
             UE_LOG(LogTemp, Log, TEXT("Player has lives remaining - respawning"));
 
-            // Use short delay for death animation, then respawn
+            // Brief delay to show death state, then respawn
             FTimerHandle RespawnTimerHandle;
             GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &ARunnerCharacter::RespawnPlayer,
-                                           0.5f, false);
+                                           0.2f, false);  // POLISH FIX: Reduced from 0.5s to 0.2s for faster feedback
         }
         else
         {

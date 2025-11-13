@@ -245,6 +245,15 @@ public:
     UFUNCTION(BlueprintPure, Category = "Lives")
     FVector GetRespawnLocation() const { return LastRespawnLocation; }
 
+    /**
+     * Initializes the distance tracking from player's starting position.
+     * Should be called once at game start to ensure accurate score calculation.
+     *
+     * @param StartingXPosition - Player's initial X coordinate in world space
+     */
+    UFUNCTION(BlueprintCallable, Category = "Score")
+    void InitializeDistanceTracking(float StartingXPosition);
+
     // ======================================================================
     // Events for UI Integration
     // ======================================================================
