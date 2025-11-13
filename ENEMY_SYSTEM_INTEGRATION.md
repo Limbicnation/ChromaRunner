@@ -6,11 +6,11 @@ This document provides complete integration instructions for the **ASimpleEnemy*
 ## Files Created
 
 ### C++ Source Files
-- **Header**: `/home/gero/unreal-projects-2025/ChromaRunner/Source/SideRunner/SimpleEnemy.h`
-- **Implementation**: `/home/gero/unreal-projects-2025/ChromaRunner/Source/SideRunner/SimpleEnemy.cpp`
+- **Header**: `<PROJECT_ROOT>/Source/SideRunner/SimpleEnemy.h`
+- **Implementation**: `<PROJECT_ROOT>/Source/SideRunner/SimpleEnemy.cpp`
 
 ### Documentation
-- **This file**: `/home/gero/unreal-projects-2025/ChromaRunner/ENEMY_SYSTEM_INTEGRATION.md`
+- **This file**: `<PROJECT_ROOT>/ENEMY_SYSTEM_INTEGRATION.md`
 
 ---
 
@@ -111,7 +111,7 @@ Currently, the enemy doesn't have health/death mechanics (intentionally simple f
 
 1. **Regenerate Project Files** (if needed):
    ```bash
-   cd /home/gero/unreal-projects-2025/ChromaRunner
+   cd <PROJECT_ROOT>
    make configure
    ```
 

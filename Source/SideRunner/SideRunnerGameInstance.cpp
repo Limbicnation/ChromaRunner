@@ -1,15 +1,6 @@
 #include "SideRunnerGameInstance.h"
 #include "Engine/Engine.h"
 
-// PERFORMANCE: Constants for better maintainability and optimization
-namespace SideRunnerGameInstanceConstants
-{
-    constexpr float METERS_TO_UNREAL_UNITS = 100.0f;
-    constexpr int32 DEFAULT_COIN_BONUS = 10;
-    constexpr int32 DEFAULT_ENEMY_KILL_BONUS = 50;
-    constexpr float DEFAULT_WIN_DISTANCE = 5000.0f; // 5000 meters
-}
-
 void USideRunnerGameInstance::Init()
 {
     Super::Init();
@@ -159,12 +150,14 @@ void USideRunnerGameInstance::TriggerGameOver(bool bWon)
         UE_LOG(LogTemp, Warning, TEXT("High Score: %d"), HighScore);
 
         // Display on-screen message if available
+#if !UE_BUILD_SHIPPING
         if (GEngine)
         {
             GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Green,
                 FString::Printf(TEXT("YOU WIN! Score: %d | Distance: %.1fm"),
                     CurrentScore, DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS));
         }
+#endif
     }
     else
     {
@@ -177,12 +170,14 @@ void USideRunnerGameInstance::TriggerGameOver(bool bWon)
         UE_LOG(LogTemp, Warning, TEXT("High Score: %d"), HighScore);
 
         // Display on-screen message if available
+#if !UE_BUILD_SHIPPING
         if (GEngine)
         {
             GEngine->AddOnScreenDebugMessage(-1, 10.0f, FColor::Red,
                 FString::Printf(TEXT("GAME OVER! Score: %d | Distance: %.1fm"),
                     CurrentScore, DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS));
         }
+#endif
     }
 }
 
