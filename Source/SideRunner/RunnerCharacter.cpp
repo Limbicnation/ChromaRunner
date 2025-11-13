@@ -11,6 +11,7 @@
 #include "Spikes.h"
 #include "PlayerHealthComponent.h"
 #include "SideRunnerGameInstance.h"
+#include "GameFramework/PlayerStart.h"
 
 // PERFORMANCE: Constants for better maintainability and performance
 namespace RunnerCharacterConstants
@@ -71,6 +72,9 @@ ARunnerCharacter::ARunnerCharacter()
     // PERFORMANCE: Create health component with validation
     HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
     ensure(HealthComponent); // Debug validation
+
+    // Initialize death processing flag
+    bIsProcessingDeath = false;
 }
 
 // Called when the game starts or when spawned
@@ -102,12 +106,13 @@ void ARunnerCharacter::BeginPlay()
 
     // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
-#if UE_BUILD_DEBUG
-    else
+
+    // Store initial spawn location as respawn point
+    if (CachedGameInstance)
     {
-        UE_LOG(LogTemp, Error, TEXT("RunnerCharacter: HealthComponent is null!"));
+        CachedGameInstance->SetRespawnLocation(GetActorLocation());
+        UE_LOG(LogTemp, Log, TEXT("Initial spawn location stored: %s"), *GetActorLocation().ToString());
     }
-#endif
 }
 
 // Called every frame
@@ -316,13 +321,28 @@ void ARunnerCharacter::MoveRight(float Value)
 
 void ARunnerCharacter::RestartLevel()
 {
-    // PERFORMANCE: Use more efficient level restart
+    UE_LOG(LogTemp, Log, TEXT("RestartLevel called"));
+
+    // CRITICAL FIX: Clean up before level transition
+    CleanupBeforeDestroy();
+
+    // CRITICAL FIX: Validate world
     const UWorld* World = GetWorld();
-    if (World)
+    if (!World)
     {
-        const FString CurrentLevelName = World->GetName();
-        UGameplayStatics::OpenLevel(this, FName(*CurrentLevelName));
+        UE_LOG(LogTemp, Error, TEXT("RestartLevel: World is null!"));
+        return;
     }
+
+    // Reset game instance
+    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    {
+        CachedGameInstance->ResetGameSession();
+    }
+
+    // Reload level
+    const FString CurrentLevelName = World->GetName();
+    UGameplayStatics::OpenLevel(this, FName(*CurrentLevelName));
 }
 
 void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -416,10 +436,13 @@ bool ARunnerCharacter::IsDead() const
 
 void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
 {
-    // PERFORMANCE: Early exit if already dead
-    if (CurrentState == ECharacterState::Dead)
+    // CRITICAL FIX: Prevent duplicate death processing
+    if (bIsProcessingDeath || CurrentState == ECharacterState::Dead)
+    {
         return;
+    }
 
+    bIsProcessingDeath = true;
     SetCharacterState(ECharacterState::Dead);
 
     // Disable mesh and movement
@@ -433,7 +456,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
     CanMove = false;
     CanJump = false;
     bCanDoubleJump = false;
-    
+
     // Reset jump velocity through movement component
     if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
     {
@@ -444,19 +467,37 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
     UE_LOG(LogTemp, Log, TEXT("Player died after taking %d hits"), TotalHitsTaken);
 #endif
 
-    // Trigger game over in game instance
-    if (CachedGameInstance)
+    // CRITICAL FIX: Re-validate game instance before use
+    CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
+
+    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
     {
-        CachedGameInstance->TriggerGameOver(false); // false = player lost (died)
+        const bool bHasLivesRemaining = CachedGameInstance->DecrementLives();
+
+        if (bHasLivesRemaining)
+        {
+            // Player has lives remaining - respawn immediately (no delay)
+            UE_LOG(LogTemp, Log, TEXT("Player has lives remaining - respawning"));
+
+            // Use short delay for death animation, then respawn
+            FTimerHandle RespawnTimerHandle;
+            GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &ARunnerCharacter::RespawnPlayer,
+                                           0.5f, false);
+        }
+        else
+        {
+            // No lives remaining - game over (immediate, no delay)
+            UE_LOG(LogTemp, Warning, TEXT("No lives remaining - triggering game over"));
+            // Game over already triggered by DecrementLives()
+
+            // Call blueprint event
+            DeathOfPlayer();
+        }
     }
-
-    // Call blueprint event
-    DeathOfPlayer();
-
-    // PERFORMANCE: Use optimized timer for level restart
-    FTimerHandle RestartTimer;
-    GetWorldTimerManager().SetTimer(RestartTimer, this, &ARunnerCharacter::RestartLevel, 
-                                   RunnerCharacterConstants::RESTART_LEVEL_DELAY, false);
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("HandlePlayerDeath: GameInstance is invalid!"));
+    }
 }
 
 float ARunnerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
@@ -469,6 +510,130 @@ float ARunnerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
     {
         ProcessDamage(ActualDamage, DamageCauser);
     }
-    
+
     return ActualDamage;
+}
+
+void ARunnerCharacter::RespawnPlayer()
+{
+    UE_LOG(LogTemp, Log, TEXT("RespawnPlayer called"));
+
+    // CRITICAL FIX: Validate world before proceeding
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        UE_LOG(LogTemp, Error, TEXT("RespawnPlayer: World is null!"));
+        return;
+    }
+
+    // Clear death processing flag
+    bIsProcessingDeath = false;
+
+    // Reset health component
+    if (HealthComponent && HealthComponent->IsValidLowLevel())
+    {
+        HealthComponent->ResetHealth();
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("RespawnPlayer: HealthComponent is invalid!"));
+        return;
+    }
+
+    // Re-enable mesh and movement
+    if (USkeletalMeshComponent* SkeletalMesh = GetMesh())
+    {
+        SkeletalMesh->Activate();
+        SkeletalMesh->SetVisibility(true);
+    }
+
+    // Re-enable input
+    CanMove = true;
+    CanJump = true;
+    bCanDoubleJump = true;
+
+    // Restore jump velocity
+    if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+    {
+        MovementComponent->JumpZVelocity = 1000.0f;
+    }
+
+    // Reset animation state
+    SetCharacterState(ECharacterState::Idle);
+
+    // CRITICAL FIX: Get respawn location from game instance (or use player start)
+    FVector RespawnLocation = FVector::ZeroVector;
+    FRotator RespawnRotation = FRotator::ZeroRotator;
+
+    // Try to get saved respawn location
+    CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
+    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    {
+        RespawnLocation = CachedGameInstance->GetRespawnLocation();
+    }
+
+    // If no saved location, find PlayerStart
+    if (RespawnLocation.IsZero())
+    {
+        TArray<AActor*> PlayerStarts;
+        UGameplayStatics::GetAllActorsOfClass(World, APlayerStart::StaticClass(), PlayerStarts);
+
+        if (PlayerStarts.Num() > 0)
+        {
+            APlayerStart* PlayerStart = Cast<APlayerStart>(PlayerStarts[0]);
+            if (PlayerStart)
+            {
+                RespawnLocation = PlayerStart->GetActorLocation();
+                RespawnRotation = PlayerStart->GetActorRotation();
+                UE_LOG(LogTemp, Log, TEXT("Using PlayerStart location: %s"), *RespawnLocation.ToString());
+            }
+        }
+        else
+        {
+            // Fallback to origin if no PlayerStart found
+            RespawnLocation = FVector(0.0f, 0.0f, 200.0f);
+            UE_LOG(LogTemp, Warning, TEXT("No PlayerStart found - using fallback location"));
+        }
+    }
+
+    // Teleport player to respawn location
+    SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::ResetPhysics);
+    SetActorRotation(RespawnRotation);
+
+    // Reset velocity
+    if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+    {
+        MovementComponent->Velocity = FVector::ZeroVector;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Player respawned at: %s"), *RespawnLocation.ToString());
+}
+
+void ARunnerCharacter::CleanupBeforeDestroy()
+{
+    // CRITICAL FIX: Clear all active timers to prevent callbacks on destroyed object
+    if (UWorld* World = GetWorld())
+    {
+        if (FTimerManager* TimerManager = &World->GetTimerManager())
+        {
+            TimerManager->ClearTimer(RestartTimerHandle);
+            TimerManager->ClearAllTimersForObject(this);
+        }
+    }
+
+    // Unbind health component delegates
+    if (HealthComponent && HealthComponent->IsValidLowLevel())
+    {
+        HealthComponent->OnHealthChanged.RemoveAll(this);
+        HealthComponent->OnTakeDamage.RemoveAll(this);
+        HealthComponent->OnPlayerDeath.RemoveAll(this);
+    }
+
+    UE_LOG(LogTemp, Verbose, TEXT("RunnerCharacter cleanup completed"));
+}
+
+void ARunnerCharacter::BeginDestroy()
+{
+    CleanupBeforeDestroy();
+    Super::BeginDestroy();
 }

@@ -15,7 +15,12 @@ void USideRunnerGameInstance::Init()
     // Set default win distance
     WinDistance = SideRunnerGameInstanceConstants::DEFAULT_WIN_DISTANCE;
 
-    UE_LOG(LogTemp, Log, TEXT("SideRunnerGameInstance initialized - Win distance: %.1f meters"), WinDistance);
+    // Initialize lives state
+    MaxLives = SideRunnerGameInstanceConstants::DEFAULT_MAX_LIVES;
+    CurrentLives = MaxLives;
+    LastRespawnLocation = FVector::ZeroVector;
+
+    UE_LOG(LogTemp, Log, TEXT("SideRunnerGameInstance initialized - Win distance: %.1f meters, Lives: %d"), WinDistance, MaxLives);
 }
 
 void USideRunnerGameInstance::UpdateDistanceScore(float PlayerXPosition)
@@ -132,6 +137,13 @@ void USideRunnerGameInstance::TriggerGameOver(bool bWon)
         return;
     }
 
+    // Only allow game over if no lives remain or player won
+    if (!bWon && CurrentLives > 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("TriggerGameOver called but player has %d lives remaining"), CurrentLives);
+        return;
+    }
+
     // Mark game as ended
     bGameEnded = true;
 
@@ -189,6 +201,9 @@ void USideRunnerGameInstance::ResetGameSession()
     LastRecordedX = 0.0f;
     bGameEnded = false;
 
+    // Reset lives
+    ResetLives();
+
     // Note: HighScore is intentionally NOT reset
 
     UE_LOG(LogTemp, Log, TEXT("Game session reset - High score preserved: %d"), HighScore);
@@ -196,4 +211,41 @@ void USideRunnerGameInstance::ResetGameSession()
     // Broadcast reset events
     OnScoreUpdated.Broadcast(CurrentScore);
     OnDistanceUpdated.Broadcast(0.0f);
+}
+
+bool USideRunnerGameInstance::DecrementLives()
+{
+    if (CurrentLives <= 0)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("DecrementLives called but lives already at 0"));
+        return false;
+    }
+
+    CurrentLives--;
+    OnLivesUpdated.Broadcast(CurrentLives, MaxLives);
+
+    UE_LOG(LogTemp, Log, TEXT("Lives decremented - Remaining: %d/%d"), CurrentLives, MaxLives);
+
+    // Trigger game over only if no lives remain
+    if (CurrentLives <= 0)
+    {
+        TriggerGameOver(false);
+        return false;
+    }
+
+    return true;
+}
+
+void USideRunnerGameInstance::ResetLives()
+{
+    CurrentLives = MaxLives;
+    OnLivesUpdated.Broadcast(CurrentLives, MaxLives);
+
+    UE_LOG(LogTemp, Log, TEXT("Lives reset to %d/%d"), CurrentLives, MaxLives);
+}
+
+void USideRunnerGameInstance::SetRespawnLocation(const FVector& RespawnLocation)
+{
+    LastRespawnLocation = RespawnLocation;
+    UE_LOG(LogTemp, VeryVerbose, TEXT("Respawn location set to: %s"), *RespawnLocation.ToString());
 }

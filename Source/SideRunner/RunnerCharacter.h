@@ -107,6 +107,23 @@ public:
     UFUNCTION(BlueprintPure, Category = "Health")
     bool IsDead() const;
 
+    /**
+     * Safely respawns the player without reloading the level.
+     * Resets health, position, animation state, and clears all timers.
+     * Called when player dies but has lives remaining.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Health")
+    void RespawnPlayer();
+
+    /**
+     * Cleans up timers and resources before destruction.
+     * Prevents access violations from pending timer callbacks.
+     */
+    void CleanupBeforeDestroy();
+
+    // Override BeginDestroy for cleanup
+    virtual void BeginDestroy() override;
+
 protected:
     // PERFORMANCE: Input handling
     virtual void Jump() override;
@@ -161,4 +178,11 @@ private:
     bool IsMovingHorizontally() const;
     void HandleWallSpikeOverlap(AWallSpike* WallSpike);
     void HandleRegularSpikeOverlap(ASpikes* RegularSpike);
+
+    // CRITICAL FIX: Timer management for access violation prevention
+    /** Timer handle for restart delay - needs cleanup on destroy */
+    FTimerHandle RestartTimerHandle;
+
+    /** Flag to prevent duplicate death processing */
+    bool bIsProcessingDeath;
 };
