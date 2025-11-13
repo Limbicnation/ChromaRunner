@@ -246,7 +246,7 @@ void ACoinPickup::Collect_Implementation(ACharacter* Character)
     // Add coin bonus to game instance scoring system
     if (USideRunnerGameInstance* GameInstance = Cast<USideRunnerGameInstance>(GetWorld()->GetGameInstance()))
     {
-        GameInstance->AddCoinBonus(10); // 10 points per coin
+        GameInstance->AddCoinBonus(); // 10 points per coin
     }
 
     // Broadcast collection event
