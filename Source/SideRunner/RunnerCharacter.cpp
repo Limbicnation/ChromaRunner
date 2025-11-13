@@ -15,8 +15,9 @@
 
 // CRITICAL FIX: Comprehensive validation macro for HealthComponent access
 // Prevents access violations by validating component before use
+// UE 5.5: Uses IsValid() global function for comprehensive validation
 #define VALIDATE_HEALTH_COMPONENT_VOID() \
-    if (!HealthComponent || !HealthComponent->IsValidLowLevel() || HealthComponent->IsPendingKill()) \
+    if (!IsValid(HealthComponent)) \
     { \
         UE_LOG(LogTemp, Error, TEXT("%s: HealthComponent invalid! Address: %p"), \
                *FString(__FUNCTION__), HealthComponent); \
@@ -537,7 +538,8 @@ void ARunnerCharacter::RespawnPlayer()
     UE_LOG(LogTemp, Log, TEXT("RespawnPlayer called"));
 
     // CRITICAL FIX: Validate 'this' pointer itself (timer may fire on destroyed object)
-    if (!this || !IsValidLowLevel() || IsPendingKill())
+    // UE 5.5: Use IsValid() for 'this' pointer validation
+    if (!IsValid(this))
     {
         UE_LOG(LogTemp, Error, TEXT("RespawnPlayer: 'this' pointer is invalid!"));
         return;

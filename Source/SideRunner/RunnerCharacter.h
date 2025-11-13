@@ -189,11 +189,10 @@ private:
     /**
      * Safely validates HealthComponent before access.
      * Returns true if component is safe to use.
+     * UE 5.5: Uses IsValid() global function for comprehensive validation.
      */
     FORCEINLINE bool IsHealthComponentValid() const
     {
-        return HealthComponent &&
-               HealthComponent->IsValidLowLevel() &&
-               !HealthComponent->IsPendingKill();
+        return IsValid(HealthComponent);
     }
 };
