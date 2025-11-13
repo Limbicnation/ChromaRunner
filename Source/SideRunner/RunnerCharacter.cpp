@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Spikes.h"
 #include "PlayerHealthComponent.h"
+#include "SideRunnerGameInstance.h"
 
 // PERFORMANCE: Constants for better maintainability and performance
 namespace RunnerCharacterConstants
@@ -118,6 +119,15 @@ void ARunnerCharacter::Tick(float DeltaTime)
     if (CurrentState == ECharacterState::Dead)
     {
         return;
+    }
+
+    // Update distance score in game instance
+    if (!IsDead())
+    {
+        if (USideRunnerGameInstance* GameInstance = Cast<USideRunnerGameInstance>(GetGameInstance()))
+        {
+            GameInstance->UpdateDistanceScore(GetActorLocation().X);
+        }
     }
 
     // Check for fall threshold
@@ -433,6 +443,12 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
 #if UE_BUILD_DEVELOPMENT
     UE_LOG(LogTemp, Log, TEXT("Player died after taking %d hits"), TotalHitsTaken);
 #endif
+
+    // Trigger game over in game instance
+    if (USideRunnerGameInstance* GameInstance = Cast<USideRunnerGameInstance>(GetGameInstance()))
+    {
+        GameInstance->TriggerGameOver(false); // false = player lost (died)
+    }
 
     // Call blueprint event
     DeathOfPlayer();

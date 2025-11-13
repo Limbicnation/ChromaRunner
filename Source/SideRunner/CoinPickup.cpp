@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "CoinCounter.h"
 #include "Engine/Engine.h"
+#include "SideRunnerGameInstance.h"
 
 #if WITH_EDITOR || UE_BUILD_DEVELOPMENT
 #include "DrawDebugHelpers.h"
@@ -241,6 +242,12 @@ void ACoinPickup::Collect_Implementation(ACharacter* Character)
 
     // PERFORMANCE: Optimized coin counter update
     UpdateCoinCounter(Character);
+
+    // Add coin bonus to game instance scoring system
+    if (USideRunnerGameInstance* GameInstance = Cast<USideRunnerGameInstance>(GetWorld()->GetGameInstance()))
+    {
+        GameInstance->AddCoinBonus(10); // 10 points per coin
+    }
 
     // Broadcast collection event
     OnCoinCollected.Broadcast(this, Character);
