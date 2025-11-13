@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Spikes.h"
 #include "PlayerHealthComponent.h"
+#include "SideRunnerGameInstance.h"
 
 // PERFORMANCE: Constants for better maintainability and performance
 namespace RunnerCharacterConstants
@@ -98,6 +99,9 @@ void ARunnerCharacter::BeginPlay()
         HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
         HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
     }
+
+    // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
+    CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 #if UE_BUILD_DEBUG
     else
     {
@@ -118,6 +122,12 @@ void ARunnerCharacter::Tick(float DeltaTime)
     if (CurrentState == ECharacterState::Dead)
     {
         return;
+    }
+
+    // Update distance score in game instance
+    if (!IsDead() && CachedGameInstance)
+    {
+        CachedGameInstance->UpdateDistanceScore(GetActorLocation().X);
     }
 
     // Check for fall threshold
@@ -362,7 +372,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
         return;
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Player overlapped with regular Spikes - applying damage"));
+    UE_LOG(LogTemp, VeryVerbose, TEXT("Player overlapped with regular Spikes - applying damage"));
 #endif
 
     // Apply regular spike damage through health component
@@ -433,6 +443,12 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
 #if UE_BUILD_DEVELOPMENT
     UE_LOG(LogTemp, Log, TEXT("Player died after taking %d hits"), TotalHitsTaken);
 #endif
+
+    // Trigger game over in game instance
+    if (CachedGameInstance)
+    {
+        CachedGameInstance->TriggerGameOver(false); // false = player lost (died)
+    }
 
     // Call blueprint event
     DeathOfPlayer();
