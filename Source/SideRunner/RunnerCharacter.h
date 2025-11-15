@@ -195,4 +195,24 @@ private:
     {
         return IsValid(HealthComponent);
     }
+
+#if !UE_BUILD_SHIPPING
+    // ======================================================================
+    // Debug Console Commands (Development/Editor builds only)
+    // ======================================================================
+
+    /**
+     * Teleports player to specific distance (meters) for testing win condition.
+     * Usage: TeleportToDistance 5000
+     */
+    UFUNCTION(Exec, Category = "Debug")
+    void TeleportToDistance(float DistanceMeters);
+
+    /**
+     * Instantly kills the player for testing death/game over flow.
+     * Usage: KillPlayer
+     */
+    UFUNCTION(Exec, Category = "Debug")
+    void KillPlayer();
+#endif
 };
