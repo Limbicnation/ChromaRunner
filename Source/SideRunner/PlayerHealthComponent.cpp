@@ -53,6 +53,15 @@ void UPlayerHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 {
+	// CRITICAL FIX: Validate owner before processing
+	// UE 5.5: Use IsValid() global function for comprehensive validation
+	AActor* Owner = GetOwner();
+	if (!IsValid(Owner))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TakeDamage called but owner is invalid"));
+		return;
+	}
+
 	// Check if damage is valid
 	if (DamageAmount <= 0)
 	{
@@ -90,7 +99,11 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 #if UE_BUILD_DEVELOPMENT
 			UE_LOG(LogTemp, Warning, TEXT("Player died after %d hits"), TotalHitsTaken);
 #endif
-			OnPlayerDeath.Broadcast(TotalHitsTaken);
+			// CRITICAL FIX: Only broadcast if owner is still valid
+			if (Owner && Owner->IsValidLowLevel())
+			{
+				OnPlayerDeath.Broadcast(TotalHitsTaken);
+			}
 		}
 	}
 

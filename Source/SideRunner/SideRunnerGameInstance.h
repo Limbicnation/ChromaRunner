@@ -27,6 +27,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameWon);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameLost);
 
 /**
+ * Delegate fired when lives count changes
+ * @param CurrentLives - Current remaining lives
+ * @param MaxLives - Maximum lives capacity
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnLivesUpdated, int32, CurrentLives, int32, MaxLives);
+
+/**
  * Performance constants for game instance calculations
  * Centralized to ensure consistency and improve maintainability
  */
@@ -43,6 +50,9 @@ namespace SideRunnerGameInstanceConstants
 
     /** Default win distance in meters */
     constexpr float DEFAULT_WIN_DISTANCE = 5000.0f;
+
+    /** Default starting lives count */
+    constexpr int32 DEFAULT_MAX_LIVES = 3;
 }
 
 /**
@@ -176,6 +186,75 @@ public:
     bool HasGameEnded() const { return bGameEnded; }
 
     // ======================================================================
+    // Lives Management
+    // ======================================================================
+
+    /**
+     * Decrements the lives counter and broadcasts update.
+     * Returns true if lives remain, false if game over.
+     *
+     * @return True if player has lives remaining, false if game over
+     */
+    UFUNCTION(BlueprintCallable, Category = "Lives")
+    bool DecrementLives();
+
+    /**
+     * Resets lives to maximum value.
+     * Called at game start and after restart from game over.
+     */
+    UFUNCTION(BlueprintCallable, Category = "Lives")
+    void ResetLives();
+
+    /**
+     * Returns current remaining lives.
+     *
+     * @return Current lives count
+     */
+    UFUNCTION(BlueprintPure, Category = "Lives")
+    int32 GetCurrentLives() const { return CurrentLives; }
+
+    /**
+     * Returns maximum lives capacity.
+     *
+     * @return Maximum lives value
+     */
+    UFUNCTION(BlueprintPure, Category = "Lives")
+    int32 GetMaxLives() const { return MaxLives; }
+
+    /**
+     * Returns whether player has any lives remaining.
+     *
+     * @return True if CurrentLives > 0
+     */
+    UFUNCTION(BlueprintPure, Category = "Lives")
+    bool HasLivesRemaining() const { return CurrentLives > 0; }
+
+    /**
+     * Stores the current respawn position (for future checkpoint system).
+     *
+     * @param RespawnLocation - World location to respawn at
+     */
+    UFUNCTION(BlueprintCallable, Category = "Lives")
+    void SetRespawnLocation(const FVector& RespawnLocation);
+
+    /**
+     * Gets the stored respawn location.
+     *
+     * @return Stored respawn world location
+     */
+    UFUNCTION(BlueprintPure, Category = "Lives")
+    FVector GetRespawnLocation() const { return LastRespawnLocation; }
+
+    /**
+     * Initializes the distance tracking from player's starting position.
+     * Should be called once at game start to ensure accurate score calculation.
+     *
+     * @param StartingXPosition - Player's initial X coordinate in world space
+     */
+    UFUNCTION(BlueprintCallable, Category = "Score")
+    void InitializeDistanceTracking(float StartingXPosition);
+
+    // ======================================================================
     // Events for UI Integration
     // ======================================================================
 
@@ -194,6 +273,10 @@ public:
     /** Broadcast when player loses - bind to show game over screen */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnGameLost OnGameLost;
+
+    /** Broadcast when lives count changes - bind to update lives UI */
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FOnLivesUpdated OnLivesUpdated;
 
 protected:
     // ======================================================================
@@ -215,6 +298,22 @@ protected:
     /** Distance required to win in meters (default: 5000m) */
     UPROPERTY(EditDefaultsOnly, Category = "Game", meta = (ClampMin = "1000.0", ClampMax = "10000.0"))
     float WinDistance;
+
+    // ======================================================================
+    // Lives State
+    // ======================================================================
+
+    /** Maximum lives capacity (default: 3) */
+    UPROPERTY(EditDefaultsOnly, Category = "Lives", meta = (ClampMin = "1", ClampMax = "10"))
+    int32 MaxLives;
+
+    /** Current remaining lives */
+    UPROPERTY(BlueprintReadOnly, Category = "Lives")
+    int32 CurrentLives;
+
+    /** Last respawn location (for checkpoint system) */
+    UPROPERTY(BlueprintReadOnly, Category = "Lives")
+    FVector LastRespawnLocation;
 
 private:
     // ======================================================================
