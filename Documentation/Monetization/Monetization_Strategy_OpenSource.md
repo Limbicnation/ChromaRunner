@@ -102,7 +102,7 @@ ChromaRunner is an open-source 2.5D platformer built with Unreal Engine 5.5.
 • Workshop mod support
 
 📂 Source code is freely available on GitHub:
-  github.com/[username]/ChromaRunner
+  github.com/[YOUR_GITHUB_USERNAME]/ChromaRunner
 
 This is "convenience pricing" - you're supporting indie development
 while getting the best experience. Thank you for choosing to support!
