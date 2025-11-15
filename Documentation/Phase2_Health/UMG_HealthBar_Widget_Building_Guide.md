@@ -30,7 +30,7 @@ Before creating the UMG widget, ensure your C++ code is compiled:
 
 ```bash
 # Navigate to project root
-cd /home/gero/GitHub/game-development/ChromaRunner
+cd /path/to/your/ChromaRunner/project
 
 # Build the editor
 make SideRunnerEditor
