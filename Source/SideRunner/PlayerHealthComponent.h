@@ -61,6 +61,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ResetHealth();
 
+	// Grant temporary invulnerability (for respawn protection)
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetInvulnerabilityTime(float Duration);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;

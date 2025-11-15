@@ -560,6 +560,9 @@ void ARunnerCharacter::RespawnPlayer()
     VALIDATE_HEALTH_COMPONENT_VOID();
     HealthComponent->ResetHealth();
 
+    // Grant 2 seconds of invulnerability on respawn to prevent instant death
+    HealthComponent->SetInvulnerabilityTime(2.0f);
+
     // Re-enable mesh and movement
     if (USkeletalMeshComponent* SkeletalMesh = GetMesh())
     {

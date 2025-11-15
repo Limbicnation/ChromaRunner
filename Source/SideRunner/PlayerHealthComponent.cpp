@@ -138,3 +138,16 @@ void UPlayerHealthComponent::ResetHealth()
 	UE_LOG(LogTemp, Log, TEXT("Player health reset to %d/%d"), CurrentHealth, MaxHealth);
 #endif
 }
+
+void UPlayerHealthComponent::SetInvulnerabilityTime(float Duration)
+{
+	// Grant temporary invulnerability for specified duration
+	InvulnerabilityTimeRemaining = Duration;
+
+	// Enable tick to count down invulnerability timer
+	SetComponentTickEnabled(true);
+
+#if UE_BUILD_DEVELOPMENT
+	UE_LOG(LogTemp, Log, TEXT("Invulnerability granted for %.1f seconds"), Duration);
+#endif
+}
