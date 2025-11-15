@@ -59,7 +59,7 @@ ChromaRunner started as a learning project following the excellent [**Endless Ru
 
 ```bash
 # Clone the repository
-git clone https://github.com/[YourUsername]/ChromaRunner.git
+git clone https://github.com/[YOUR_GITHUB_USERNAME]/ChromaRunner.git
 cd ChromaRunner
 
 # Option 1: Build via Makefile (Linux/Mac)
