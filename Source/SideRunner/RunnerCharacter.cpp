@@ -699,4 +699,18 @@ void ARunnerCharacter::KillPlayer()
         UE_LOG(LogTemp, Error, TEXT("DEBUG: Cannot kill player - HealthComponent is invalid!"));
     }
 }
+#else
+// ======================================================================
+// Shipping Build Stubs (No-op implementations)
+// ======================================================================
+
+void ARunnerCharacter::TeleportToDistance(float DistanceMeters)
+{
+    // No-op in shipping builds - debug commands are disabled
+}
+
+void ARunnerCharacter::KillPlayer()
+{
+    // No-op in shipping builds - debug commands are disabled
+}
 #endif
