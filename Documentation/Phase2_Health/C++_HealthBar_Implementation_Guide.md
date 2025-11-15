@@ -32,7 +32,7 @@ This guide will help you complete the C++ health bar implementation. The C++ cla
 1. **Close Unreal Editor** (if open)
 2. **Open terminal** in the project directory:
    ```bash
-   cd /home/gero/GitHub/game-development/ChromaRunner
+   cd /path/to/your/ChromaRunner/project
    ```
 
 3. **Build the project:**
