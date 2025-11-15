@@ -195,4 +195,26 @@ private:
     {
         return IsValid(HealthComponent);
     }
+
+    // ======================================================================
+    // Debug Console Commands (Development/Editor builds only)
+    // Note: UFUNCTION must be outside preprocessor blocks for UHT parsing.
+    // Function bodies are conditionally compiled in .cpp file.
+    // ======================================================================
+
+    /**
+     * Teleports player to specific distance (meters) for testing win condition.
+     * Usage: TeleportToDistance 5000
+     * @note Only functional in non-shipping builds. No-op in shipping builds.
+     */
+    UFUNCTION(Exec, Category = "Debug")
+    void TeleportToDistance(float DistanceMeters);
+
+    /**
+     * Instantly kills the player for testing death/game over flow.
+     * Usage: KillPlayer
+     * @note Only functional in non-shipping builds. No-op in shipping builds.
+     */
+    UFUNCTION(Exec, Category = "Debug")
+    void KillPlayer();
 };

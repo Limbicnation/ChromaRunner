@@ -560,6 +560,9 @@ void ARunnerCharacter::RespawnPlayer()
     VALIDATE_HEALTH_COMPONENT_VOID();
     HealthComponent->ResetHealth();
 
+    // Grant 2 seconds of invulnerability on respawn to prevent instant death
+    HealthComponent->SetInvulnerabilityTime(2.0f);
+
     // Re-enable mesh and movement
     if (USkeletalMeshComponent* SkeletalMesh = GetMesh())
     {
@@ -657,3 +660,60 @@ void ARunnerCharacter::BeginDestroy()
     CleanupBeforeDestroy();
     Super::BeginDestroy();
 }
+
+#if !UE_BUILD_SHIPPING
+// ======================================================================
+// Debug Console Commands (Development/Editor builds only)
+// ======================================================================
+
+void ARunnerCharacter::TeleportToDistance(float DistanceMeters)
+{
+    // Convert meters to Unreal units (1 meter = 100 units)
+    const float TargetX = DistanceMeters * 100.0f;
+
+    // Get current location and update X position only
+    FVector NewLocation = GetActorLocation();
+    NewLocation.X = TargetX;
+
+    // Teleport player
+    SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
+
+    // Update game instance distance tracking
+    if (IsValid(CachedGameInstance))
+    {
+        CachedGameInstance->UpdateDistanceScore(TargetX);
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("DEBUG: Teleported to %.1f meters (X=%.1f units)"), DistanceMeters, TargetX);
+}
+
+void ARunnerCharacter::KillPlayer()
+{
+    // Instantly kill player by dealing massive damage
+    if (IsHealthComponentValid())
+    {
+        const float MaxHealth = HealthComponent->GetMaxHealth();
+        HealthComponent->TakeDamage(MaxHealth * 10.0f, EDamageType::EnvironmentalHazard);
+
+        UE_LOG(LogTemp, Warning, TEXT("DEBUG: Player killed via console command"));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("DEBUG: Cannot kill player - HealthComponent is invalid!"));
+    }
+}
+#else
+// ======================================================================
+// Shipping Build Stubs (No-op implementations)
+// ======================================================================
+
+void ARunnerCharacter::TeleportToDistance(float DistanceMeters)
+{
+    // No-op in shipping builds - debug commands are disabled
+}
+
+void ARunnerCharacter::KillPlayer()
+{
+    // No-op in shipping builds - debug commands are disabled
+}
+#endif

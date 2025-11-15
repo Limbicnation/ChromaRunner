@@ -55,9 +55,11 @@ void UGameOverWidget::NativeDestruct()
         QuitButton->OnClicked.RemoveAll(this);
     }
 
-    // Hide mouse cursor
+    // IMPROVED: Restore game input mode fully
     if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
     {
+        FInputModeGameOnly InputMode;
+        PC->SetInputMode(InputMode);
         PC->bShowMouseCursor = false;
         PC->bEnableClickEvents = false;
         PC->bEnableMouseOverEvents = false;
@@ -125,12 +127,12 @@ void UGameOverWidget::OnRestartClicked()
 {
     UE_LOG(LogTemp, Log, TEXT("Restart button clicked"));
 
-    // Validate game instance
-    if (!CachedGameInstance || !CachedGameInstance->IsValidLowLevel())
+    // IMPROVED: Use IsValid() for UE5.5 best practices
+    if (!IsValid(CachedGameInstance))
     {
         CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 
-        if (!CachedGameInstance)
+        if (!IsValid(CachedGameInstance))
         {
             UE_LOG(LogTemp, Error, TEXT("GameOverWidget: Cannot restart - GameInstance is invalid!"));
             return;

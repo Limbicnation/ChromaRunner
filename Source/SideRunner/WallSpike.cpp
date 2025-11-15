@@ -140,20 +140,20 @@ void AWallSpike::Tick(float DeltaTime)
 	DebugTimer += DeltaTime;
 	if (DebugTimer > 5.0f) // Reduced frequency from 2.0f to 5.0f
 	{
-		if (TargetPlayer)
+		if (IsValid(TargetPlayer))
 		{
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike tracking player at distance: %.1f"), 
+			UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike tracking player at distance: %.1f"),
 				   FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation()));
 		}
 		DebugTimer = 0.0f;
 	}
 #endif
-	
+
 	// PERFORMANCE: Optimized on-screen debug messages - only in development
 #if UE_BUILD_DEVELOPMENT
-	if (GEngine && TargetPlayer)
+	if (GEngine && IsValid(TargetPlayer))
 	{
-		const FString DebugMsg = FString::Printf(TEXT("WallSpike: %.1f units from player"), 
+		const FString DebugMsg = FString::Printf(TEXT("WallSpike: %.1f units from player"),
 			FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation()));
 		// PERFORMANCE: Fix the ambiguous call by using explicit key parameter
 		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Yellow, DebugMsg, false);
@@ -245,7 +245,7 @@ void AWallSpike::UpdateTargetPlayer()
 
 void AWallSpike::HandlePlayerDeathOrLoss()
 {
-	if (TargetPlayer && TargetPlayer->IsDead() && !bTrackingPlayerDeath)
+	if (IsValid(TargetPlayer) && TargetPlayer->IsDead() && !bTrackingPlayerDeath)
 	{
 		// Start tracking death timer
 		bTrackingPlayerDeath = true;
@@ -309,11 +309,11 @@ void AWallSpike::StopChaseAudio()
 
 FVector AWallSpike::CalculateChaseDirection() const
 {
-	if (!bHasTarget || !TargetPlayer || TargetPlayer->IsDead())
+	if (!bHasTarget || !IsValid(TargetPlayer) || TargetPlayer->IsDead())
 	{
 		return GetPrimaryDirection();
 	}
-	
+
 	// Calculate direction to player
 	const FVector ToPlayer = (TargetPlayer->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 	const FVector PrimaryDir = GetPrimaryDirection();
@@ -334,7 +334,7 @@ void AWallSpike::UpdateChaseMovement(float DeltaTime)
 	// Calculate movement speed with potential acceleration
 	float CurrentSpeed = ChaseSpeed;
 	
-	if (bAccelerateWhenClose && bHasTarget && TargetPlayer && !TargetPlayer->IsDead())
+	if (bAccelerateWhenClose && bHasTarget && IsValid(TargetPlayer) && !TargetPlayer->IsDead())
 	{
 		// PERFORMANCE: Use squared distance comparison
 		const float DistanceSquared = FVector::DistSquared(GetActorLocation(), TargetPlayer->GetActorLocation());
@@ -377,9 +377,9 @@ void AWallSpike::UpdateChaseMovement(float DeltaTime)
 
 void AWallSpike::CheckProximityCollision()
 {
-	if (!TargetPlayer || bHasKilledPlayer)
+	if (!IsValid(TargetPlayer) || bHasKilledPlayer)
 		return;
-	
+
 	// PERFORMANCE: Use squared distance for proximity check
 	const float ProximityThresholdSquared = 150.0f * 150.0f; // 150 units squared
 	const float DistanceSquared = FVector::DistSquared(GetActorLocation(), TargetPlayer->GetActorLocation());
@@ -395,10 +395,17 @@ void AWallSpike::CheckProximityCollision()
 
 void AWallSpike::CheckLifetimeAndCleanup()
 {
+	// CRITICAL: Validate world pointer before accessing
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
 	// Handle player death cleanup
 	if (bTrackingPlayerDeath)
 	{
-		PlayerDeathTimer += GetWorld()->GetDeltaSeconds();
+		PlayerDeathTimer += World->GetDeltaSeconds();
 		if (PlayerDeathTimer >= DeathCleanupDelay)
 		{
 #if UE_BUILD_DEBUG
@@ -410,9 +417,9 @@ void AWallSpike::CheckLifetimeAndCleanup()
 		return;
 	}
 	
-	if (!TargetPlayer)
+	if (!IsValid(TargetPlayer))
 		return;
-	
+
 	// Check if too far behind player - optimized with squared distance
 	const FVector PlayerLocation = TargetPlayer->GetActorLocation();
 	const FVector SpikeLocation = GetActorLocation();
@@ -432,7 +439,7 @@ void AWallSpike::CheckLifetimeAndCleanup()
 			return;
 		}
 		
-		TimeBehindPlayer += GetWorld()->GetDeltaSeconds();
+		TimeBehindPlayer += World->GetDeltaSeconds();
 		if (TimeBehindPlayer >= MaxTimeBehindPlayer)
 		{
 #if UE_BUILD_DEBUG
@@ -485,9 +492,18 @@ void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector Hit
 	bTrackingPlayerDeath = true;
 	PlayerDeathTimer = 0.0f;
 
+	// CRITICAL: Validate world pointer before timer manager access
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		// If no world, destroy immediately instead of using timer
+		Destroy();
+		return;
+	}
+
 	// PERFORMANCE: Use lambda with timer for destruction
 	FTimerHandle DestroyTimer;
-	GetWorld()->GetTimerManager().SetTimer(DestroyTimer, [this]()
+	World->GetTimerManager().SetTimer(DestroyTimer, [this]()
 	{
 		if (IsValid(this))
 		{

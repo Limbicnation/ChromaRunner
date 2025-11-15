@@ -78,3 +78,19 @@ DerivedDataCache/*
 
 .gemini/
 gha-creds-*.json
+
+# Claude AI temp files
+.claude/
+
+# Environment variables
+.env
+
+# Temporary documentation snapshots
+commit_*.md
+pull-*.md
+error-*.md
+log.md
+endless-runner.md
+
+# GitHub workflows for AI assistants (optional - comment out if you want to track these)
+.github/workflows/gemini-*.yml
