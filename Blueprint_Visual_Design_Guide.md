@@ -700,7 +700,7 @@ Select multiple elements (Ctrl+Click):
 | Score | White | #FFFFFF | 1.0, 1.0, 1.0 |
 | Stats | Light Gray | #CCCCCC | 0.8, 0.8, 0.8 |
 | Secondary | Gray | #AAAAAA | 0.67, 0.67, 0.67 |
-| Restart Button | Blue | #2196F3 | 0.13, 0.59, 0.95 |
+| Restart Button | Green | #4CAF50 | 0.3, 0.69, 0.31 |
 | Quit Button | Gray | #757575 | 0.46, 0.46, 0.46 |
 
 ### Game Over Colors (Win State)
