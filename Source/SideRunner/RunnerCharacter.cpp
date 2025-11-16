@@ -354,7 +354,7 @@ void ARunnerCharacter::RestartLevel()
     }
 
     // Reset game instance
-    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    if (IsValid(CachedGameInstance))
     {
         CachedGameInstance->ResetGameSession();
     }
@@ -489,7 +489,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
     // CRITICAL FIX: Re-validate game instance before use
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 
-    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    if (IsValid(CachedGameInstance))
     {
         const bool bHasLivesRemaining = CachedGameInstance->DecrementLives();
 
@@ -590,7 +590,7 @@ void ARunnerCharacter::RespawnPlayer()
 
     // Try to get saved respawn location
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
-    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    if (IsValid(CachedGameInstance))
     {
         RespawnLocation = CachedGameInstance->GetRespawnLocation();
     }
