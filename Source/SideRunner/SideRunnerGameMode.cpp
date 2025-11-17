@@ -153,7 +153,11 @@ void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
 	// Store weak reference
 	ActiveGameOverWidget = GameOverWidget;
 
-	// Switch to UI input mode
+	// CRITICAL FIX: Pause the game to prevent level teardown
+	UGameplayStatics::SetGamePaused(this, true);
+	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: Game paused for game over screen"));
+
+	// Switch to UI input mode and show cursor
 	SetInputModeUI();
 
 	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: Game Over screen displayed - Won: %s, Score: %d, Distance: %.1fm"),
