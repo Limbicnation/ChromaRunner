@@ -94,6 +94,17 @@ ARunnerCharacter::ARunnerCharacter()
     Movement->MaxWalkSpeed = 600.0f;
     Movement->MaxFlySpeed = 600.0f;
 
+    // CRITICAL FIX: 2.5D PLANAR MOVEMENT CONSTRAINT
+    // Constrain character movement to Y-Z plane (prevent X-axis deflection on collision)
+    Movement->bConstrainToPlane = true;
+    Movement->SetPlaneConstraintNormal(FVector(1.0f, 0.0f, 0.0f));  // X-axis is the constraint normal
+    Movement->SetPlaneConstraintOrigin(FVector::ZeroVector);
+    Movement->SetPlaneConstraintFromVectors(FVector(0.0f, 1.0f, 0.0f), FVector(0.0f, 0.0f, 1.0f)); // Y and Z are movement axes
+
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogTemp, Log, TEXT("2.5D movement constraint enabled - X-axis locked to prevent collision deflection"));
+#endif
+
     // Initialize camera positioning
     TempPos = GetActorLocation();
     zPosition = TempPos.Z + RunnerCharacterConstants::CAMERA_HEIGHT_OFFSET;
@@ -112,6 +123,14 @@ ARunnerCharacter::ARunnerCharacter()
 
     // Initialize death processing flag
     bIsProcessingDeath = false;
+
+    // PROFESSIONAL 2D SPRITE FACING SYSTEM
+    // Character starts facing right by default
+    bIsFacingRight = true;
+
+    // 2.5D PLANAR MOVEMENT CONSTRAINT
+    // Will be set in BeginPlay to actual spawn location
+    InitialXPosition = 0.0f;
 }
 
 // Called when the game starts or when spawned
@@ -228,6 +247,11 @@ void ARunnerCharacter::BeginPlay()
         CachedGameInstance->InitializeDistanceTracking(SpawnLocation.X); // CRITICAL FIX: Start score from spawn X
         UE_LOG(LogTemp, Log, TEXT("Initial spawn location stored: %s"), *SpawnLocation.ToString());
     }
+
+    // CRITICAL FIX: Store initial X position for 2.5D constraint enforcement
+    // This ensures character remains locked to the 2.5D plane even if physics tries to push them off
+    InitialXPosition = GetActorLocation().X;
+    UE_LOG(LogTemp, Log, TEXT("2.5D Constraint: Initial X-position locked at %.2f"), InitialXPosition);
 }
 
 // Called every frame
@@ -263,6 +287,20 @@ void ARunnerCharacter::Tick(float DeltaTime)
     if (!IsDead() && CachedGameInstance)
     {
         CachedGameInstance->UpdateDistanceScore(GetActorLocation().X);
+    }
+
+    // BELT-AND-SUSPENDERS: Enforce X-axis constraint in case physics pushes character off-plane
+    // This is a safety net - the movement component constraint should prevent this, but we enforce it here too
+    FVector CurrentLocation = GetActorLocation();
+    if (!FMath::IsNearlyEqual(CurrentLocation.X, InitialXPosition, 1.0f))
+    {
+        CurrentLocation.X = InitialXPosition;
+        SetActorLocation(CurrentLocation, false, nullptr, ETeleportType::TeleportPhysics);
+
+#if UE_BUILD_DEVELOPMENT
+        UE_LOG(LogTemp, Warning, TEXT("2.5D Constraint: X-axis position corrected (%.2f -> %.2f) - character was pushed off plane"),
+               GetActorLocation().X, InitialXPosition);
+#endif
     }
 
     // Check for fall threshold
@@ -430,9 +468,38 @@ void ARunnerCharacter::MoveRight(float Value)
     if (IsDead() || !CanMove || FMath::IsNearlyZero(Value))
         return;
 
-    // PERFORMANCE: Use constant direction vector
+    // PERFORMANCE: Use constant direction vector for 2.5D side-scroller movement
     static const FVector MovementDirection = FVector(0.0f, 1.0f, 0.0f);
     AddMovementInput(MovementDirection, Value);
+
+    // PROFESSIONAL 2D SPRITE FACING SYSTEM
+    // Determine desired facing direction from input (positive = right, negative = left)
+    const bool bShouldFaceRight = (Value > 0.0f);
+
+    // Only update sprite if direction changed (performance optimization)
+    if (bShouldFaceRight != bIsFacingRight)
+    {
+        bIsFacingRight = bShouldFaceRight;
+
+        // Flip sprite by inverting X-scale (PaperZD/Paper2D standard approach)
+        if (CharacterVisual)
+        {
+            FVector CurrentScale = CharacterVisual->GetRelativeScale3D();
+            CurrentScale.X = bIsFacingRight ? 1.0f : -1.0f;
+            CharacterVisual->SetRelativeScale3D(CurrentScale);
+
+#if UE_BUILD_DEVELOPMENT
+            UE_LOG(LogTemp, Verbose, TEXT("Character facing direction changed: %s"),
+                   bIsFacingRight ? TEXT("Right") : TEXT("Left"));
+#endif
+        }
+        else
+        {
+#if UE_BUILD_DEVELOPMENT
+            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual is NULL - cannot flip sprite! Ensure it's assigned in BP_RunnerCharacter"));
+#endif
+        }
+    }
 
     // PERFORMANCE: Only update animation state if significant movement
     if (FMath::Abs(Value) > 0.1f)

@@ -198,6 +198,14 @@ private:
     /** Flag to prevent duplicate death processing */
     bool bIsProcessingDeath;
 
+    // PROFESSIONAL 2D SPRITE FACING SYSTEM
+    /** Tracks which direction the sprite is currently facing (true = right, false = left) */
+    bool bIsFacingRight;
+
+    // 2.5D PLANAR MOVEMENT CONSTRAINT
+    /** Initial X-axis position - locked to prevent deflection on collision */
+    float InitialXPosition;
+
     /**
      * Safely validates HealthComponent before access.
      * Returns true if component is safe to use AND fully initialized.
