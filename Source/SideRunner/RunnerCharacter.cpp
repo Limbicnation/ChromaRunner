@@ -58,14 +58,22 @@ ARunnerCharacter::ARunnerCharacter()
     bUseControllerRotationRoll = false;
     bUseControllerRotationYaw = false;
 
-    // Create spring arm for camera (provides smooth camera lag and positioning)
+    // CRITICAL FIX: Spring arm configured for 2.5D side-scroller with LOCKED rotation
     CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
     CameraBoom->SetupAttachment(RootComponent);
     CameraBoom->TargetArmLength = 800.0f;  // Distance from character
     CameraBoom->bEnableCameraLag = true;   // Smooth camera movement
-    CameraBoom->CameraLagSpeed = 3.0f;     // Lag responsiveness
+    CameraBoom->CameraLagSpeed = 8.0f;     // Responsive tracking for fast platformer
     CameraBoom->bDoCollisionTest = false;  // Side-scroller doesn't need collision
     CameraBoom->bUsePawnControlRotation = false;  // Fixed camera angle
+
+    // CRITICAL FIX: Lock spring arm to absolute rotation (side-view)
+    // This prevents camera from rotating with character movement
+    CameraBoom->bAbsoluteRotation = true;  // KEY: Ignore parent rotation
+    CameraBoom->bInheritPitch = false;     // Don't follow character pitch
+    CameraBoom->bInheritYaw = false;       // Don't follow character yaw
+    CameraBoom->bInheritRoll = false;      // Don't follow character roll
+    CameraBoom->SetWorldRotation(FRotator(0.0f, -90.0f, 0.0f));  // Side view angle
 
     // Create and configure camera
     SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
@@ -73,10 +81,12 @@ ARunnerCharacter::ARunnerCharacter()
     SideViewCamera->bUsePawnControlRotation = false;
     SideViewCamera->FieldOfView = 95.0f;  // Optimal FOV for 2.5D side-scroller
 
-    // PERFORMANCE: Optimize character movement setup
+    // PERFORMANCE: Optimize character movement setup for 2.5D side-scroller
     UCharacterMovementComponent* Movement = GetCharacterMovement();
-    Movement->bOrientRotationToMovement = true;
-    Movement->RotationRate = FRotator(0.0f, RotationRate, 0.0f);
+    // CRITICAL FIX: Disable rotation for 2.5D side-scroller
+    Movement->bOrientRotationToMovement = false;  // Character faces fixed direction
+    Movement->bUseControllerDesiredRotation = false;  // No controller rotation
+    Movement->RotationRate = FRotator(0.0f, 0.0f, 0.0f);  // No rotation allowed
     Movement->GravityScale = 2.5f;
     Movement->AirControl = 0.5f;
     Movement->JumpZVelocity = 1000.0f;
@@ -122,6 +132,17 @@ void ARunnerCharacter::BeginPlay()
 
     // Set initial character state
     SetCharacterState(ECharacterState::Idle);
+
+    // CRITICAL FIX: Enforce absolute rotation in BeginPlay (belt-and-suspenders approach)
+    // Ensures camera stays locked to side view even if something tries to change it
+    if (CameraBoom)
+    {
+        CameraBoom->SetWorldRotation(FRotator(0.0f, -90.0f, 0.0f));
+    }
+
+    // CRITICAL FIX: Lock character rotation for 2.5D side-scroller
+    // Character should face forward (sprite orientation) and never rotate
+    SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
 
     // CRITICAL FIX: Defer delegate binding until next frame to ensure HealthComponent is fully initialized
     // This prevents accessing an uninitialized component during BeginPlay ordering issues
