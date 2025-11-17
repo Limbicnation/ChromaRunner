@@ -17,18 +17,24 @@ UPlayerHealthComponent::UPlayerHealthComponent()
 	// Initialize default damage values
 	DamageValues = {
 		25, // Spikes
-		20, // Enemy melee  
+		20, // Enemy melee
 		15, // Enemy projectile
 		50  // Environmental hazard
 	};
+
+	// Component is NOT fully initialized until BeginPlay completes
+	bIsFullyInitialized = false;
 }
 
 void UPlayerHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	// Initialize health when game starts
 	ResetHealth();
+
+	// Mark component as fully initialized
+	bIsFullyInitialized = true;
 
 #if UE_BUILD_DEVELOPMENT
 	UE_LOG(LogTemp, Log, TEXT("PlayerHealthComponent initialized with %d/%d health"), CurrentHealth, MaxHealth);
@@ -53,6 +59,13 @@ void UPlayerHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 {
+	// CRITICAL FIX: Prevent access before component is fully initialized
+	if (!bIsFullyInitialized)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TakeDamage called before component initialization - ignoring"));
+		return;
+	}
+
 	// CRITICAL FIX: Validate owner before processing
 	// UE 5.5: Use IsValid() global function for comprehensive validation
 	AActor* Owner = GetOwner();

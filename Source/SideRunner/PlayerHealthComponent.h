@@ -56,7 +56,11 @@ public:
 	// Check if player is invulnerable
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsInvulnerable() const { return InvulnerabilityTimeRemaining > 0.0f; }
-	
+
+	// Check if component is fully initialized (BeginPlay has completed)
+	UFUNCTION(BlueprintPure, Category = "Health")
+	bool IsFullyInitialized() const { return bIsFullyInitialized; }
+
 	// Reset health to max
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void ResetHealth();
@@ -92,6 +96,10 @@ protected:
 	// Current invulnerability time remaining
 	UPROPERTY(BlueprintReadOnly, Category = "Damage")
 	float InvulnerabilityTimeRemaining = 0.0f;
+
+	// Initialization state flag - true after BeginPlay completes
+	UPROPERTY(BlueprintReadOnly, Category = "Health")
+	bool bIsFullyInitialized = false;
 
 public:
 	// Delegate for when health changes

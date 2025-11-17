@@ -110,12 +110,28 @@ void ARunnerCharacter::BeginPlay()
     // Set initial character state
     SetCharacterState(ECharacterState::Idle);
 
-    // PERFORMANCE: Bind health events if component exists
+    // CRITICAL FIX: Defer delegate binding until next frame to ensure HealthComponent is fully initialized
+    // This prevents accessing an uninitialized component during BeginPlay ordering issues
     if (IsValid(HealthComponent))
     {
-        HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
-        HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
-        HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+        // Use a short timer to ensure HealthComponent BeginPlay has completed
+        FTimerHandle BindDelegatesTimer;
+        GetWorldTimerManager().SetTimer(BindDelegatesTimer, [this]()
+        {
+            if (IsValid(this) && IsValid(HealthComponent) && HealthComponent->IsFullyInitialized())
+            {
+                HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
+                HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
+                HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+#if UE_BUILD_DEVELOPMENT
+                UE_LOG(LogTemp, Log, TEXT("Health component delegates bound successfully"));
+#endif
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Failed to bind health delegates - component not initialized"));
+            }
+        }, 0.1f, false);  // Small delay to ensure component initialization
     }
 
     // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()

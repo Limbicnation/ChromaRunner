@@ -197,12 +197,12 @@ private:
 
     /**
      * Safely validates HealthComponent before access.
-     * Returns true if component is safe to use.
+     * Returns true if component is safe to use AND fully initialized.
      * UE 5.5: Uses IsValid() global function for comprehensive validation.
      */
     FORCEINLINE bool IsHealthComponentValid() const
     {
-        return IsValid(HealthComponent);
+        return IsValid(HealthComponent) && HealthComponent->IsFullyInitialized();
     }
 
     // ======================================================================

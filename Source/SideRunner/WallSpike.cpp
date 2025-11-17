@@ -201,30 +201,44 @@ FVector AWallSpike::GetPrimaryDirection() const
 
 void AWallSpike::UpdateTargetPlayer()
 {
-	// PERFORMANCE: Cache the player character instead of getting it every time
-	static ARunnerCharacter* CachedPlayer = nullptr;
-	
-	if (!CachedPlayer || !IsValid(CachedPlayer))
-	{
-		CachedPlayer = Cast<ARunnerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
-	}
-	
-	if (!CachedPlayer || CachedPlayer->IsDead())
+	// CRITICAL FIX: Remove static cache to prevent stale references across level transitions
+	// Get fresh player reference each time to ensure validity
+	ARunnerCharacter* PlayerCharacter = Cast<ARunnerCharacter>(UGameplayStatics::GetPlayerCharacter(this, 0));
+
+	// CRITICAL FIX: Validate player AND HealthComponent before accessing
+	if (!IsValid(PlayerCharacter))
 	{
 		HandlePlayerDeathOrLoss();
 		return;
 	}
-	
+
+	// CRITICAL FIX: Validate HealthComponent is fully initialized before accessing player state
+	UPlayerHealthComponent* HealthComp = PlayerCharacter->HealthComponent;
+	if (!IsValid(HealthComp) || !HealthComp->IsFullyInitialized())
+	{
+		// HealthComponent not ready yet - skip this update cycle
+		TargetPlayer = nullptr;
+		bHasTarget = false;
+		return;
+	}
+
+	// Now safe to check if player is dead
+	if (PlayerCharacter->IsDead())
+	{
+		HandlePlayerDeathOrLoss();
+		return;
+	}
+
 	// PERFORMANCE: Use squared distance to avoid expensive square root calculation
-	const FVector PlayerLocation = CachedPlayer->GetActorLocation();
+	const FVector PlayerLocation = PlayerCharacter->GetActorLocation();
 	const FVector SpikeLocation = GetActorLocation();
 	const float DistanceSquared = FVector::DistSquared(SpikeLocation, PlayerLocation);
 	const float ChaseRangeSquared = ChaseRange * ChaseRange;
-	
+
 	if (DistanceSquared <= ChaseRangeSquared)
 	{
 		const bool bWasHasTarget = bHasTarget;
-		TargetPlayer = CachedPlayer;
+		TargetPlayer = PlayerCharacter;
 		bHasTarget = true;
 		
 		// Handle sound effects for target acquisition
@@ -457,7 +471,20 @@ void AWallSpike::CheckLifetimeAndCleanup()
 
 void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector HitLocation)
 {
-	if (!Player || Player->IsDead() || bHasKilledPlayer)
+	// CRITICAL FIX: Validate player pointer
+	if (!IsValid(Player) || bHasKilledPlayer)
+		return;
+
+	// CRITICAL FIX: Validate HealthComponent before accessing player death state
+	UPlayerHealthComponent* HealthComp = Player->HealthComponent;
+	if (!IsValid(HealthComp) || !HealthComp->IsFullyInitialized())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ApplyInstantDeathToPlayer: HealthComponent not initialized - skipping"));
+		return;
+	}
+
+	// Now safe to check if player is already dead
+	if (Player->IsDead())
 		return;
 
 	bHasKilledPlayer = true;	
