@@ -28,7 +28,6 @@ public:
 	// Debug Console Commands (Development/Editor builds only)
 	// ======================================================================
 
-#if !UE_BUILD_SHIPPING
 	/**
 	 * Debug console command to trigger game over for testing.
 	 * Usage: DebugTriggerGameOver
@@ -71,7 +70,6 @@ public:
 	 */
 	UFUNCTION(Exec, Category = "Debug")
 	void KillPlayer();
-#endif
 
 private:
 	/** Cached reference to game instance for debug commands */
