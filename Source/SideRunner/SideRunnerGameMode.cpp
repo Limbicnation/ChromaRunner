@@ -13,6 +13,7 @@ ASideRunnerGameMode::ASideRunnerGameMode()
 
 void ASideRunnerGameMode::BeginPlay()
 {
+	UE_LOG(LogTemp, Warning, TEXT("CPP_LOG_TEST --- ASideRunnerGameMode::BeginPlay() --- EXECUTION_CONFIRMED"));
 	Super::BeginPlay();
 
 	// Cache game instance reference
