@@ -69,7 +69,7 @@ ARunnerCharacter::ARunnerCharacter()
 
     // CRITICAL FIX: Lock spring arm to absolute rotation (side-view)
     // This prevents camera from rotating with character movement
-    CameraBoom->bAbsoluteRotation = true;  // KEY: Ignore parent rotation
+    CameraBoom->SetUsingAbsoluteRotation(true);  // KEY: Ignore parent rotation (UE 5.5 API)
     CameraBoom->bInheritPitch = false;     // Don't follow character pitch
     CameraBoom->bInheritYaw = false;       // Don't follow character yaw
     CameraBoom->bInheritRoll = false;      // Don't follow character roll
