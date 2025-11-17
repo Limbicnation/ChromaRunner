@@ -108,6 +108,15 @@ public:
     bool IsDead() const;
 
     /**
+     * Validates that all required systems are ready for game over flow.
+     * Prevents crashes from calling Blueprint events on invalid objects.
+     * Checks: this actor, World, PlayerController, GameInstance validity.
+     * @return true if safe to show game over screen, false otherwise
+     */
+    UFUNCTION(BlueprintPure, Category = "Health")
+    bool IsGameOverSafe() const;
+
+    /**
      * Safely respawns the player without reloading the level.
      * Resets health, position, animation state, and clears all timers.
      * Called when player dies but has lives remaining.

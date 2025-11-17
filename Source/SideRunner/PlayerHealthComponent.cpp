@@ -99,10 +99,14 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 #if UE_BUILD_DEVELOPMENT
 			UE_LOG(LogTemp, Warning, TEXT("Player died after %d hits"), TotalHitsTaken);
 #endif
-			// CRITICAL FIX: Only broadcast if owner is still valid
-			if (Owner && Owner->IsValidLowLevel())
+			// CRITICAL FIX: Only broadcast if owner is still valid and not pending destruction
+			if (IsValid(Owner) && !Owner->IsPendingKillPending())
 			{
 				OnPlayerDeath.Broadcast(TotalHitsTaken);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("TakeDamage: Cannot broadcast OnPlayerDeath - Owner is invalid or pending destruction"));
 			}
 		}
 	}

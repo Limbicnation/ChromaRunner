@@ -453,6 +453,43 @@ bool ARunnerCharacter::IsDead() const
     return IsHealthComponentValid() && (HealthComponent->GetCurrentHealth() <= 0);
 }
 
+bool ARunnerCharacter::IsGameOverSafe() const
+{
+	// Validate this actor
+	if (!IsValid(this) || IsPendingKillPending())
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: Character is invalid or pending kill"));
+		return false;
+	}
+
+	// Validate world
+	UWorld* World = GetWorld();
+	if (!World || World->bIsTearingDown)
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: World is invalid or tearing down"));
+		return false;
+	}
+
+	// Validate player controller
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (!IsValid(PC))
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: PlayerController is invalid"));
+		return false;
+	}
+
+	// Validate game instance
+	USideRunnerGameInstance* GI = Cast<USideRunnerGameInstance>(GetGameInstance());
+	if (!IsValid(GI))
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: GameInstance is invalid"));
+		return false;
+	}
+
+	// All systems valid
+	return true;
+}
+
 void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
 {
     // CRITICAL FIX: Prevent duplicate death processing
@@ -509,8 +546,29 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
             UE_LOG(LogTemp, Warning, TEXT("No lives remaining - triggering game over"));
             // Game over already triggered by DecrementLives()
 
-            // Call blueprint event
-            DeathOfPlayer();
+            // CRITICAL: Add diagnostic logging before calling Blueprint event
+            UE_LOG(LogTemp, Warning, TEXT("=== HandlePlayerDeath: About to trigger game over ==="));
+            UE_LOG(LogTemp, Warning, TEXT("  this=%p valid=%d"), this, IsValid(this) ? 1 : 0);
+            UE_LOG(LogTemp, Warning, TEXT("  GameInstance=%p valid=%d"), CachedGameInstance, IsValid(CachedGameInstance) ? 1 : 0);
+            UE_LOG(LogTemp, Warning, TEXT("  World=%p"), GetWorld());
+            UE_LOG(LogTemp, Warning, TEXT("  PlayerController=%p"), GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
+
+            // CRITICAL FIX: Wrap blueprint event call with validation
+            if (IsGameOverSafe())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Calling DeathOfPlayer Blueprint event - all systems valid"));
+                DeathOfPlayer();
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Cannot call DeathOfPlayer - system validation failed!"));
+                // Fallback: Reload level directly to prevent soft-lock
+                UWorld* World = GetWorld();
+                if (World)
+                {
+                    UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
+                }
+            }
         }
     }
     else
