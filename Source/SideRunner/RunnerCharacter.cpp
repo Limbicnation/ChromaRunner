@@ -73,7 +73,7 @@ ARunnerCharacter::ARunnerCharacter()
     CameraBoom->bInheritPitch = false;     // Don't follow character pitch
     CameraBoom->bInheritYaw = false;       // Don't follow character yaw
     CameraBoom->bInheritRoll = false;      // Don't follow character roll
-    CameraBoom->SetWorldRotation(FRotator(0.0f, -90.0f, 0.0f));  // Side view angle
+    CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));  // Side view angle (relative to character)
 
     // Create and configure camera
     SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
@@ -137,7 +137,14 @@ void ARunnerCharacter::BeginPlay()
     // Ensures camera stays locked to side view even if something tries to change it
     if (CameraBoom)
     {
-        CameraBoom->SetWorldRotation(FRotator(0.0f, -90.0f, 0.0f));
+        CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+
+        // DEBUG: Log camera rotation values to diagnose Blueprint overrides
+        UE_LOG(LogTemp, Warning, TEXT("=== Camera Debug Info ==="));
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom World Rotation: %s"), *CameraBoom->GetComponentRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom Relative Rotation: %s"), *CameraBoom->GetRelativeRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera World Rotation: %s"), *SideViewCamera->GetComponentRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("Character Rotation: %s"), *GetActorRotation().ToString());
     }
 
     // CRITICAL FIX: Lock character rotation for 2.5D side-scroller
@@ -185,6 +192,22 @@ void ARunnerCharacter::BeginPlay()
 void ARunnerCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    // DIAGNOSTIC: Force camera rotation every frame to override Blueprint settings
+    // TODO: Remove this once camera is working correctly in Blueprint
+    if (CameraBoom)
+    {
+        const FRotator CurrentRelativeRot = CameraBoom->GetRelativeRotation();
+        const FRotator DesiredRotation = FRotator(0.0f, -90.0f, 0.0f);
+
+        // Only reset if it's wrong (avoid spamming logs)
+        if (!CurrentRelativeRot.Equals(DesiredRotation, 0.1f))
+        {
+            CameraBoom->SetRelativeRotation(DesiredRotation);
+            UE_LOG(LogTemp, Warning, TEXT("TICK: Camera rotation was wrong (%s), forcing to side view (%s)"),
+                   *CurrentRelativeRot.ToString(), *DesiredRotation.ToString());
+        }
+    }
 
     // PERFORMANCE: Spring arm handles camera positioning automatically - no manual update needed
 
