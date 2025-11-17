@@ -83,7 +83,8 @@ ARunnerCharacter::ARunnerCharacter()
 
     // PERFORMANCE: Optimize character movement setup for 2.5D side-scroller
     UCharacterMovementComponent* Movement = GetCharacterMovement();
-    // CRITICAL FIX: Disable rotation for 2.5D side-scroller
+    // CRITICAL FIX: Disable rotation for 2.5D side-scroller with sprite flipping
+    // Sprite facing is handled via X-scale flip in MoveRight(), not rotation
     Movement->bOrientRotationToMovement = false;  // Character faces fixed direction
     Movement->bUseControllerDesiredRotation = false;  // No controller rotation
     Movement->RotationRate = FRotator(0.0f, 0.0f, 0.0f);  // No rotation allowed
