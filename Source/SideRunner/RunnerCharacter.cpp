@@ -466,7 +466,31 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 
 bool ARunnerCharacter::IsDead() const
 {
-    return IsHealthComponentValid() && (HealthComponent->GetCurrentHealth() <= 0);
+    // --- Start of new, safer IsDead() function ---
+
+    // Check 1: Use IsValid() first. This is the standard check.
+    if (!IsValid(HealthComponent))
+    {
+        UE_LOG(LogTemp, Error, TEXT("IsDead CHECK FAILED: Character '%s' has an INVALID HealthComponent pointer! (Pointer is likely null or pending kill)"), *GetName());
+        // If there's no health component, we can't determine health.
+        // Depending on game logic, you might treat this as alive or dead. Let's assume dead to be safe.
+        return true;
+    }
+
+    // Check 2: Defensive check. If IsValid() passes but the pointer is still bad,
+    // this helps confirm a memory corruption issue. We check if the component's outer object is this character.
+    // This is a more advanced check for memory corruption.
+    if (HealthComponent->GetOuter() != this)
+    {
+        UE_LOG(LogTemp, Error, TEXT("IsDead CHECK FAILED: Character '%s' has a CORRUPTED HealthComponent pointer! The component's owner is not this character. This points to a stale pointer or memory corruption."), *GetName());
+        // This is a critical error. Treat as dead to prevent further issues.
+        return true;
+    }
+
+    // If all checks pass, it should be safe to get the health.
+    return (HealthComponent->GetCurrentHealth() <= 0);
+
+    // --- End of new, safer IsDead() function ---
 }
 
 bool ARunnerCharacter::IsGameOverSafe() const
