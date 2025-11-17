@@ -139,12 +139,54 @@ void ARunnerCharacter::BeginPlay()
     {
         CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 
-        // DEBUG: Log camera rotation values to diagnose Blueprint overrides
-        UE_LOG(LogTemp, Warning, TEXT("=== Camera Debug Info ==="));
+        // COMPREHENSIVE DEBUG: Diagnose why camera shows front view despite correct rotation
+        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
+        UE_LOG(LogTemp, Warning, TEXT("=== CAMERA DIAGNOSTIC INFO ==="));
+        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
+
+        // Camera Boom Info
         UE_LOG(LogTemp, Warning, TEXT("CameraBoom World Rotation: %s"), *CameraBoom->GetComponentRotation().ToString());
         UE_LOG(LogTemp, Warning, TEXT("CameraBoom Relative Rotation: %s"), *CameraBoom->GetRelativeRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom World Location: %s"), *CameraBoom->GetComponentLocation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom Forward Vector: %s"), *CameraBoom->GetForwardVector().ToString());
+
+        // Camera Info
         UE_LOG(LogTemp, Warning, TEXT("SideViewCamera World Rotation: %s"), *SideViewCamera->GetComponentRotation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("Character Rotation: %s"), *GetActorRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera World Location: %s"), *SideViewCamera->GetComponentLocation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera Forward Vector: %s"), *SideViewCamera->GetForwardVector().ToString());
+
+        // Character Info
+        UE_LOG(LogTemp, Warning, TEXT("Character World Rotation: %s"), *GetActorRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("Character World Location: %s"), *GetActorLocation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("Character Forward Vector: %s"), *GetActorForwardVector().ToString());
+
+        // Sprite Component Info (if exists)
+        if (CharacterVisual)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual Component Name: %s"), *CharacterVisual->GetName());
+            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual World Rotation: %s"), *CharacterVisual->GetComponentRotation().ToString());
+            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual Relative Rotation: %s"), *CharacterVisual->GetRelativeRotation().ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("CharacterVisual is NULL - sprite component not found!"));
+        }
+
+        // Active Camera Info
+        APlayerController* PC = Cast<APlayerController>(GetController());
+        if (PC)
+        {
+            AActor* ViewTarget = PC->GetViewTarget();
+            UE_LOG(LogTemp, Warning, TEXT("Active View Target: %s"), ViewTarget ? *ViewTarget->GetName() : TEXT("NULL"));
+
+            FVector CameraLoc;
+            FRotator CameraRot;
+            PC->GetPlayerViewPoint(CameraLoc, CameraRot);
+            UE_LOG(LogTemp, Warning, TEXT("Active Camera Location: %s"), *CameraLoc.ToString());
+            UE_LOG(LogTemp, Warning, TEXT("Active Camera Rotation: %s"), *CameraRot.ToString());
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
     }
 
     // CRITICAL FIX: Lock character rotation for 2.5D side-scroller
