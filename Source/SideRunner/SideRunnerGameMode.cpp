@@ -107,11 +107,10 @@ void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
 
 	bGameOverActive = true;
 
-	// Validate widget class
-	if (!GameOverWidgetClass)
+	// Validate widget class. This must be set in the derived Blueprint.
+	if (!ensureMsgf(GameOverWidgetClass, TEXT("GameOverWidgetClass is not set! Assign a valid UGameOverWidget subclass (like WBP_GameOver) in the BP_SideRunnerGameMode Blueprint.")))
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: GameOverWidgetClass not set! Assign WBP_GameOver in Blueprint."));
-		return;
+		return; // Prevent further execution if the class is not set
 	}
 
 	// Validate game instance
