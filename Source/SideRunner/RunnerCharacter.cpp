@@ -73,7 +73,7 @@ ARunnerCharacter::ARunnerCharacter()
     CameraBoom->bInheritPitch = false;     // Don't follow character pitch
     CameraBoom->bInheritYaw = false;       // Don't follow character yaw
     CameraBoom->bInheritRoll = false;      // Don't follow character roll
-    CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));  // Side view angle (relative to character)
+    CameraBoom->SetRelativeRotation(FRotator(0.0f, 0.0f, -90.0f));  // Side view angle (relative to character)
 
     // Create and configure camera
     SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
@@ -137,7 +137,7 @@ void ARunnerCharacter::BeginPlay()
     // Ensures camera stays locked to side view even if something tries to change it
     if (CameraBoom)
     {
-        CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+        CameraBoom->SetRelativeRotation(FRotator(0.0f, 0.0f, -90.0f));
 
         // COMPREHENSIVE DEBUG: Diagnose why camera shows front view despite correct rotation
         UE_LOG(LogTemp, Warning, TEXT("=========================================="));
@@ -240,7 +240,7 @@ void ARunnerCharacter::Tick(float DeltaTime)
     if (CameraBoom)
     {
         const FRotator CurrentRelativeRot = CameraBoom->GetRelativeRotation();
-        const FRotator DesiredRotation = FRotator(0.0f, -90.0f, 0.0f);
+        const FRotator DesiredRotation = FRotator(0.0f, 0.0f, -90.0f);
 
         // Only reset if it's wrong (avoid spamming logs)
         if (!CurrentRelativeRot.Equals(DesiredRotation, 0.1f))
