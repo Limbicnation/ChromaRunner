@@ -460,7 +460,7 @@ void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector Hit
 	if (!Player || Player->IsDead() || bHasKilledPlayer)
 		return;
 
-	bHasKilledPlayer = true;
+	bHasKilledPlayer = true;	
 
 #if UE_BUILD_DEBUG
 	UE_LOG(LogTemp, Error, TEXT("WallSpike collision with player - playing effects only!"));
