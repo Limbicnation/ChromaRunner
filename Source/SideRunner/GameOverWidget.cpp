@@ -60,9 +60,6 @@ void UGameOverWidget::NativeDestruct()
     {
         FInputModeGameOnly InputMode;
         PC->SetInputMode(InputMode);
-        PC->bShowMouseCursor = false;
-        PC->bEnableClickEvents = false;
-        PC->bEnableMouseOverEvents = false;
     }
 
     Super::NativeDestruct();
