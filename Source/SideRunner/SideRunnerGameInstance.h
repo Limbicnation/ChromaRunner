@@ -258,7 +258,6 @@ public:
     // Debug Commands (Development/Editor builds only)
     // ======================================================================
 
-#if !UE_BUILD_SHIPPING
     /**
      * Debug console command to trigger game over for testing.
      * Usage: TriggerGameOver
@@ -284,6 +283,10 @@ public:
      */
     UFUNCTION(Exec, Category = "Debug")
     void DebugAddLives(int32 LivestoAdd);
+
+#if !UE_BUILD_SHIPPING
+    // Note: The UFUNCTION macros are outside this block.
+    // The implementation of these functions is wrapped in the .cpp file.
 #endif
 
     // ======================================================================
