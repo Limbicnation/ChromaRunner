@@ -111,7 +111,7 @@ void ARunnerCharacter::BeginPlay()
     SetCharacterState(ECharacterState::Idle);
 
     // PERFORMANCE: Bind health events if component exists
-    if (HealthComponent)
+    if (IsValid(HealthComponent))
     {
         HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
         HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
@@ -386,7 +386,7 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
 void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 {
     // CRITICAL FIX: Centralized damage handling to prevent double damage
-    if (!WallSpike || !HealthComponent)
+    if (!WallSpike || !IsValid(HealthComponent))
         return;
 
 #if UE_BUILD_DEVELOPMENT
@@ -407,7 +407,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 {
     // CRITICAL FIX: Centralized damage handling to prevent double damage
-    if (!RegularSpike || !HealthComponent || HealthComponent->IsInvulnerable())
+    if (!RegularSpike || !IsValid(HealthComponent) || HealthComponent->IsInvulnerable())
         return;
 
 #if UE_BUILD_DEVELOPMENT
@@ -428,7 +428,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 {
     // PERFORMANCE: Validate inputs
-    if (!HealthComponent || HealthComponent->IsInvulnerable() || DamageAmount <= 0.0f)
+    if (!IsValid(HealthComponent) || HealthComponent->IsInvulnerable() || DamageAmount <= 0.0f)
         return;
 
     // Determine damage type based on causer
