@@ -79,7 +79,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump", meta = (ClampMin = "200.0", ClampMax = "2000.0"))
     float DoubleJumpZVelocity;
 
-    // Camera component
+    // Camera components
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    class USpringArmComponent* CameraBoom;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class UCameraComponent* SideViewCamera;
 
@@ -205,25 +208,6 @@ private:
         return IsValid(HealthComponent) && HealthComponent->IsFullyInitialized();
     }
 
-    // ======================================================================
-    // Debug Console Commands (Development/Editor builds only)
-    // Note: UFUNCTION must be outside preprocessor blocks for UHT parsing.
-    // Function bodies are conditionally compiled in .cpp file.
-    // ======================================================================
-
-    /**
-     * Teleports player to specific distance (meters) for testing win condition.
-     * Usage: TeleportToDistance 5000
-     * @note Only functional in non-shipping builds. No-op in shipping builds.
-     */
-    UFUNCTION(Exec, Category = "Debug")
-    void TeleportToDistance(float DistanceMeters);
-
-    /**
-     * Instantly kills the player for testing death/game over flow.
-     * Usage: KillPlayer
-     * @note Only functional in non-shipping builds. No-op in shipping builds.
-     */
-    UFUNCTION(Exec, Category = "Debug")
-    void KillPlayer();
+    // Note: Debug console commands (TeleportToDistance, KillPlayer) have been moved to
+    // ASideRunnerPlayerController for proper Exec function support in UE5.5
 };

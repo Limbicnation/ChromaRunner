@@ -254,40 +254,8 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Score")
     void InitializeDistanceTracking(float StartingXPosition);
 
-    // ======================================================================
-    // Debug Commands (Development/Editor builds only)
-    // ======================================================================
-
-    /**
-     * Debug console command to trigger game over for testing.
-     * Usage: TriggerGameOver
-     * @note Only available in non-shipping builds
-     */
-    UFUNCTION(Exec, Category = "Debug")
-    void DebugTriggerGameOver();
-
-    /**
-     * Debug console command to set score for testing.
-     * Usage: SetScore 1000
-     * @param NewScore - Score value to set
-     * @note Only available in non-shipping builds
-     */
-    UFUNCTION(Exec, Category = "Debug")
-    void DebugSetScore(int32 NewScore);
-
-    /**
-     * Debug console command to add lives for testing.
-     * Usage: AddLives 5
-     * @param LivestoAdd - Number of lives to add
-     * @note Only available in non-shipping builds
-     */
-    UFUNCTION(Exec, Category = "Debug")
-    void DebugAddLives(int32 LivestoAdd);
-
-#if !UE_BUILD_SHIPPING
-    // Note: The UFUNCTION macros are outside this block.
-    // The implementation of these functions is wrapped in the .cpp file.
-#endif
+    // Note: Debug console commands have been moved to ASideRunnerPlayerController
+    // for proper Exec function support in UE5.5 (Exec only works in PlayerController)
 
     // ======================================================================
     // Events for UI Integration

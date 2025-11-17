@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "WallSpike.h"
 #include "Engine.h"
@@ -51,14 +52,26 @@ ARunnerCharacter::ARunnerCharacter()
     GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 
-    // Stop the user from rotating the Character
-    bUseControllerRotationPitch = true;
-    bUseControllerRotationRoll = true;
-    bUseControllerRotationYaw = true;
+    // CRITICAL FIX: Disable controller rotation for side-scroller (was incorrectly true)
+    // Side-scrollers should NOT rotate with controller - character faces movement direction
+    bUseControllerRotationPitch = false;
+    bUseControllerRotationRoll = false;
+    bUseControllerRotationYaw = false;
+
+    // Create spring arm for camera (provides smooth camera lag and positioning)
+    CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+    CameraBoom->SetupAttachment(RootComponent);
+    CameraBoom->TargetArmLength = 800.0f;  // Distance from character
+    CameraBoom->bEnableCameraLag = true;   // Smooth camera movement
+    CameraBoom->CameraLagSpeed = 3.0f;     // Lag responsiveness
+    CameraBoom->bDoCollisionTest = false;  // Side-scroller doesn't need collision
+    CameraBoom->bUsePawnControlRotation = false;  // Fixed camera angle
 
     // Create and configure camera
     SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
+    SideViewCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     SideViewCamera->bUsePawnControlRotation = false;
+    SideViewCamera->FieldOfView = 95.0f;  // Optimal FOV for 2.5D side-scroller
 
     // PERFORMANCE: Optimize character movement setup
     UCharacterMovementComponent* Movement = GetCharacterMovement();
@@ -152,8 +165,7 @@ void ARunnerCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // PERFORMANCE: Optimized camera positioning
-    UpdateCameraPosition();
+    // PERFORMANCE: Spring arm handles camera positioning automatically - no manual update needed
 
     // PERFORMANCE: Early exit if character is dead
     if (CurrentState == ECharacterState::Dead)
@@ -179,6 +191,9 @@ void ARunnerCharacter::Tick(float DeltaTime)
     StateTimer += DeltaTime;
 }
 
+// DEPRECATED: Camera positioning now handled by USpringArmComponent
+// Left here for reference - can be removed in future cleanup
+/*
 void ARunnerCharacter::UpdateCameraPosition()
 {
     TempPos = GetActorLocation();
@@ -186,6 +201,7 @@ void ARunnerCharacter::UpdateCameraPosition()
     TempPos.Z = zPosition;
     SideViewCamera->SetWorldLocation(TempPos);
 }
+*/
 
 void ARunnerCharacter::HandleEnvironmentalDeath()
 {
@@ -466,31 +482,35 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 
 bool ARunnerCharacter::IsDead() const
 {
-    // --- Start of new, safer IsDead() function ---
+    // CRITICAL FIX: Return FALSE (alive) when HealthComponent is invalid
+    // Returning TRUE during initialization blocks ALL animation updates and breaks idle/running states
 
     // Check 1: Use IsValid() first. This is the standard check.
     if (!IsValid(HealthComponent))
     {
-        UE_LOG(LogTemp, Error, TEXT("IsDead CHECK FAILED: Character '%s' has an INVALID HealthComponent pointer! (Pointer is likely null or pending kill)"), *GetName());
-        // If there's no health component, we can't determine health.
-        // Depending on game logic, you might treat this as alive or dead. Let's assume dead to be safe.
-        return true;
+        UE_LOG(LogTemp, VeryVerbose, TEXT("IsDead: HealthComponent not valid - treating as ALIVE (not initialized yet)"));
+        // During initialization, component may not be ready - treat as ALIVE to allow animations
+        return false;  // ✓ FIXED: Return false (alive) instead of true (dead)
     }
 
-    // Check 2: Defensive check. If IsValid() passes but the pointer is still bad,
-    // this helps confirm a memory corruption issue. We check if the component's outer object is this character.
-    // This is a more advanced check for memory corruption.
+    // Check 2: Defensive check for fully initialized state
+    if (!HealthComponent->IsFullyInitialized())
+    {
+        UE_LOG(LogTemp, VeryVerbose, TEXT("IsDead: HealthComponent not fully initialized - treating as ALIVE"));
+        // Component exists but BeginPlay hasn't completed - treat as ALIVE
+        return false;  // ✓ FIXED: Return false (alive) during initialization
+    }
+
+    // Check 3: Verify component outer matches this character (memory corruption check)
     if (HealthComponent->GetOuter() != this)
     {
-        UE_LOG(LogTemp, Error, TEXT("IsDead CHECK FAILED: Character '%s' has a CORRUPTED HealthComponent pointer! The component's owner is not this character. This points to a stale pointer or memory corruption."), *GetName());
-        // This is a critical error. Treat as dead to prevent further issues.
-        return true;
+        UE_LOG(LogTemp, Error, TEXT("IsDead CHECK FAILED: Character '%s' has a CORRUPTED HealthComponent pointer!"), *GetName());
+        // Memory corruption detected - fail-safe to ALIVE to prevent crash
+        return false;  // ✓ FIXED: Return false (alive) to prevent animation lock
     }
 
-    // If all checks pass, it should be safe to get the health.
+    // All checks passed - safely get health status
     return (HealthComponent->GetCurrentHealth() <= 0);
-
-    // --- End of new, safer IsDead() function ---
 }
 
 bool ARunnerCharacter::IsGameOverSafe() const
@@ -759,59 +779,5 @@ void ARunnerCharacter::BeginDestroy()
     Super::BeginDestroy();
 }
 
-#if !UE_BUILD_SHIPPING
-// ======================================================================
-// Debug Console Commands (Development/Editor builds only)
-// ======================================================================
-
-void ARunnerCharacter::TeleportToDistance(float DistanceMeters)
-{
-    // Convert meters to Unreal units (1 meter = 100 units)
-    const float TargetX = DistanceMeters * 100.0f;
-
-    // Get current location and update X position only
-    FVector NewLocation = GetActorLocation();
-    NewLocation.X = TargetX;
-
-    // Teleport player
-    SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
-
-    // Update game instance distance tracking
-    if (IsValid(CachedGameInstance))
-    {
-        CachedGameInstance->UpdateDistanceScore(TargetX);
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT("DEBUG: Teleported to %.1f meters (X=%.1f units)"), DistanceMeters, TargetX);
-}
-
-void ARunnerCharacter::KillPlayer()
-{
-    // Instantly kill player by dealing massive damage
-    if (IsHealthComponentValid())
-    {
-        const float MaxHealth = HealthComponent->GetMaxHealth();
-        HealthComponent->TakeDamage(MaxHealth * 10.0f, EDamageType::EnvironmentalHazard);
-
-        UE_LOG(LogTemp, Warning, TEXT("DEBUG: Player killed via console command"));
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("DEBUG: Cannot kill player - HealthComponent is invalid!"));
-    }
-}
-#else
-// ======================================================================
-// Shipping Build Stubs (No-op implementations)
-// ======================================================================
-
-void ARunnerCharacter::TeleportToDistance(float DistanceMeters)
-{
-    // No-op in shipping builds - debug commands are disabled
-}
-
-void ARunnerCharacter::KillPlayer()
-{
-    // No-op in shipping builds - debug commands are disabled
-}
-#endif
+// Note: Debug console commands (TeleportToDistance, KillPlayer) have been moved to
+// ASideRunnerPlayerController for proper Exec function support in UE5.5

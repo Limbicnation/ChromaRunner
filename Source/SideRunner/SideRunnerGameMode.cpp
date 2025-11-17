@@ -1,5 +1,6 @@
 #include "SideRunnerGameMode.h"
 #include "SideRunnerGameInstance.h"
+#include "SideRunnerPlayerController.h"
 #include "GameHUDWidget.h"
 #include "GameOverWidget.h"
 #include "Blueprint/UserWidget.h"
@@ -9,6 +10,12 @@ ASideRunnerGameMode::ASideRunnerGameMode()
 {
 	// Initialize state
 	bGameOverActive = false;
+
+	// CRITICAL FIX: Set PlayerController class to enable Exec debug commands
+	// Exec commands only work in PlayerController classes in UE5.5
+	PlayerControllerClass = ASideRunnerPlayerController::StaticClass();
+
+	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: Using SideRunnerPlayerController for debug command support"));
 }
 
 void ASideRunnerGameMode::BeginPlay()
