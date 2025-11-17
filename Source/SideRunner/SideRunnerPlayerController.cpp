@@ -198,4 +198,11 @@ void ASideRunnerPlayerController::KillPlayer()
 		UE_LOG(LogTemp, Error, TEXT("DEBUG: Cannot kill player - HealthComponent is invalid or not initialized!"));
 	}
 }
+#else // UE_BUILD_SHIPPING
+// Provide empty stub implementations for shipping builds
+void ASideRunnerPlayerController::DebugTriggerGameOver() {}
+void ASideRunnerPlayerController::DebugSetScore(int32 NewScore) {}
+void ASideRunnerPlayerController::DebugAddLives(int32 LivestoAdd) {}
+void ASideRunnerPlayerController::TeleportToDistance(float DistanceMeters) {}
+void ASideRunnerPlayerController::KillPlayer() {}
 #endif
