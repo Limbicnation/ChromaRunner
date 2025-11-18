@@ -83,28 +83,24 @@ ARunnerCharacter::ARunnerCharacter()
 
     // PERFORMANCE: Optimize character movement setup for 2.5D side-scroller
     UCharacterMovementComponent* Movement = GetCharacterMovement();
-    // CRITICAL FIX: Disable rotation for 2.5D side-scroller with sprite flipping
-    // Sprite facing is handled via X-scale flip in MoveRight(), not rotation
-    Movement->bOrientRotationToMovement = false;  // Character faces fixed direction
-    Movement->bUseControllerDesiredRotation = false;  // No controller rotation
-    Movement->RotationRate = FRotator(0.0f, 0.0f, 0.0f);  // No rotation allowed
+    // Character rotation is now handled by flipping the sprite's scale in MoveRight().
+    // All actor/controller rotation must be disabled.
+    Movement->bOrientRotationToMovement = false;
+    Movement->bUseControllerDesiredRotation = false;
+    Movement->RotationRate = FRotator(0.0f, 0.0f, 0.0f);
+
+    // --- 2.5D PLANAR MOVEMENT CONSTRAINT ---
+    // Constrain all movement and collision resolution to the Y-Z plane.
+    Movement->bConstrainToPlane = true;
+    Movement->SetPlaneConstraintNormal(FVector(1.0f, 0.0f, 0.0f));
+    // ------------------------------------
+
     Movement->GravityScale = 2.5f;
     Movement->AirControl = 0.5f;
     Movement->JumpZVelocity = 1000.0f;
     Movement->GroundFriction = 3.0f;
     Movement->MaxWalkSpeed = 600.0f;
     Movement->MaxFlySpeed = 600.0f;
-
-    // CRITICAL FIX: 2.5D PLANAR MOVEMENT CONSTRAINT
-    // Constrain character movement to Y-Z plane (prevent X-axis deflection on collision)
-    Movement->bConstrainToPlane = true;
-    Movement->SetPlaneConstraintNormal(FVector(1.0f, 0.0f, 0.0f));  // X-axis is the constraint normal
-    Movement->SetPlaneConstraintOrigin(FVector::ZeroVector);
-    Movement->SetPlaneConstraintFromVectors(FVector(0.0f, 1.0f, 0.0f), FVector(0.0f, 0.0f, 1.0f)); // Y and Z are movement axes
-
-#if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("2.5D movement constraint enabled - X-axis locked to prevent collision deflection"));
-#endif
 
     // Initialize camera positioning
     TempPos = GetActorLocation();
@@ -465,61 +461,32 @@ void ARunnerCharacter::Jump()
 
 void ARunnerCharacter::MoveRight(float Value)
 {
-    // PERFORMANCE: Early exit for invalid states
-    if (IsDead() || !CanMove || FMath::IsNearlyZero(Value))
+    // Early exit for invalid states
+    if (IsDead() || !CanMove)
         return;
 
-    // PERFORMANCE: Use constant direction vector for 2.5D side-scroller movement
+    // Add movement input
     static const FVector MovementDirection = FVector(0.0f, 1.0f, 0.0f);
     AddMovementInput(MovementDirection, Value);
 
-    // PROFESSIONAL 2D SPRITE FACING SYSTEM
-    // Determine desired facing direction from input (positive = right, negative = left)
-    const bool bShouldFaceRight = (Value > 0.0f);
-
-    // Only update sprite if direction changed (performance optimization)
-    if (bShouldFaceRight != bIsFacingRight)
+    // --- PROFESSIONAL 2D SPRITE FACING SYSTEM ---
+    if (!FMath::IsNearlyZero(Value))
     {
-        bIsFacingRight = bShouldFaceRight;
+        // Determine desired facing direction from input
+        const bool bShouldFaceRight = (Value > 0.0f);
 
-        // Flip sprite by inverting X-scale (PaperZD/Paper2D standard approach)
-        if (CharacterVisual)
+        // Only update sprite if direction has changed
+        if (bShouldFaceRight != bIsFacingRight)
         {
-            FVector CurrentScale = CharacterVisual->GetRelativeScale3D();
-            CurrentScale.X = bIsFacingRight ? 1.0f : -1.0f;
-            CharacterVisual->SetRelativeScale3D(CurrentScale);
+            bIsFacingRight = bShouldFaceRight;
 
-#if UE_BUILD_DEVELOPMENT
-            UE_LOG(LogTemp, Verbose, TEXT("Character facing direction changed: %s"),
-                   bIsFacingRight ? TEXT("Right") : TEXT("Left"));
-#endif
-        }
-        else
-        {
-#if UE_BUILD_DEVELOPMENT
-            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual is NULL - cannot flip sprite! Ensure it's assigned in BP_RunnerCharacter"));
-#endif
-        }
-    }
-
-    // PERFORMANCE: Only update animation state if significant movement
-    if (FMath::Abs(Value) > 0.1f)
-    {
-        const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
-        if (MovementComponent && !MovementComponent->IsFalling())
-        {
-            if (CurrentState != ECharacterState::Running)
+            // Flip sprite by inverting X-scale
+            if (CharacterVisual)
             {
-                SetCharacterState(ECharacterState::Running);
+                FVector CurrentScale = CharacterVisual->GetRelativeScale3D();
+                CurrentScale.X = bIsFacingRight ? 1.0f : -1.0f;
+                CharacterVisual->SetRelativeScale3D(CurrentScale);
             }
-        }
-    }
-    else if (CurrentState == ECharacterState::Running)
-    {
-        const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
-        if (MovementComponent && !MovementComponent->IsFalling())
-        {
-            SetCharacterState(ECharacterState::Idle);
         }
     }
 }
