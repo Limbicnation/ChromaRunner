@@ -73,7 +73,7 @@ ARunnerCharacter::ARunnerCharacter()
     CameraBoom->bInheritPitch = false;     // Don't follow character pitch
     CameraBoom->bInheritYaw = false;       // Don't follow character yaw
     CameraBoom->bInheritRoll = false;      // Don't follow character roll
-    CameraBoom->SetRelativeRotation(FRotator(0.0f, 0.0f, -90.0f));  // Side view angle (relative to character)
+    CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));  // Side view angle (looking along the X-axis)
 
     // Create and configure camera
     SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
