@@ -17,18 +17,24 @@ UPlayerHealthComponent::UPlayerHealthComponent()
 	// Initialize default damage values
 	DamageValues = {
 		25, // Spikes
-		20, // Enemy melee  
+		20, // Enemy melee
 		15, // Enemy projectile
 		50  // Environmental hazard
 	};
+
+	// Component is NOT fully initialized until BeginPlay completes
+	bIsFullyInitialized = false;
 }
 
 void UPlayerHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	// Initialize health when game starts
 	ResetHealth();
+
+	// Mark component as fully initialized
+	bIsFullyInitialized = true;
 
 #if UE_BUILD_DEVELOPMENT
 	UE_LOG(LogTemp, Log, TEXT("PlayerHealthComponent initialized with %d/%d health"), CurrentHealth, MaxHealth);
@@ -53,6 +59,13 @@ void UPlayerHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 {
+	// CRITICAL FIX: Prevent access before component is fully initialized
+	if (!bIsFullyInitialized)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TakeDamage called before component initialization - ignoring"));
+		return;
+	}
+
 	// CRITICAL FIX: Validate owner before processing
 	// UE 5.5: Use IsValid() global function for comprehensive validation
 	AActor* Owner = GetOwner();
@@ -99,10 +112,14 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 #if UE_BUILD_DEVELOPMENT
 			UE_LOG(LogTemp, Warning, TEXT("Player died after %d hits"), TotalHitsTaken);
 #endif
-			// CRITICAL FIX: Only broadcast if owner is still valid
-			if (Owner && Owner->IsValidLowLevel())
+			// CRITICAL FIX: Only broadcast if owner is still valid and not pending destruction
+			if (IsValid(Owner) && !Owner->IsPendingKillPending())
 			{
 				OnPlayerDeath.Broadcast(TotalHitsTaken);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("TakeDamage: Cannot broadcast OnPlayerDeath - Owner is invalid or pending destruction"));
 			}
 		}
 	}
@@ -136,5 +153,18 @@ void UPlayerHealthComponent::ResetHealth()
 	
 #if UE_BUILD_DEVELOPMENT
 	UE_LOG(LogTemp, Log, TEXT("Player health reset to %d/%d"), CurrentHealth, MaxHealth);
+#endif
+}
+
+void UPlayerHealthComponent::SetInvulnerabilityTime(float Duration)
+{
+	// Grant temporary invulnerability for specified duration
+	InvulnerabilityTimeRemaining = Duration;
+
+	// Enable tick to count down invulnerability timer
+	SetComponentTickEnabled(true);
+
+#if UE_BUILD_DEVELOPMENT
+	UE_LOG(LogTemp, Log, TEXT("Invulnerability granted for %.1f seconds"), Duration);
 #endif
 }

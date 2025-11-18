@@ -79,7 +79,10 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jump", meta = (ClampMin = "200.0", ClampMax = "2000.0"))
     float DoubleJumpZVelocity;
 
-    // Camera component
+    // Camera components
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
+    class USpringArmComponent* CameraBoom;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     class UCameraComponent* SideViewCamera;
 
@@ -106,6 +109,15 @@ public:
     
     UFUNCTION(BlueprintPure, Category = "Health")
     bool IsDead() const;
+
+    /**
+     * Validates that all required systems are ready for game over flow.
+     * Prevents crashes from calling Blueprint events on invalid objects.
+     * Checks: this actor, World, PlayerController, GameInstance validity.
+     * @return true if safe to show game over screen, false otherwise
+     */
+    UFUNCTION(BlueprintPure, Category = "Health")
+    bool IsGameOverSafe() const;
 
     /**
      * Safely respawns the player without reloading the level.
@@ -186,13 +198,24 @@ private:
     /** Flag to prevent duplicate death processing */
     bool bIsProcessingDeath;
 
+    // PROFESSIONAL 2D SPRITE FACING SYSTEM
+    /** Tracks which direction the sprite is currently facing (true = right, false = left) */
+    bool bIsFacingRight;
+
+    // 2.5D PLANAR MOVEMENT CONSTRAINT
+    /** Initial X-axis position - locked to prevent deflection on collision */
+    float InitialXPosition;
+
     /**
      * Safely validates HealthComponent before access.
-     * Returns true if component is safe to use.
+     * Returns true if component is safe to use AND fully initialized.
      * UE 5.5: Uses IsValid() global function for comprehensive validation.
      */
     FORCEINLINE bool IsHealthComponentValid() const
     {
-        return IsValid(HealthComponent);
+        return IsValid(HealthComponent) && HealthComponent->IsFullyInitialized();
     }
+
+    // Note: Debug console commands (TeleportToDistance, KillPlayer) have been moved to
+    // ASideRunnerPlayerController for proper Exec function support in UE5.5
 };

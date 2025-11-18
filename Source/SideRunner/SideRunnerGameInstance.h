@@ -254,6 +254,9 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Score")
     void InitializeDistanceTracking(float StartingXPosition);
 
+    // Note: Debug console commands have been moved to ASideRunnerPlayerController
+    // for proper Exec function support in UE5.5 (Exec only works in PlayerController)
+
     // ======================================================================
     // Events for UI Integration
     // ======================================================================

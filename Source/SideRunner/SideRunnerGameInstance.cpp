@@ -255,3 +255,6 @@ void USideRunnerGameInstance::InitializeDistanceTracking(float StartingXPosition
     LastRecordedX = StartingXPosition;
     UE_LOG(LogTemp, Log, TEXT("Distance tracking initialized at X=%.1f"), StartingXPosition);
 }
+
+// Note: Debug console commands have been moved to ASideRunnerPlayerController
+// for proper Exec function support in UE5.5 (Exec only works in PlayerController)

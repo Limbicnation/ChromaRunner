@@ -12,23 +12,92 @@ void UGameOverWidget::NativeConstruct()
     // Cache game instance
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 
-    // Bind button click events
-    if (RestartButton)
+    // CRITICAL: Comprehensive widget binding validation with detailed diagnostic logging
+    UE_LOG(LogTemp, Warning, TEXT("=== GameOverWidget Binding Validation ==="));
+
+    bool bAllBindingsValid = true;
+
+    // Validate text blocks
+    if (!GameOverText)
     {
-        RestartButton->OnClicked.AddDynamic(this, &UGameOverWidget::OnRestartClicked);
+        UE_LOG(LogTemp, Error, TEXT("  ❌ GameOverText is NULL - Add a TextBlock named 'GameOverText' in WBP_GameOver"));
+        bAllBindingsValid = false;
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameOverWidget: RestartButton not found! Check UMG widget binding."));
+        UE_LOG(LogTemp, Log, TEXT("  ✓ GameOverText found"));
     }
 
-    if (QuitButton)
+    if (!ScoreText)
     {
-        QuitButton->OnClicked.AddDynamic(this, &UGameOverWidget::OnQuitClicked);
+        UE_LOG(LogTemp, Error, TEXT("  ❌ ScoreText is NULL - Add a TextBlock named 'ScoreText' in WBP_GameOver"));
+        bAllBindingsValid = false;
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameOverWidget: QuitButton not found! Check UMG widget binding."));
+        UE_LOG(LogTemp, Log, TEXT("  ✓ ScoreText found"));
+    }
+
+    if (!DistanceText)
+    {
+        UE_LOG(LogTemp, Error, TEXT("  ❌ DistanceText is NULL - Add a TextBlock named 'DistanceText' in WBP_GameOver"));
+        bAllBindingsValid = false;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("  ✓ DistanceText found"));
+    }
+
+    if (!HighScoreText)
+    {
+        UE_LOG(LogTemp, Error, TEXT("  ❌ HighScoreText is NULL - Add a TextBlock named 'HighScoreText' in WBP_GameOver"));
+        bAllBindingsValid = false;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("  ✓ HighScoreText found"));
+    }
+
+    if (!LivesText)
+    {
+        UE_LOG(LogTemp, Error, TEXT("  ❌ LivesText is NULL - Add a TextBlock named 'LivesText' in WBP_GameOver"));
+        bAllBindingsValid = false;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Log, TEXT("  ✓ LivesText found"));
+    }
+
+    // Validate buttons
+    if (!RestartButton)
+    {
+        UE_LOG(LogTemp, Error, TEXT("  ❌ RestartButton is NULL - Add a Button named 'RestartButton' in WBP_GameOver"));
+        bAllBindingsValid = false;
+    }
+    else
+    {
+        RestartButton->OnClicked.AddDynamic(this, &UGameOverWidget::OnRestartClicked);
+        UE_LOG(LogTemp, Log, TEXT("  ✓ RestartButton found and bound"));
+    }
+
+    if (!QuitButton)
+    {
+        UE_LOG(LogTemp, Error, TEXT("  ❌ QuitButton is NULL - Add a Button named 'QuitButton' in WBP_GameOver"));
+        bAllBindingsValid = false;
+    }
+    else
+    {
+        QuitButton->OnClicked.AddDynamic(this, &UGameOverWidget::OnQuitClicked);
+        UE_LOG(LogTemp, Log, TEXT("  ✓ QuitButton found and bound"));
+    }
+
+    if (bAllBindingsValid)
+    {
+        UE_LOG(LogTemp, Log, TEXT("=== All widget bindings valid ✓ ==="));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("=== MISSING WIDGET ELEMENTS! See GAME_OVER_WIDGET_SETUP.md for setup guide ==="));
     }
 
     // Show mouse cursor for button interaction
@@ -38,8 +107,6 @@ void UGameOverWidget::NativeConstruct()
         PC->bEnableClickEvents = true;
         PC->bEnableMouseOverEvents = true;
     }
-
-    UE_LOG(LogTemp, Log, TEXT("GameOverWidget constructed and buttons bound"));
 }
 
 void UGameOverWidget::NativeDestruct()
@@ -55,12 +122,11 @@ void UGameOverWidget::NativeDestruct()
         QuitButton->OnClicked.RemoveAll(this);
     }
 
-    // Hide mouse cursor
+    // IMPROVED: Restore game input mode fully
     if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
     {
-        PC->bShowMouseCursor = false;
-        PC->bEnableClickEvents = false;
-        PC->bEnableMouseOverEvents = false;
+        FInputModeGameOnly InputMode;
+        PC->SetInputMode(InputMode);
     }
 
     Super::NativeDestruct();
@@ -125,17 +191,21 @@ void UGameOverWidget::OnRestartClicked()
 {
     UE_LOG(LogTemp, Log, TEXT("Restart button clicked"));
 
-    // Validate game instance
-    if (!CachedGameInstance || !CachedGameInstance->IsValidLowLevel())
+    // IMPROVED: Use IsValid() for UE5.5 best practices
+    if (!IsValid(CachedGameInstance))
     {
         CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 
-        if (!CachedGameInstance)
+        if (!IsValid(CachedGameInstance))
         {
             UE_LOG(LogTemp, Error, TEXT("GameOverWidget: Cannot restart - GameInstance is invalid!"));
             return;
         }
     }
+
+    // CRITICAL FIX: Unpause the game before level reload
+    UGameplayStatics::SetGamePaused(this, false);
+    UE_LOG(LogTemp, Log, TEXT("GameOverWidget: Game unpaused for level restart"));
 
     // Reset game session (clears score, distance, resets lives to 3)
     CachedGameInstance->ResetGameSession();
@@ -159,6 +229,9 @@ void UGameOverWidget::OnRestartClicked()
 void UGameOverWidget::OnQuitClicked()
 {
     UE_LOG(LogTemp, Log, TEXT("Quit button clicked"));
+
+    // CRITICAL FIX: Unpause the game before quitting
+    UGameplayStatics::SetGamePaused(this, false);
 
     // Remove widget
     RemoveFromParent();

@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "WallSpike.h"
 #include "Engine.h"
@@ -51,19 +52,49 @@ ARunnerCharacter::ARunnerCharacter()
     GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
     GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 
-    // Stop the user from rotating the Character
-    bUseControllerRotationPitch = true;
-    bUseControllerRotationRoll = true;
-    bUseControllerRotationYaw = true;
+    // CRITICAL FIX: Disable controller rotation for side-scroller (was incorrectly true)
+    // Side-scrollers should NOT rotate with controller - character faces movement direction
+    bUseControllerRotationPitch = false;
+    bUseControllerRotationRoll = false;
+    bUseControllerRotationYaw = false;
+
+    // CRITICAL FIX: Spring arm configured for 2.5D side-scroller with LOCKED rotation
+    CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
+    CameraBoom->SetupAttachment(RootComponent);
+    CameraBoom->TargetArmLength = 800.0f;  // Distance from character
+    CameraBoom->bEnableCameraLag = true;   // Smooth camera movement
+    CameraBoom->CameraLagSpeed = 8.0f;     // Responsive tracking for fast platformer
+    CameraBoom->bDoCollisionTest = false;  // Side-scroller doesn't need collision
+    CameraBoom->bUsePawnControlRotation = false;  // Fixed camera angle
+
+    // CRITICAL FIX: Lock spring arm to absolute rotation (side-view)
+    // This prevents camera from rotating with character movement
+    CameraBoom->SetUsingAbsoluteRotation(true);  // KEY: Ignore parent rotation (UE 5.5 API)
+    CameraBoom->bInheritPitch = false;     // Don't follow character pitch
+    CameraBoom->bInheritYaw = false;       // Don't follow character yaw
+    CameraBoom->bInheritRoll = false;      // Don't follow character roll
+    CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));  // Side view angle (looking along the X-axis)
 
     // Create and configure camera
     SideViewCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Side View Camera"));
+    SideViewCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
     SideViewCamera->bUsePawnControlRotation = false;
+    SideViewCamera->FieldOfView = 95.0f;  // Optimal FOV for 2.5D side-scroller
 
-    // PERFORMANCE: Optimize character movement setup
+    // PERFORMANCE: Optimize character movement setup for 2.5D side-scroller
     UCharacterMovementComponent* Movement = GetCharacterMovement();
-    Movement->bOrientRotationToMovement = true;
-    Movement->RotationRate = FRotator(0.0f, RotationRate, 0.0f);
+    // Character rotation is now handled by flipping the sprite's scale in MoveRight().
+    // All actor/controller rotation must be disabled.
+    Movement->bOrientRotationToMovement = false;
+    Movement->bUseControllerDesiredRotation = false;
+    Movement->RotationRate = FRotator(0.0f, 0.0f, 0.0f);
+
+    // --- 2.5D PLANAR MOVEMENT CONSTRAINT ---
+    // Constrain all movement and collision resolution to the Y-Z plane.
+    Movement->bConstrainToPlane = true;
+    Movement->SetPlaneConstraintNormal(FVector(1.0f, 0.0f, 0.0f));
+    // ------------------------------------
+
     Movement->GravityScale = 2.5f;
     Movement->AirControl = 0.5f;
     Movement->JumpZVelocity = 1000.0f;
@@ -89,6 +120,14 @@ ARunnerCharacter::ARunnerCharacter()
 
     // Initialize death processing flag
     bIsProcessingDeath = false;
+
+    // PROFESSIONAL 2D SPRITE FACING SYSTEM
+    // Character starts facing right by default
+    bIsFacingRight = true;
+
+    // 2.5D PLANAR MOVEMENT CONSTRAINT
+    // Will be set in BeginPlay to actual spawn location
+    InitialXPosition = 0.0f;
 }
 
 // Called when the game starts or when spawned
@@ -110,12 +149,88 @@ void ARunnerCharacter::BeginPlay()
     // Set initial character state
     SetCharacterState(ECharacterState::Idle);
 
-    // PERFORMANCE: Bind health events if component exists
-    if (HealthComponent)
+    // CRITICAL FIX: Enforce absolute rotation in BeginPlay (belt-and-suspenders approach)
+    // Ensures camera stays locked to side view even if something tries to change it
+    if (CameraBoom)
     {
-        HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
-        HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
-        HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+        CameraBoom->SetRelativeRotation(FRotator(0.0f, 0.0f, -90.0f));
+
+        // COMPREHENSIVE DEBUG: Diagnose why camera shows front view despite correct rotation
+        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
+        UE_LOG(LogTemp, Warning, TEXT("=== CAMERA DIAGNOSTIC INFO ==="));
+        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
+
+        // Camera Boom Info
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom World Rotation: %s"), *CameraBoom->GetComponentRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom Relative Rotation: %s"), *CameraBoom->GetRelativeRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom World Location: %s"), *CameraBoom->GetComponentLocation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("CameraBoom Forward Vector: %s"), *CameraBoom->GetForwardVector().ToString());
+
+        // Camera Info
+        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera World Rotation: %s"), *SideViewCamera->GetComponentRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera World Location: %s"), *SideViewCamera->GetComponentLocation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera Forward Vector: %s"), *SideViewCamera->GetForwardVector().ToString());
+
+        // Character Info
+        UE_LOG(LogTemp, Warning, TEXT("Character World Rotation: %s"), *GetActorRotation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("Character World Location: %s"), *GetActorLocation().ToString());
+        UE_LOG(LogTemp, Warning, TEXT("Character Forward Vector: %s"), *GetActorForwardVector().ToString());
+
+        // Sprite Component Info (if exists)
+        if (CharacterVisual)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual Component Name: %s"), *CharacterVisual->GetName());
+            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual World Rotation: %s"), *CharacterVisual->GetComponentRotation().ToString());
+            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual Relative Rotation: %s"), *CharacterVisual->GetRelativeRotation().ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("CharacterVisual is NULL - sprite component not found!"));
+        }
+
+        // Active Camera Info
+        APlayerController* PC = Cast<APlayerController>(GetController());
+        if (PC)
+        {
+            AActor* ViewTarget = PC->GetViewTarget();
+            UE_LOG(LogTemp, Warning, TEXT("Active View Target: %s"), ViewTarget ? *ViewTarget->GetName() : TEXT("NULL"));
+
+            FVector CameraLoc;
+            FRotator CameraRot;
+            PC->GetPlayerViewPoint(CameraLoc, CameraRot);
+            UE_LOG(LogTemp, Warning, TEXT("Active Camera Location: %s"), *CameraLoc.ToString());
+            UE_LOG(LogTemp, Warning, TEXT("Active Camera Rotation: %s"), *CameraRot.ToString());
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
+    }
+
+    // CRITICAL FIX: Lock character rotation for 2.5D side-scroller
+    // Character should face forward (sprite orientation) and never rotate
+    SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
+
+    // CRITICAL FIX: Defer delegate binding until next frame to ensure HealthComponent is fully initialized
+    // This prevents accessing an uninitialized component during BeginPlay ordering issues
+    if (IsValid(HealthComponent))
+    {
+        // Use a short timer to ensure HealthComponent BeginPlay has completed
+        FTimerHandle BindDelegatesTimer;
+        GetWorldTimerManager().SetTimer(BindDelegatesTimer, [this]()
+        {
+            if (IsValid(this) && IsValid(HealthComponent) && HealthComponent->IsFullyInitialized())
+            {
+                HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
+                HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
+                HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+#if UE_BUILD_DEVELOPMENT
+                UE_LOG(LogTemp, Log, TEXT("Health component delegates bound successfully"));
+#endif
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Failed to bind health delegates - component not initialized"));
+            }
+        }, 0.1f, false);  // Small delay to ensure component initialization
     }
 
     // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
@@ -129,6 +244,11 @@ void ARunnerCharacter::BeginPlay()
         CachedGameInstance->InitializeDistanceTracking(SpawnLocation.X); // CRITICAL FIX: Start score from spawn X
         UE_LOG(LogTemp, Log, TEXT("Initial spawn location stored: %s"), *SpawnLocation.ToString());
     }
+
+    // CRITICAL FIX: Store initial X position for 2.5D constraint enforcement
+    // This ensures character remains locked to the 2.5D plane even if physics tries to push them off
+    InitialXPosition = GetActorLocation().X;
+    UE_LOG(LogTemp, Log, TEXT("2.5D Constraint: Initial X-position locked at %.2f"), InitialXPosition);
 }
 
 // Called every frame
@@ -136,8 +256,23 @@ void ARunnerCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // PERFORMANCE: Optimized camera positioning
-    UpdateCameraPosition();
+    // DIAGNOSTIC: Force camera rotation every frame to override Blueprint settings
+    // TODO: Remove this once camera is working correctly in Blueprint
+    if (CameraBoom)
+    {
+        const FRotator CurrentRelativeRot = CameraBoom->GetRelativeRotation();
+        const FRotator DesiredRotation = FRotator(0.0f, 0.0f, -90.0f);
+
+        // Only reset if it's wrong (avoid spamming logs)
+        if (!CurrentRelativeRot.Equals(DesiredRotation, 0.1f))
+        {
+            CameraBoom->SetRelativeRotation(DesiredRotation);
+            UE_LOG(LogTemp, Warning, TEXT("TICK: Camera rotation was wrong (%s), forcing to side view (%s)"),
+                   *CurrentRelativeRot.ToString(), *DesiredRotation.ToString());
+        }
+    }
+
+    // PERFORMANCE: Spring arm handles camera positioning automatically - no manual update needed
 
     // PERFORMANCE: Early exit if character is dead
     if (CurrentState == ECharacterState::Dead)
@@ -149,6 +284,20 @@ void ARunnerCharacter::Tick(float DeltaTime)
     if (!IsDead() && CachedGameInstance)
     {
         CachedGameInstance->UpdateDistanceScore(GetActorLocation().X);
+    }
+
+    // BELT-AND-SUSPENDERS: Enforce X-axis constraint in case physics pushes character off-plane
+    // This is a safety net - the movement component constraint should prevent this, but we enforce it here too
+    FVector CurrentLocation = GetActorLocation();
+    if (!FMath::IsNearlyEqual(CurrentLocation.X, InitialXPosition, 1.0f))
+    {
+        CurrentLocation.X = InitialXPosition;
+        SetActorLocation(CurrentLocation, false, nullptr, ETeleportType::TeleportPhysics);
+
+#if UE_BUILD_DEVELOPMENT
+        UE_LOG(LogTemp, Warning, TEXT("2.5D Constraint: X-axis position corrected (%.2f -> %.2f) - character was pushed off plane"),
+               GetActorLocation().X, InitialXPosition);
+#endif
     }
 
     // Check for fall threshold
@@ -163,6 +312,9 @@ void ARunnerCharacter::Tick(float DeltaTime)
     StateTimer += DeltaTime;
 }
 
+// DEPRECATED: Camera positioning now handled by USpringArmComponent
+// Left here for reference - can be removed in future cleanup
+/*
 void ARunnerCharacter::UpdateCameraPosition()
 {
     TempPos = GetActorLocation();
@@ -170,6 +322,7 @@ void ARunnerCharacter::UpdateCameraPosition()
     TempPos.Z = zPosition;
     SideViewCamera->SetWorldLocation(TempPos);
 }
+*/
 
 void ARunnerCharacter::HandleEnvironmentalDeath()
 {
@@ -308,32 +461,32 @@ void ARunnerCharacter::Jump()
 
 void ARunnerCharacter::MoveRight(float Value)
 {
-    // PERFORMANCE: Early exit for invalid states
-    if (IsDead() || !CanMove || FMath::IsNearlyZero(Value))
+    // Early exit for invalid states
+    if (IsDead() || !CanMove)
         return;
 
-    // PERFORMANCE: Use constant direction vector
+    // Add movement input
     static const FVector MovementDirection = FVector(0.0f, 1.0f, 0.0f);
     AddMovementInput(MovementDirection, Value);
 
-    // PERFORMANCE: Only update animation state if significant movement
-    if (FMath::Abs(Value) > 0.1f)
+    // --- PROFESSIONAL 2D SPRITE FACING SYSTEM ---
+    if (!FMath::IsNearlyZero(Value))
     {
-        const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
-        if (MovementComponent && !MovementComponent->IsFalling())
+        // Determine desired facing direction from input
+        const bool bShouldFaceRight = (Value > 0.0f);
+
+        // Only update sprite if direction has changed
+        if (bShouldFaceRight != bIsFacingRight)
         {
-            if (CurrentState != ECharacterState::Running)
+            bIsFacingRight = bShouldFaceRight;
+
+            // Flip sprite by inverting X-scale
+            if (CharacterVisual)
             {
-                SetCharacterState(ECharacterState::Running);
+                FVector CurrentScale = CharacterVisual->GetRelativeScale3D();
+                CurrentScale.X = bIsFacingRight ? 1.0f : -1.0f;
+                CharacterVisual->SetRelativeScale3D(CurrentScale);
             }
-        }
-    }
-    else if (CurrentState == ECharacterState::Running)
-    {
-        const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
-        if (MovementComponent && !MovementComponent->IsFalling())
-        {
-            SetCharacterState(ECharacterState::Idle);
         }
     }
 }
@@ -354,7 +507,7 @@ void ARunnerCharacter::RestartLevel()
     }
 
     // Reset game instance
-    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    if (IsValid(CachedGameInstance))
     {
         CachedGameInstance->ResetGameSession();
     }
@@ -386,7 +539,7 @@ void ARunnerCharacter::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
 void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 {
     // CRITICAL FIX: Centralized damage handling to prevent double damage
-    if (!WallSpike || !HealthComponent)
+    if (!WallSpike || !IsValid(HealthComponent))
         return;
 
 #if UE_BUILD_DEVELOPMENT
@@ -407,7 +560,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 {
     // CRITICAL FIX: Centralized damage handling to prevent double damage
-    if (!RegularSpike || !HealthComponent || HealthComponent->IsInvulnerable())
+    if (!RegularSpike || !IsValid(HealthComponent) || HealthComponent->IsInvulnerable())
         return;
 
 #if UE_BUILD_DEVELOPMENT
@@ -428,7 +581,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 {
     // PERFORMANCE: Validate inputs
-    if (!HealthComponent || HealthComponent->IsInvulnerable() || DamageAmount <= 0.0f)
+    if (!IsValid(HealthComponent) || HealthComponent->IsInvulnerable() || DamageAmount <= 0.0f)
         return;
 
     // Determine damage type based on causer
@@ -450,7 +603,72 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 
 bool ARunnerCharacter::IsDead() const
 {
-    return IsHealthComponentValid() && (HealthComponent->GetCurrentHealth() <= 0);
+    // CRITICAL FIX: Return FALSE (alive) when HealthComponent is invalid
+    // Returning TRUE during initialization blocks ALL animation updates and breaks idle/running states
+
+    // Check 1: Use IsValid() first. This is the standard check.
+    if (!IsValid(HealthComponent))
+    {
+        UE_LOG(LogTemp, VeryVerbose, TEXT("IsDead: HealthComponent not valid - treating as ALIVE (not initialized yet)"));
+        // During initialization, component may not be ready - treat as ALIVE to allow animations
+        return false;  // ✓ FIXED: Return false (alive) instead of true (dead)
+    }
+
+    // Check 2: Defensive check for fully initialized state
+    if (!HealthComponent->IsFullyInitialized())
+    {
+        UE_LOG(LogTemp, VeryVerbose, TEXT("IsDead: HealthComponent not fully initialized - treating as ALIVE"));
+        // Component exists but BeginPlay hasn't completed - treat as ALIVE
+        return false;  // ✓ FIXED: Return false (alive) during initialization
+    }
+
+    // Check 3: Verify component outer matches this character (memory corruption check)
+    if (HealthComponent->GetOuter() != this)
+    {
+        UE_LOG(LogTemp, Error, TEXT("IsDead CHECK FAILED: Character '%s' has a CORRUPTED HealthComponent pointer!"), *GetName());
+        // Memory corruption detected - fail-safe to ALIVE to prevent crash
+        return false;  // ✓ FIXED: Return false (alive) to prevent animation lock
+    }
+
+    // All checks passed - safely get health status
+    return (HealthComponent->GetCurrentHealth() <= 0);
+}
+
+bool ARunnerCharacter::IsGameOverSafe() const
+{
+	// Validate this actor
+	if (!IsValid(this) || IsPendingKillPending())
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: Character is invalid or pending kill"));
+		return false;
+	}
+
+	// Validate world
+	UWorld* World = GetWorld();
+	if (!World || World->bIsTearingDown)
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: World is invalid or tearing down"));
+		return false;
+	}
+
+	// Validate player controller
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (!IsValid(PC))
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: PlayerController is invalid"));
+		return false;
+	}
+
+	// Validate game instance
+	USideRunnerGameInstance* GI = Cast<USideRunnerGameInstance>(GetGameInstance());
+	if (!IsValid(GI))
+	{
+		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: GameInstance is invalid"));
+		return false;
+	}
+
+	// All systems valid
+	return true;
 }
 
 void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
@@ -489,7 +707,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
     // CRITICAL FIX: Re-validate game instance before use
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 
-    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    if (IsValid(CachedGameInstance))
     {
         const bool bHasLivesRemaining = CachedGameInstance->DecrementLives();
 
@@ -509,8 +727,29 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
             UE_LOG(LogTemp, Warning, TEXT("No lives remaining - triggering game over"));
             // Game over already triggered by DecrementLives()
 
-            // Call blueprint event
-            DeathOfPlayer();
+            // CRITICAL: Add diagnostic logging before calling Blueprint event
+            UE_LOG(LogTemp, Warning, TEXT("=== HandlePlayerDeath: About to trigger game over ==="));
+            UE_LOG(LogTemp, Warning, TEXT("  this=%p valid=%d"), this, IsValid(this) ? 1 : 0);
+            UE_LOG(LogTemp, Warning, TEXT("  GameInstance=%p valid=%d"), CachedGameInstance, IsValid(CachedGameInstance) ? 1 : 0);
+            UE_LOG(LogTemp, Warning, TEXT("  World=%p"), GetWorld());
+            UE_LOG(LogTemp, Warning, TEXT("  PlayerController=%p"), GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
+
+            // CRITICAL FIX: Wrap blueprint event call with validation
+            if (IsGameOverSafe())
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Calling DeathOfPlayer Blueprint event - all systems valid"));
+                DeathOfPlayer();
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Cannot call DeathOfPlayer - system validation failed!"));
+                // Fallback: Reload level directly to prevent soft-lock
+                UWorld* World = GetWorld();
+                if (World)
+                {
+                    UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
+                }
+            }
         }
     }
     else
@@ -560,6 +799,9 @@ void ARunnerCharacter::RespawnPlayer()
     VALIDATE_HEALTH_COMPONENT_VOID();
     HealthComponent->ResetHealth();
 
+    // Grant 2 seconds of invulnerability on respawn to prevent instant death
+    HealthComponent->SetInvulnerabilityTime(2.0f);
+
     // Re-enable mesh and movement
     if (USkeletalMeshComponent* SkeletalMesh = GetMesh())
     {
@@ -587,7 +829,7 @@ void ARunnerCharacter::RespawnPlayer()
 
     // Try to get saved respawn location
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
-    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    if (IsValid(CachedGameInstance))
     {
         RespawnLocation = CachedGameInstance->GetRespawnLocation();
     }
@@ -657,3 +899,6 @@ void ARunnerCharacter::BeginDestroy()
     CleanupBeforeDestroy();
     Super::BeginDestroy();
 }
+
+// Note: Debug console commands (TeleportToDistance, KillPlayer) have been moved to
+// ASideRunnerPlayerController for proper Exec function support in UE5.5

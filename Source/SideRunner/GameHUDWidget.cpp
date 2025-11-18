@@ -2,6 +2,17 @@
 #include "Components/TextBlock.h"
 #include "SideRunnerGameInstance.h"
 
+// UI Constants for Lives Display
+namespace UIConstants
+{
+    constexpr int32 LIVES_CRITICAL_THRESHOLD = 1;
+    constexpr int32 LIVES_WARNING_THRESHOLD = 2;
+
+    const FLinearColor COLOR_CRITICAL = FLinearColor::Red;
+    const FLinearColor COLOR_WARNING = FLinearColor::Yellow;
+    const FLinearColor COLOR_NORMAL = FLinearColor::White;
+}
+
 void UGameHUDWidget::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -31,7 +42,7 @@ void UGameHUDWidget::NativeConstruct()
 void UGameHUDWidget::NativeDestruct()
 {
     // Unbind delegates to prevent stale references
-    if (CachedGameInstance && CachedGameInstance->IsValidLowLevel())
+    if (IsValid(CachedGameInstance))
     {
         CachedGameInstance->OnLivesUpdated.RemoveAll(this);
         CachedGameInstance->OnScoreUpdated.RemoveAll(this);
@@ -49,17 +60,17 @@ void UGameHUDWidget::UpdateLivesDisplay(int32 CurrentLives, int32 MaxLives)
         LivesText->SetText(FText::FromString(LivesString));
 
         // Change color based on lives remaining
-        if (CurrentLives <= 1)
+        if (CurrentLives <= UIConstants::LIVES_CRITICAL_THRESHOLD)
         {
-            LivesText->SetColorAndOpacity(FSlateColor(FLinearColor::Red)); // Critical
+            LivesText->SetColorAndOpacity(FSlateColor(UIConstants::COLOR_CRITICAL));
         }
-        else if (CurrentLives <= 2)
+        else if (CurrentLives <= UIConstants::LIVES_WARNING_THRESHOLD)
         {
-            LivesText->SetColorAndOpacity(FSlateColor(FLinearColor::Yellow)); // Warning
+            LivesText->SetColorAndOpacity(FSlateColor(UIConstants::COLOR_WARNING));
         }
         else
         {
-            LivesText->SetColorAndOpacity(FSlateColor(FLinearColor::White)); // Normal
+            LivesText->SetColorAndOpacity(FSlateColor(UIConstants::COLOR_NORMAL));
         }
     }
     else

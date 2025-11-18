@@ -43,31 +43,31 @@ protected:
     // ======================================================================
 
     /** Main game over message text ("YOU WIN!" / "GAME OVER") */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* GameOverText;
 
     /** Displays final score */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* ScoreText;
 
     /** Displays distance traveled */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* DistanceText;
 
     /** Displays high score */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* HighScoreText;
 
     /** Displays lives used in this attempt */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* LivesText;
 
     /** Restart button */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UButton* RestartButton;
 
     /** Quit button */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UButton* QuitButton;
 
     // ======================================================================

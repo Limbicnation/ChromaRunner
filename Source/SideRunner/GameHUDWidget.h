@@ -59,15 +59,15 @@ protected:
     // ======================================================================
 
     /** Displays current lives (e.g., "Lives: 3/3") */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* LivesText;
 
     /** Displays current score */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* ScoreText;
 
     /** Displays distance traveled */
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* DistanceText;
 
 private:
