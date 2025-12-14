@@ -77,6 +77,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lifetime", meta = (ClampMin = "1.0", ClampMax = "30.0"))
 	float MaxTimeBehindPlayer = 10.0f;
 
+	/** Distance behind player to position WallSpike when player respawns */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lifetime", meta = (ClampMin = "500.0", ClampMax = "5000.0"))
+	float RespawnDistanceBehind = 1500.0f;
+
 	// PERFORMANCE: Audio properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	USoundBase* ChaseStartSound;

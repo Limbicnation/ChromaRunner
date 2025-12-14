@@ -338,9 +338,8 @@ void AWallSpike::ResetPositionBehindPlayer(ARunnerCharacter* Player)
 	const FVector PrimaryDir = GetPrimaryDirection();
 	
 	// Position spike behind player (opposite of primary direction)
-	// Use a safe distance that gives player time to react
-	const float DistanceBehind = 1500.0f;
-	const FVector NewLocation = PlayerLocation - (PrimaryDir * DistanceBehind);
+	// Use configurable distance that gives player time to react
+	const FVector NewLocation = PlayerLocation - (PrimaryDir * RespawnDistanceBehind);
 	
 	SetActorLocation(NewLocation);
 	CurrentDirection = PrimaryDir;

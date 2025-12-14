@@ -925,7 +925,7 @@ void ARunnerCharacter::RespawnPlayer()
     }
 
     // Update respawn location in game instance for score tracking
-    CachedGameInstance = Cast<USideRunnerGameInstance>(UGameplayStatics::GetGameInstance(this));
+    // Use cached instance from BeginPlay (avoid redundant casting per performance comment in header)
     if (IsValid(CachedGameInstance))
     {
         CachedGameInstance->SetRespawnLocation(RespawnLocation);

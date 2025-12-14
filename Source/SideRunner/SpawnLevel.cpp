@@ -216,6 +216,13 @@ void ASpawnLevel::DestroyOldestLevel()
 
 void ASpawnLevel::ResetLevelsForRespawn()
 {
+    // Guard clause: Ensure we have a valid world context
+    if (!GetWorld())
+    {
+        UE_LOG(LogSideRunner, Warning, TEXT("ResetLevelsForRespawn: Called with no world, aborting."));
+        return;
+    }
+
     UE_LOG(LogSideRunner, Log, TEXT("ResetLevelsForRespawn: Clearing all levels for player respawn"));
 
     // Clear all pending destroy timers to prevent callbacks on destroyed levels
