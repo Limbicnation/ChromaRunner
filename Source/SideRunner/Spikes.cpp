@@ -1,5 +1,6 @@
 #include "Spikes.h"
 #include "Kismet/GameplayStatics.h"
+#include "SideRunner.h" // Custom log categories
 #include "RunnerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -89,7 +90,7 @@ void ASpikes::BeginPlay()
 	// PERFORMANCE: Only log warnings in debug builds
 	if (!CollisionSound)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s: CollisionSound is not set in the editor!"), *GetName());
+		UE_LOG(LogSideRunnerCombat, Warning, TEXT("%s: CollisionSound is not set in the editor!"), *GetName());
 	}
 #endif
 

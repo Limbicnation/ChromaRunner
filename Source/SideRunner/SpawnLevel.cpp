@@ -1,5 +1,6 @@
 #include "SpawnLevel.h"
 #include "BaseLevel.h"
+#include "SideRunner.h" // Custom log categories
 #include "Engine/World.h"
 #include "Components/BoxComponent.h"
 #include "TimerManager.h"
@@ -22,7 +23,7 @@ void ASpawnLevel::BeginPlay()
     }
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("Player not found at BeginPlay. Spawning will be delayed."));
+        UE_LOG(LogSideRunner, Warning, TEXT("Player not found at BeginPlay. Spawning will be delayed."));
     }
 }
 
@@ -78,7 +79,7 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
     case 4: LevelClass = Level4; break;
     case 5: LevelClass = Level5; break;
     case 6: LevelClass = Level6; break;
-    default: UE_LOG(LogTemp, Warning, TEXT("Invalid level number: %d"), RandomLevel); break;
+    default: UE_LOG(LogSideRunner, Warning, TEXT("Invalid level number: %d"), RandomLevel); break;
     }
 
     if (LevelClass)

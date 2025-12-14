@@ -2,6 +2,7 @@
 
 #include "SimpleEnemy.h"
 #include "Components/BoxComponent.h"
+#include "SideRunner.h" // Custom log categories
 #include "Components/StaticMeshComponent.h"
 #include "RunnerCharacter.h"
 #include "PlayerHealthComponent.h"
@@ -102,7 +103,7 @@ void ASimpleEnemy::BeginPlay()
 
 	if (!PlayerRef)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SimpleEnemy: Failed to find player character at BeginPlay. Damage and cleanup disabled."));
+		UE_LOG(LogSideRunnerCombat, Warning, TEXT("SimpleEnemy: Failed to find player character at BeginPlay. Damage and cleanup disabled."));
 	}
 
 	// ========================================
@@ -126,7 +127,7 @@ void ASimpleEnemy::BeginPlay()
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("SimpleEnemy: CollisionBox is null at BeginPlay!"));
+		UE_LOG(LogSideRunnerCombat, Error, TEXT("SimpleEnemy: CollisionBox is null at BeginPlay!"));
 	}
 }
 
@@ -251,7 +252,7 @@ void ASimpleEnemy::CleanupIfBehindPlayer()
 
 		// Debug logging (disable in shipping builds for performance)
 		#if !UE_BUILD_SHIPPING
-		UE_LOG(LogTemp, Verbose, TEXT("SimpleEnemy: Cleaned up at X=%.1f (Player at X=%.1f)"), EnemyX, PlayerX);
+		UE_LOG(LogSideRunnerCombat, Verbose, TEXT("SimpleEnemy: Cleaned up at X=%.1f (Player at X=%.1f)"), EnemyX, PlayerX);
 		#endif
 	}
 }
@@ -335,7 +336,7 @@ void ASimpleEnemy::OnOverlapBegin(
 	if (!HealthComp)
 	{
 		// Player exists but health component missing (shouldn't happen)
-		UE_LOG(LogTemp, Warning, TEXT("SimpleEnemy: Player has no HealthComponent!"));
+		UE_LOG(LogSideRunnerCombat, Warning, TEXT("SimpleEnemy: Player has no HealthComponent!"));
 		return;
 	}
 
@@ -344,7 +345,7 @@ void ASimpleEnemy::OnOverlapBegin(
 
 	// Log damage in development builds
 	#if !UE_BUILD_SHIPPING
-	UE_LOG(LogTemp, Log, TEXT("SimpleEnemy: Dealt %d damage to player (Type: EnemyMelee)"), ContactDamage);
+	UE_LOG(LogSideRunnerCombat, Log, TEXT("SimpleEnemy: Dealt %d damage to player (Type: EnemyMelee)"), ContactDamage);
 	#endif
 
 	// ========================================
@@ -370,7 +371,7 @@ void ASimpleEnemy::OnOverlapBegin(
 			bHasDealtDamage = false;
 
 			#if !UE_BUILD_SHIPPING
-			UE_LOG(LogTemp, Verbose, TEXT("SimpleEnemy: Damage cooldown reset, can deal damage again"));
+			UE_LOG(LogSideRunnerCombat, Verbose, TEXT("SimpleEnemy: Damage cooldown reset, can deal damage again"));
 			#endif
 		},
 		EnemyConstants::DamageCooldownDuration,

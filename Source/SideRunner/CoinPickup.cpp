@@ -7,6 +7,7 @@
 #include "CoinCounter.h"
 #include "Engine/Engine.h"
 #include "SideRunnerGameInstance.h"
+#include "SideRunner.h" // Custom log categories
 
 #if WITH_EDITOR || UE_BUILD_DEVELOPMENT
 #include "DrawDebugHelpers.h"
@@ -307,13 +308,13 @@ void ACoinPickup::UpdateCoinCounter(ACharacter* Character)
     {
         CoinCounterComp->AddCoins(CoinValue);
 #if UE_BUILD_DEVELOPMENT
-        UE_LOG(LogTemp, VeryVerbose, TEXT("Coin collected with value: %d"), CoinValue);
+        UE_LOG(LogSideRunnerScoring, VeryVerbose, TEXT("Coin collected with value: %d"), CoinValue);
 #endif
     }
 #if UE_BUILD_DEVELOPMENT
     else
     {
-        UE_LOG(LogTemp, Warning, TEXT("No CoinCounter found for coin value: %d"), CoinValue);
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("No CoinCounter found for coin value: %d"), CoinValue);
     }
 #endif
 }

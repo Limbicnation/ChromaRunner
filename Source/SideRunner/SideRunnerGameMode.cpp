@@ -1,5 +1,6 @@
 #include "SideRunnerGameMode.h"
 #include "SideRunnerGameInstance.h"
+#include "SideRunner.h" // Custom log categories
 #include "SideRunnerPlayerController.h"
 #include "GameHUDWidget.h"
 #include "GameOverWidget.h"
@@ -15,7 +16,7 @@ ASideRunnerGameMode::ASideRunnerGameMode()
 	// Exec commands only work in PlayerController classes in UE5.5
 	PlayerControllerClass = ASideRunnerPlayerController::StaticClass();
 
-	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: Using SideRunnerPlayerController for debug command support"));
+	UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: Using SideRunnerPlayerController for debug command support"));
 }
 
 void ASideRunnerGameMode::BeginPlay()
@@ -27,7 +28,7 @@ void ASideRunnerGameMode::BeginPlay()
 
 	if (!IsValid(CachedGameInstance))
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: Failed to get SideRunnerGameInstance!"));
+		UE_LOG(LogSideRunner, Error, TEXT("SideRunnerGameMode: Failed to get SideRunnerGameInstance!"));
 		return;
 	}
 
@@ -35,7 +36,7 @@ void ASideRunnerGameMode::BeginPlay()
 	CachedGameInstance->OnGameWon.AddDynamic(this, &ASideRunnerGameMode::OnGameWonHandler);
 	CachedGameInstance->OnGameLost.AddDynamic(this, &ASideRunnerGameMode::OnGameLostHandler);
 
-	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: Delegates bound to GameInstance"));
+	UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: Delegates bound to GameInstance"));
 
 	// Create and display HUD
 	CreateGameHUD();
@@ -74,7 +75,7 @@ void ASideRunnerGameMode::CreateGameHUD()
 	// Validate widget class
 	if (!GameHUDWidgetClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: GameHUDWidgetClass not set! Assign WBP_GameHUD in Blueprint."));
+		UE_LOG(LogSideRunner, Error, TEXT("SideRunnerGameMode: GameHUDWidgetClass not set! Assign WBP_GameHUD in Blueprint."));
 		return;
 	}
 
@@ -82,7 +83,7 @@ void ASideRunnerGameMode::CreateGameHUD()
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (!IsValid(PC))
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: PlayerController not found!"));
+		UE_LOG(LogSideRunner, Error, TEXT("SideRunnerGameMode: PlayerController not found!"));
 		return;
 	}
 
@@ -90,7 +91,7 @@ void ASideRunnerGameMode::CreateGameHUD()
 	UGameHUDWidget* HUDWidget = CreateWidget<UGameHUDWidget>(PC, GameHUDWidgetClass);
 	if (!IsValid(HUDWidget))
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: Failed to create GameHUDWidget!"));
+		UE_LOG(LogSideRunner, Error, TEXT("SideRunnerGameMode: Failed to create GameHUDWidget!"));
 		return;
 	}
 
@@ -100,7 +101,7 @@ void ASideRunnerGameMode::CreateGameHUD()
 	// Store weak reference
 	ActiveHUDWidget = HUDWidget;
 
-	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: GameHUD created and added to viewport"));
+	UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: GameHUD created and added to viewport"));
 }
 
 void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
@@ -108,7 +109,7 @@ void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
 	// CRITICAL: Prevent duplicate game over screens
 	if (bGameOverActive)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("SideRunnerGameMode: Game over already active, ignoring duplicate call"));
+		UE_LOG(LogSideRunner, Warning, TEXT("SideRunnerGameMode: Game over already active, ignoring duplicate call"));
 		return;
 	}
 
@@ -123,7 +124,7 @@ void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
 	// Validate game instance
 	if (!IsValid(CachedGameInstance))
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: GameInstance invalid, cannot show game over screen"));
+		UE_LOG(LogSideRunner, Error, TEXT("SideRunnerGameMode: GameInstance invalid, cannot show game over screen"));
 		return;
 	}
 
@@ -131,7 +132,7 @@ void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
 	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
 	if (!IsValid(PC))
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: PlayerController not found!"));
+		UE_LOG(LogSideRunner, Error, TEXT("SideRunnerGameMode: PlayerController not found!"));
 		return;
 	}
 
@@ -142,7 +143,7 @@ void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
 	UGameOverWidget* GameOverWidget = CreateWidget<UGameOverWidget>(PC, GameOverWidgetClass);
 	if (!IsValid(GameOverWidget))
 	{
-		UE_LOG(LogTemp, Error, TEXT("SideRunnerGameMode: Failed to create GameOverWidget!"));
+		UE_LOG(LogSideRunner, Error, TEXT("SideRunnerGameMode: Failed to create GameOverWidget!"));
 		return;
 	}
 
@@ -162,12 +163,12 @@ void ASideRunnerGameMode::ShowGameOverScreen(bool bWon)
 
 	// CRITICAL FIX: Pause the game to prevent level teardown
 	UGameplayStatics::SetGamePaused(this, true);
-	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: Game paused for game over screen"));
+	UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: Game paused for game over screen"));
 
 	// Switch to UI input mode and show cursor
 	SetInputModeUI();
 
-	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: Game Over screen displayed - Won: %s, Score: %d, Distance: %.1fm"),
+	UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: Game Over screen displayed - Won: %s, Score: %d, Distance: %.1fm"),
 		bWon ? TEXT("Yes") : TEXT("No"), FinalScore, DistanceMeters);
 }
 
@@ -176,19 +177,19 @@ void ASideRunnerGameMode::HideGameHUD()
 	if (ActiveHUDWidget.IsValid())
 	{
 		ActiveHUDWidget->RemoveFromParent();
-		UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: GameHUD hidden"));
+		UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: GameHUD hidden"));
 	}
 }
 
 void ASideRunnerGameMode::OnGameWonHandler()
 {
-	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: OnGameWon delegate fired"));
+	UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: OnGameWon delegate fired"));
 	ShowGameOverScreen(true);
 }
 
 void ASideRunnerGameMode::OnGameLostHandler()
 {
-	UE_LOG(LogTemp, Log, TEXT("SideRunnerGameMode: OnGameLost delegate fired"));
+	UE_LOG(LogSideRunner, Log, TEXT("SideRunnerGameMode: OnGameLost delegate fired"));
 	ShowGameOverScreen(false);
 }
 
@@ -202,7 +203,7 @@ void ASideRunnerGameMode::SetInputModeUI()
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = true;
 
-		UE_LOG(LogTemp, Verbose, TEXT("SideRunnerGameMode: Input mode set to UI"));
+		UE_LOG(LogSideRunner, Verbose, TEXT("SideRunnerGameMode: Input mode set to UI"));
 	}
 }
 
@@ -215,6 +216,6 @@ void ASideRunnerGameMode::SetInputModeGame()
 		PC->SetInputMode(InputMode);
 		PC->bShowMouseCursor = false;
 
-		UE_LOG(LogTemp, Verbose, TEXT("SideRunnerGameMode: Input mode set to Game"));
+		UE_LOG(LogSideRunner, Verbose, TEXT("SideRunnerGameMode: Input mode set to Game"));
 	}
 }

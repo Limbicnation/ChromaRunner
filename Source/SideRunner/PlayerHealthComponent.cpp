@@ -1,5 +1,6 @@
 #include "PlayerHealthComponent.h"
 #include "Engine/Engine.h"
+#include "SideRunner.h" // Custom log categories
 
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
@@ -37,7 +38,7 @@ void UPlayerHealthComponent::BeginPlay()
 	bIsFullyInitialized = true;
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Log, TEXT("PlayerHealthComponent initialized with %d/%d health"), CurrentHealth, MaxHealth);
+	UE_LOG(LogSideRunnerCombat, Log, TEXT("PlayerHealthComponent initialized with %d/%d health"), CurrentHealth, MaxHealth);
 #endif
 }
 
@@ -62,7 +63,7 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 	// CRITICAL FIX: Prevent access before component is fully initialized
 	if (!bIsFullyInitialized)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TakeDamage called before component initialization - ignoring"));
+		UE_LOG(LogSideRunnerCombat, Warning, TEXT("TakeDamage called before component initialization - ignoring"));
 		return;
 	}
 
@@ -71,7 +72,7 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 	AActor* Owner = GetOwner();
 	if (!IsValid(Owner))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TakeDamage called but owner is invalid"));
+		UE_LOG(LogSideRunnerCombat, Warning, TEXT("TakeDamage called but owner is invalid"));
 		return;
 	}
 
@@ -110,7 +111,7 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 		if (CurrentHealth <= 0)
 		{
 #if UE_BUILD_DEVELOPMENT
-			UE_LOG(LogTemp, Warning, TEXT("Player died after %d hits"), TotalHitsTaken);
+			UE_LOG(LogSideRunnerCombat, Warning, TEXT("Player died after %d hits"), TotalHitsTaken);
 #endif
 			// CRITICAL FIX: Only broadcast if owner is still valid and not pending destruction
 			if (IsValid(Owner) && !Owner->IsPendingKillPending())
@@ -119,13 +120,13 @@ void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
 			}
 			else
 			{
-				UE_LOG(LogTemp, Error, TEXT("TakeDamage: Cannot broadcast OnPlayerDeath - Owner is invalid or pending destruction"));
+				UE_LOG(LogSideRunnerCombat, Error, TEXT("TakeDamage: Cannot broadcast OnPlayerDeath - Owner is invalid or pending destruction"));
 			}
 		}
 	}
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, VeryVerbose, TEXT("Player took %d damage of type %d. Health: %d/%d, Hits taken: %d"),
+	UE_LOG(LogSideRunnerCombat, VeryVerbose, TEXT("Player took %d damage of type %d. Health: %d/%d, Hits taken: %d"),
 		DamageAmount, (int32)Type, CurrentHealth, MaxHealth, TotalHitsTaken);
 #endif
 }
@@ -152,7 +153,7 @@ void UPlayerHealthComponent::ResetHealth()
 	}
 	
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Log, TEXT("Player health reset to %d/%d"), CurrentHealth, MaxHealth);
+	UE_LOG(LogSideRunnerCombat, Log, TEXT("Player health reset to %d/%d"), CurrentHealth, MaxHealth);
 #endif
 }
 
@@ -165,6 +166,6 @@ void UPlayerHealthComponent::SetInvulnerabilityTime(float Duration)
 	SetComponentTickEnabled(true);
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Log, TEXT("Invulnerability granted for %.1f seconds"), Duration);
+	UE_LOG(LogSideRunnerCombat, Log, TEXT("Invulnerability granted for %.1f seconds"), Duration);
 #endif
 }

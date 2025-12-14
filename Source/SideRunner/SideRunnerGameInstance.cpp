@@ -1,5 +1,6 @@
 #include "SideRunnerGameInstance.h"
 #include "Engine/Engine.h"
+#include "SideRunner.h" // Custom log categories
 
 void USideRunnerGameInstance::Init()
 {
@@ -20,7 +21,7 @@ void USideRunnerGameInstance::Init()
     CurrentLives = MaxLives;
     LastRespawnLocation = FVector::ZeroVector;
 
-    UE_LOG(LogTemp, Log, TEXT("SideRunnerGameInstance initialized - Win distance: %.1f meters, Lives: %d"), WinDistance, MaxLives);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("SideRunnerGameInstance initialized - Win distance: %.1f meters, Lives: %d"), WinDistance, MaxLives);
 }
 
 void USideRunnerGameInstance::UpdateDistanceScore(float PlayerXPosition)
@@ -47,7 +48,7 @@ void USideRunnerGameInstance::UpdateDistanceScore(float PlayerXPosition)
             OnScoreUpdated.Broadcast(CurrentScore);
 
 #if UE_BUILD_DEVELOPMENT
-            UE_LOG(LogTemp, VeryVerbose, TEXT("Distance score updated: +%d points | Total: %d | Distance: %.1fm"),
+            UE_LOG(LogSideRunnerScoring, VeryVerbose, TEXT("Distance score updated: +%d points | Total: %d | Distance: %.1fm"),
                 DistancePoints, CurrentScore, DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS);
 #endif
         }
@@ -74,7 +75,7 @@ void USideRunnerGameInstance::AddCoinBonus(int32 CoinValue)
     // Validate coin value
     if (CoinValue <= 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid coin value: %d"), CoinValue);
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("Invalid coin value: %d"), CoinValue);
         return;
     }
 
@@ -83,7 +84,7 @@ void USideRunnerGameInstance::AddCoinBonus(int32 CoinValue)
     OnScoreUpdated.Broadcast(CurrentScore);
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, VeryVerbose, TEXT("Coin bonus added: +%d points | Total score: %d"), CoinValue, CurrentScore);
+    UE_LOG(LogSideRunnerScoring, VeryVerbose, TEXT("Coin bonus added: +%d points | Total score: %d"), CoinValue, CurrentScore);
 #endif
 }
 
@@ -98,7 +99,7 @@ void USideRunnerGameInstance::AddEnemyKillBonus(int32 BonusValue)
     // Validate bonus value
     if (BonusValue <= 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid enemy kill bonus: %d"), BonusValue);
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("Invalid enemy kill bonus: %d"), BonusValue);
         return;
     }
 
@@ -107,7 +108,7 @@ void USideRunnerGameInstance::AddEnemyKillBonus(int32 BonusValue)
     OnScoreUpdated.Broadcast(CurrentScore);
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Enemy kill bonus added: +%d points | Total score: %d"), BonusValue, CurrentScore);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Enemy kill bonus added: +%d points | Total score: %d"), BonusValue, CurrentScore);
 #endif
 }
 
@@ -140,7 +141,7 @@ void USideRunnerGameInstance::TriggerGameOver(bool bWon)
     // Only allow game over if no lives remain or player won
     if (!bWon && CurrentLives > 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("TriggerGameOver called but player has %d lives remaining"), CurrentLives);
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("TriggerGameOver called but player has %d lives remaining"), CurrentLives);
         return;
     }
 
@@ -155,11 +156,11 @@ void USideRunnerGameInstance::TriggerGameOver(bool bWon)
     {
         OnGameWon.Broadcast();
 
-        UE_LOG(LogTemp, Warning, TEXT("=== GAME WON! ==="));
-        UE_LOG(LogTemp, Warning, TEXT("Distance: %.1f meters"),
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("=== GAME WON! ==="));
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("Distance: %.1f meters"),
             DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS);
-        UE_LOG(LogTemp, Warning, TEXT("Final Score: %d"), CurrentScore);
-        UE_LOG(LogTemp, Warning, TEXT("High Score: %d"), HighScore);
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("Final Score: %d"), CurrentScore);
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("High Score: %d"), HighScore);
 
         // Display on-screen message if available
 #if !UE_BUILD_SHIPPING
@@ -175,11 +176,11 @@ void USideRunnerGameInstance::TriggerGameOver(bool bWon)
     {
         OnGameLost.Broadcast();
 
-        UE_LOG(LogTemp, Warning, TEXT("=== GAME OVER ==="));
-        UE_LOG(LogTemp, Warning, TEXT("Distance: %.1f meters"),
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("=== GAME OVER ==="));
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("Distance: %.1f meters"),
             DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS);
-        UE_LOG(LogTemp, Warning, TEXT("Final Score: %d"), CurrentScore);
-        UE_LOG(LogTemp, Warning, TEXT("High Score: %d"), HighScore);
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("Final Score: %d"), CurrentScore);
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("High Score: %d"), HighScore);
 
         // Display on-screen message if available
 #if !UE_BUILD_SHIPPING
@@ -206,7 +207,7 @@ void USideRunnerGameInstance::ResetGameSession()
 
     // Note: HighScore is intentionally NOT reset
 
-    UE_LOG(LogTemp, Log, TEXT("Game session reset - High score preserved: %d"), HighScore);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Game session reset - High score preserved: %d"), HighScore);
 
     // Broadcast reset events
     OnScoreUpdated.Broadcast(CurrentScore);
@@ -217,14 +218,14 @@ bool USideRunnerGameInstance::DecrementLives()
 {
     if (CurrentLives <= 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("DecrementLives called but lives already at 0"));
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("DecrementLives called but lives already at 0"));
         return false;
     }
 
     CurrentLives--;
     OnLivesUpdated.Broadcast(CurrentLives, MaxLives);
 
-    UE_LOG(LogTemp, Log, TEXT("Lives decremented - Remaining: %d/%d"), CurrentLives, MaxLives);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Lives decremented - Remaining: %d/%d"), CurrentLives, MaxLives);
 
     // Trigger game over only if no lives remain
     if (CurrentLives <= 0)
@@ -241,19 +242,19 @@ void USideRunnerGameInstance::ResetLives()
     CurrentLives = MaxLives;
     OnLivesUpdated.Broadcast(CurrentLives, MaxLives);
 
-    UE_LOG(LogTemp, Log, TEXT("Lives reset to %d/%d"), CurrentLives, MaxLives);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Lives reset to %d/%d"), CurrentLives, MaxLives);
 }
 
 void USideRunnerGameInstance::SetRespawnLocation(const FVector& RespawnLocation)
 {
     LastRespawnLocation = RespawnLocation;
-    UE_LOG(LogTemp, VeryVerbose, TEXT("Respawn location set to: %s"), *RespawnLocation.ToString());
+    UE_LOG(LogSideRunnerScoring, VeryVerbose, TEXT("Respawn location set to: %s"), *RespawnLocation.ToString());
 }
 
 void USideRunnerGameInstance::InitializeDistanceTracking(float StartingXPosition)
 {
     LastRecordedX = StartingXPosition;
-    UE_LOG(LogTemp, Log, TEXT("Distance tracking initialized at X=%.1f"), StartingXPosition);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Distance tracking initialized at X=%.1f"), StartingXPosition);
 }
 
 // Note: Debug console commands have been moved to ASideRunnerPlayerController

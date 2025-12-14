@@ -6,6 +6,7 @@
 #include "RunnerCharacter.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "SideRunner.h" // Custom log categories
 
 UHealthBarWidget::UHealthBarWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -21,7 +22,7 @@ void UHealthBarWidget::NativeConstruct()
 	// Validate widget bindings
 	if (!ValidateWidgetBindings())
 	{
-		UE_LOG(LogTemp, Error, TEXT("HealthBarWidget: Widget bindings validation failed!"));
+		UE_LOG(LogSideRunner, Error, TEXT("HealthBarWidget: Widget bindings validation failed!"));
 		return;
 	}
 
@@ -62,7 +63,7 @@ void UHealthBarWidget::OnHealthChanged(int32 NewHealth, int32 NewMaxHealth)
 	MaxHealth = static_cast<float>(NewMaxHealth);
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, VeryVerbose, TEXT("HealthBarWidget: Health changed to %d / %d (%.1f%%)"),
+	UE_LOG(LogSideRunner, VeryVerbose, TEXT("HealthBarWidget: Health changed to %d / %d (%.1f%%)"),
 		NewHealth, NewMaxHealth, GetHealthPercent() * 100.0f);
 #endif
 
@@ -79,7 +80,7 @@ void UHealthBarWidget::OnTakeDamage(int32 DamageAmount, EDamageType DamageType)
 	}
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, VeryVerbose, TEXT("HealthBarWidget: Took %d damage (Type: %d), Total hits: %d"),
+	UE_LOG(LogSideRunner, VeryVerbose, TEXT("HealthBarWidget: Took %d damage (Type: %d), Total hits: %d"),
 		DamageAmount, static_cast<int32>(DamageType), HitCount);
 #endif
 
@@ -94,9 +95,7 @@ void UHealthBarWidget::OnPlayerDeath(int32 TotalHitsTaken)
 {
 	HitCount = TotalHitsTaken;
 
-#if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: Player died after %d hits"), TotalHitsTaken);
-#endif
+	// NOTE: Death logging handled authoritatively by PlayerHealthComponent
 
 	// Update final state
 	UpdateHealthBar();
@@ -113,7 +112,7 @@ void UHealthBarWidget::UpdateHealthBar()
 {
 	if (!HealthProgressBar)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: HealthProgressBar is null!"));
+		UE_LOG(LogSideRunner, Warning, TEXT("HealthBarWidget: HealthProgressBar is null!"));
 		return;
 	}
 
@@ -128,7 +127,7 @@ void UHealthBarWidget::UpdateHealthBar()
 	HealthProgressBar->SetFillColorAndOpacity(BarColor);
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogTemp, Verbose, TEXT("HealthBarWidget: Updated bar to %.1f%% with color (%.2f, %.2f, %.2f)"),
+	UE_LOG(LogSideRunner, Verbose, TEXT("HealthBarWidget: Updated bar to %.1f%% with color (%.2f, %.2f, %.2f)"),
 		HealthPercent * 100.0f, BarColor.R, BarColor.G, BarColor.B);
 #endif
 }
@@ -219,7 +218,7 @@ void UHealthBarWidget::TryBindToHealthComponent()
 		}
 
 #if UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTemp, Log, TEXT("HealthBarWidget: Successfully bound to health component"));
+		UE_LOG(LogSideRunner, Log, TEXT("HealthBarWidget: Successfully bound to health component"));
 #endif
 
 		// Initialize visual state
@@ -231,7 +230,7 @@ void UHealthBarWidget::TryBindToHealthComponent()
 		// Failed - set up retry timer if not already running
 		if (!BindRetryTimerHandle.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: Failed to bind to health component - retrying every 0.1s"));
+			UE_LOG(LogSideRunner, Warning, TEXT("HealthBarWidget: Failed to bind to health component - retrying every 0.1s"));
 
 			// Retry every 0.1 seconds until successful
 			GetWorld()->GetTimerManager().SetTimer(
@@ -251,7 +250,7 @@ bool UHealthBarWidget::BindToHealthComponent()
 	APlayerController* PlayerController = GetOwningPlayer();
 	if (!PlayerController)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: No owning player controller"));
+		UE_LOG(LogSideRunner, Warning, TEXT("HealthBarWidget: No owning player controller"));
 		return false;
 	}
 
@@ -259,7 +258,7 @@ bool UHealthBarWidget::BindToHealthComponent()
 	APawn* ControlledPawn = PlayerController->GetPawn();
 	if (!ControlledPawn)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: Player controller has no pawn"));
+		UE_LOG(LogSideRunner, Warning, TEXT("HealthBarWidget: Player controller has no pawn"));
 		return false;
 	}
 
@@ -267,7 +266,7 @@ bool UHealthBarWidget::BindToHealthComponent()
 	OwningCharacter = Cast<ARunnerCharacter>(ControlledPawn);
 	if (!OwningCharacter)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: Pawn is not a RunnerCharacter"));
+		UE_LOG(LogSideRunner, Warning, TEXT("HealthBarWidget: Pawn is not a RunnerCharacter"));
 		return false;
 	}
 
@@ -275,7 +274,7 @@ bool UHealthBarWidget::BindToHealthComponent()
 	HealthComponent = OwningCharacter->HealthComponent;
 	if (!HealthComponent)
 	{
-		UE_LOG(LogTemp, Error, TEXT("HealthBarWidget: RunnerCharacter has no HealthComponent!"));
+		UE_LOG(LogSideRunner, Error, TEXT("HealthBarWidget: RunnerCharacter has no HealthComponent!"));
 		return false;
 	}
 
@@ -301,7 +300,7 @@ void UHealthBarWidget::UnbindFromHealthComponent()
 		HealthComponent->OnPlayerDeath.RemoveDynamic(this, &UHealthBarWidget::OnPlayerDeath);
 
 #if UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTemp, Log, TEXT("HealthBarWidget: Unbound from health component"));
+		UE_LOG(LogSideRunner, Log, TEXT("HealthBarWidget: Unbound from health component"));
 #endif
 	}
 
@@ -315,14 +314,14 @@ bool UHealthBarWidget::ValidateWidgetBindings() const
 
 	if (!HealthProgressBar)
 	{
-		UE_LOG(LogTemp, Error, TEXT("HealthBarWidget: HealthProgressBar is not bound! "
+		UE_LOG(LogSideRunner, Error, TEXT("HealthBarWidget: HealthProgressBar is not bound! "
 			"Make sure you have a ProgressBar widget named 'HealthProgressBar' in your UMG Designer."));
 		bIsValid = false;
 	}
 
 	if (!HitCounterText)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("HealthBarWidget: HitCounterText is not bound (optional). "
+		UE_LOG(LogSideRunner, Warning, TEXT("HealthBarWidget: HitCounterText is not bound (optional). "
 			"Add a TextBlock widget named 'HitCounterText' to display hit counter."));
 		// Not an error - hit counter is optional
 	}

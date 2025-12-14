@@ -3,6 +3,7 @@
 #include "CoinPickup.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "SideRunner.h" // Custom log categories
 
 // Sets default values for this component's properties
 UCoinCounter::UCoinCounter()
@@ -37,7 +38,7 @@ void UCoinCounter::BeginPlay()
     // CRITICAL FIX: Use thread-safe initialization
     if (bIsInitialized)
     {
-        UE_LOG(LogTemp, Warning, TEXT("CoinCounter already initialized, preventing duplicate initialization"));
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("CoinCounter already initialized, preventing duplicate initialization"));
         return;
     }
 
@@ -52,7 +53,7 @@ void UCoinCounter::BeginPlay()
     }
 
     // Log initial state - helps with debugging
-    UE_LOG(LogTemp, Log, TEXT("CoinCounter RESET to %d coins"), CoinCount);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("CoinCounter RESET to %d coins"), CoinCount);
 
     // Broadcast initial value to update UI (delayed to avoid race conditions)
     if (UWorld* World = GetWorld())
@@ -123,12 +124,12 @@ void UCoinCounter::MarkCoinAsCollected(AActor* CoinActor)
     // Prevent duplicate marking
     if (CollectedCoins.Contains(CoinActor))
     {
-        UE_LOG(LogTemp, Warning, TEXT("Coin %s already marked as collected"), *CoinActor->GetName());
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("Coin %s already marked as collected"), *CoinActor->GetName());
         return;
     }
     
     CollectedCoins.Add(CoinActor);
-    UE_LOG(LogTemp, Verbose, TEXT("Marked coin %s as collected"), *CoinActor->GetName());
+    UE_LOG(LogSideRunnerScoring, Verbose, TEXT("Marked coin %s as collected"), *CoinActor->GetName());
 }
 
 void UCoinCounter::AddCoins(int32 Amount)
@@ -136,13 +137,13 @@ void UCoinCounter::AddCoins(int32 Amount)
     // CRITICAL FIX: Thread-safe coin addition with better validation
     if (!bIsInitialized)
     {
-        UE_LOG(LogTemp, Error, TEXT("CoinCounter not initialized, cannot add coins"));
+        UE_LOG(LogSideRunnerScoring, Error, TEXT("CoinCounter not initialized, cannot add coins"));
         return;
     }
     
     if (Amount <= 0)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Invalid coin amount: %d"), Amount);
+        UE_LOG(LogSideRunnerScoring, Warning, TEXT("Invalid coin amount: %d"), Amount);
         return;
     }
 
@@ -151,7 +152,7 @@ void UCoinCounter::AddCoins(int32 Amount)
         FScopeLock Lock(&CoinMutex);
         if (bProcessingCoin)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Prevented duplicate coin add! Amount: %d"), Amount);
+            UE_LOG(LogSideRunnerScoring, Warning, TEXT("Prevented duplicate coin add! Amount: %d"), Amount);
             return;
         }
         bProcessingCoin = true;
@@ -168,7 +169,7 @@ void UCoinCounter::AddCoins(int32 Amount)
     }
 
     // Debug log (outside critical section)
-    UE_LOG(LogTemp, VeryVerbose, TEXT("Added %d coins. New total: %d"), Amount, NewCoinCount);
+    UE_LOG(LogSideRunnerScoring, VeryVerbose, TEXT("Added %d coins. New total: %d"), Amount, NewCoinCount);
 
     // If we're using persistent coins, update and save them
     if (bPersistentCoins)
@@ -255,7 +256,7 @@ void UCoinCounter::ResetCoins()
     // Broadcast the event with the new coin count (using known value 0)
     OnCoinsUpdated.Broadcast(0);
 
-    UE_LOG(LogTemp, Log, TEXT("CoinCounter reset to 0 coins"));
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("CoinCounter reset to 0 coins"));
 }
 
 bool UCoinCounter::HasCollectedAllCoins() const
@@ -296,7 +297,7 @@ void UCoinCounter::CountCoinsInLevel()
 {
     if (!GetWorld())
     {
-        UE_LOG(LogTemp, Error, TEXT("Cannot count coins - World is null"));
+        UE_LOG(LogSideRunnerScoring, Error, TEXT("Cannot count coins - World is null"));
         return;
     }
 
@@ -316,7 +317,7 @@ void UCoinCounter::CountCoinsInLevel()
         TotalCoinsInLevel = NewTotal;
     }
 
-    UE_LOG(LogTemp, Log, TEXT("Found %d coins in the level"), NewTotal);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Found %d coins in the level"), NewTotal);
 }
 
 int32 UCoinCounter::GetCurrentCoinCount() const
@@ -335,7 +336,7 @@ void UCoinCounter::SavePersistentCoins()
 {
     // This is a simple implementation that should be expanded
     // with your game's save system
-    UE_LOG(LogTemp, Log, TEXT("Saving %d persistent coins"), LevelPersistentCoins);
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Saving %d persistent coins"), LevelPersistentCoins);
 
     // Here you would save to your game's save system
     // Example pseudocode (replace with your save game implementation):
@@ -353,7 +354,7 @@ void UCoinCounter::LoadPersistentCoins()
 {
     // This is a simple implementation that should be expanded
     // with your game's save system
-    UE_LOG(LogTemp, Log, TEXT("Loading persistent coins"));
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Loading persistent coins"));
 
     // Here you would load from your game's save system
     // Example pseudocode (replace with your save game implementation):
@@ -362,7 +363,7 @@ void UCoinCounter::LoadPersistentCoins()
     if (SaveGameInstance)
     {
         LevelPersistentCoins = SaveGameInstance->PersistentCoins;
-        UE_LOG(LogTemp, Log, TEXT("Loaded %d persistent coins"), LevelPersistentCoins);
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("Loaded %d persistent coins"), LevelPersistentCoins);
     }
     */
 }
