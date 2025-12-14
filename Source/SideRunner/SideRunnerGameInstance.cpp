@@ -248,7 +248,7 @@ void USideRunnerGameInstance::ResetLives()
 void USideRunnerGameInstance::SetRespawnLocation(const FVector& RespawnLocation)
 {
     LastRespawnLocation = RespawnLocation;
-    UE_LOG(LogSideRunnerScoring, VeryVerbose, TEXT("Respawn location set to: %s"), *RespawnLocation.ToString());
+    UE_LOG(LogSideRunner, VeryVerbose, TEXT("Respawn location set to: %s"), *RespawnLocation.ToString());
 }
 
 void USideRunnerGameInstance::InitializeDistanceTracking(float StartingXPosition)

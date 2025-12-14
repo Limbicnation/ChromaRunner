@@ -544,7 +544,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
         return;
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogSideRunner, Verbose, TEXT("Player overlapped with WallSpike - applying instant death damage"));
+    UE_LOG(LogSideRunnerCombat, Verbose, TEXT("Player overlapped with WallSpike - applying instant death damage"));
 #endif
 
     // Apply instant death damage through health component
@@ -565,7 +565,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
         return;
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogSideRunner, VeryVerbose, TEXT("Player overlapped with regular Spikes - applying damage"));
+    UE_LOG(LogSideRunnerCombat, VeryVerbose, TEXT("Player overlapped with regular Spikes - applying damage"));
 #endif
 
     // Apply regular spike damage through health component
@@ -713,7 +713,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
         if (bHasLivesRemaining)
         {
             // Player has lives remaining - respawn after brief pause
-            UE_LOG(LogSideRunner, Log, TEXT("Player has lives remaining - respawning"));
+            UE_LOG(LogSideRunnerScoring, Log, TEXT("Player has lives remaining - respawning"));
 
             // CRITICAL FIX: Use member variable RespawnTimerHandle (NOT local variable)
             // Brief delay to show death state, then respawn
@@ -723,25 +723,25 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
         else
         {
             // No lives remaining - game over (immediate, no delay)
-            UE_LOG(LogSideRunner, Warning, TEXT("No lives remaining - triggering game over"));
+            UE_LOG(LogSideRunnerScoring, Warning, TEXT("No lives remaining - triggering game over"));
             // Game over already triggered by DecrementLives()
 
             // CRITICAL: Add diagnostic logging before calling Blueprint event
-            UE_LOG(LogSideRunner, Verbose, TEXT("=== HandlePlayerDeath: About to trigger game over ==="));
-            UE_LOG(LogSideRunner, Verbose, TEXT("  this=%p valid=%d"), this, IsValid(this) ? 1 : 0);
-            UE_LOG(LogSideRunner, Verbose, TEXT("  GameInstance=%p valid=%d"), CachedGameInstance, IsValid(CachedGameInstance) ? 1 : 0);
-            UE_LOG(LogSideRunner, Verbose, TEXT("  World=%p"), GetWorld());
-            UE_LOG(LogSideRunner, Verbose, TEXT("  PlayerController=%p"), GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("=== HandlePlayerDeath: About to trigger game over ==="));
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  this=%p valid=%d"), this, IsValid(this) ? 1 : 0);
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  GameInstance=%p valid=%d"), CachedGameInstance, IsValid(CachedGameInstance) ? 1 : 0);
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  World=%p"), GetWorld());
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  PlayerController=%p"), GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
 
             // CRITICAL FIX: Wrap blueprint event call with validation
             if (IsGameOverSafe())
             {
-                UE_LOG(LogSideRunner, Verbose, TEXT("Calling DeathOfPlayer Blueprint event - all systems valid"));
+                UE_LOG(LogSideRunnerScoring, Verbose, TEXT("Calling DeathOfPlayer Blueprint event - all systems valid"));
                 DeathOfPlayer();
             }
             else
             {
-                UE_LOG(LogSideRunner, Error, TEXT("Cannot call DeathOfPlayer - system validation failed!"));
+                UE_LOG(LogSideRunnerScoring, Error, TEXT("Cannot call DeathOfPlayer - system validation failed!"));
                 // Fallback: Reload level directly to prevent soft-lock
                 UWorld* World = GetWorld();
                 if (World)
