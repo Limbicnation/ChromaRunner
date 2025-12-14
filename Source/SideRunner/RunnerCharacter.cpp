@@ -798,7 +798,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
         UE_LOG(LogSideRunner, Error, TEXT("HandlePlayerDeath: GameInstance is invalid!"));
         
         // FALLBACK: Trigger immediate game over/restart to prevent soft-lock
-        if (IsGameOverSafe())
+        if (IsValid(World) && IsValid(GetController<APlayerController>()))
         {
             UE_LOG(LogSideRunner, Warning, TEXT("Fallback: Calling DeathOfPlayer despite invalid GameInstance"));
             DeathOfPlayer();
@@ -806,7 +806,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
         else if (World)
         {
             // Last resort: reload level
-            UE_LOG(LogSideRunner, Warning, TEXT("Last resort: Reloading current level"));
+            UE_LOG(LogSideRunner, Warning, TEXT("Last resort: Reloading current level as PlayerController is also invalid."));
             UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
         }
     }
