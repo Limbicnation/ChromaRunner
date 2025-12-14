@@ -16,14 +16,51 @@ void ASpawnLevel::BeginPlay()
 {
     Super::BeginPlay();
 
-    Player = GetWorld()->GetFirstPlayerController()->GetPawn();
-    if (Player)
+    if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
     {
-        SpawnInitialLevels();
+        PlayerWeakPtr = PC->GetPawn();
+        if (PlayerWeakPtr.IsValid())
+        {
+            SpawnInitialLevels();
+        }
+        else
+        {
+            UE_LOG(LogSideRunner, Warning, TEXT("Player pawn not found at BeginPlay. Spawning will be delayed."));
+        }
     }
     else
     {
-        UE_LOG(LogSideRunner, Warning, TEXT("Player not found at BeginPlay. Spawning will be delayed."));
+        UE_LOG(LogSideRunner, Warning, TEXT("No PlayerController found at BeginPlay."));
+    }
+}
+
+void ASpawnLevel::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    // Clear all pending timers
+    for (FTimerHandle& TimerHandle : PendingDestroyTimers)
+    {
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+    }
+    PendingDestroyTimers.Empty();
+
+    // Unbind delegates from all remaining levels
+    for (ABaseLevel* Level : LevelList)
+    {
+        if (IsValid(Level) && Level->GetTrigger())
+        {
+            Level->GetTrigger()->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
+        }
+    }
+    LevelList.Empty();
+
+    Super::EndPlay(EndPlayReason);
+}
+
+void ASpawnLevel::TryAcquirePlayerPawn()
+{
+    if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+    {
+        PlayerWeakPtr = PC->GetPawn();
     }
 }
 
@@ -32,10 +69,11 @@ void ASpawnLevel::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    if (!Player)
+    // Re-acquire player reference if invalid (handles respawn scenarios)
+    if (!PlayerWeakPtr.IsValid())
     {
-        Player = GetWorld()->GetFirstPlayerController()->GetPawn();
-        if (Player)
+        TryAcquirePlayerPawn();
+        if (PlayerWeakPtr.IsValid() && LevelList.Num() == 0)
         {
             SpawnInitialLevels();
         }
@@ -60,10 +98,30 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
 
     if (!IsFirst && LevelList.Num() > 0)
     {
-        ABaseLevel* LastLevel = LevelList.Last();
-        if (LastLevel)
+        // Find the last valid level in the list
+        ABaseLevel* LastLevel = nullptr;
+        for (int32 i = LevelList.Num() - 1; i >= 0; --i)
+        {
+            if (IsValid(LevelList[i]))
+            {
+                LastLevel = LevelList[i];
+                break;
+            }
+            else
+            {
+                // Remove stale reference
+                UE_LOG(LogSideRunner, Warning, TEXT("Removing invalid level reference at index %d"), i);
+                LevelList.RemoveAt(i);
+            }
+        }
+
+        if (LastLevel && LastLevel->GetSpawnLocation())
         {
             NewSpawnLocation = LastLevel->GetSpawnLocation()->GetComponentTransform().GetTranslation();
+        }
+        else
+        {
+            UE_LOG(LogSideRunner, Warning, TEXT("No valid last level found - using default spawn location"));
         }
     }
 
@@ -103,19 +161,54 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
 
 void ASpawnLevel::DelayedDestroyOldestLevel()
 {
+    if (LevelList.Num() == 0)
+    {
+        return;
+    }
+
+    // Capture the level to destroy and remove from array immediately
+    TWeakObjectPtr<ABaseLevel> LevelToDestroy = LevelList[0];
+    LevelList.RemoveAt(0);
+
+    FTimerHandle NewTimerHandle;
     FTimerDelegate TimerDel;
-    TimerDel.BindUFunction(this, FName("DestroyOldestLevel"));
-    GetWorld()->GetTimerManager().SetTimer(DestroyTimerHandle, TimerDel, LevelDestroyDelay, false);
+
+    // Use lambda to capture the specific level instance
+    TimerDel.BindLambda([this, LevelToDestroy, NewTimerHandle]()
+    {
+        if (LevelToDestroy.IsValid())
+        {
+            // Unbind delegate before destruction to prevent stale callbacks
+            if (UBoxComponent* Trigger = LevelToDestroy->GetTrigger())
+            {
+                Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
+            }
+
+            LevelToDestroy->Destroy();
+            UE_LOG(LogSideRunner, Verbose, TEXT("Destroyed old level segment"));
+        }
+
+        // Clean up timer handle from array
+        PendingDestroyTimers.Remove(NewTimerHandle);
+    });
+
+    GetWorld()->GetTimerManager().SetTimer(NewTimerHandle, TimerDel, LevelDestroyDelay, false);
+    PendingDestroyTimers.Add(NewTimerHandle);
 }
 
 void ASpawnLevel::DestroyOldestLevel()
 {
+    // Legacy function kept for backward compatibility - now handled by lambda in DelayedDestroyOldestLevel
     if (LevelList.Num() > 0)
     {
         ABaseLevel* OldestLevel = LevelList[0];
         LevelList.RemoveAt(0);
-        if (OldestLevel)
+        if (IsValid(OldestLevel))
         {
+            if (UBoxComponent* Trigger = OldestLevel->GetTrigger())
+            {
+                Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
+            }
             OldestLevel->Destroy();
         }
     }
@@ -125,8 +218,22 @@ void ASpawnLevel::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Ot
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
     const FHitResult& SweepResult)
 {
-    if (OtherActor && OtherActor == Player)
+    if (!OtherActor)
     {
+        return;
+    }
+
+    // Refresh player reference if stale (handles respawn)
+    if (!PlayerWeakPtr.IsValid())
+    {
+        TryAcquirePlayerPawn();
+    }
+
+    // Check if overlapping actor is the current player pawn
+    if (PlayerWeakPtr.IsValid() && OtherActor == PlayerWeakPtr.Get())
+    {
+        UE_LOG(LogSideRunner, Verbose, TEXT("Player triggered level spawn at %s"),
+            OverlappedComp && OverlappedComp->GetOwner() ? *OverlappedComp->GetOwner()->GetName() : TEXT("Unknown"));
         SpawnLevel(false);
     }
 }
