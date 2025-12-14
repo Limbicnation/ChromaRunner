@@ -16,6 +16,7 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
     virtual void Tick(float DeltaTime) override;
@@ -30,7 +31,8 @@ public:
     void DestroyOldestLevel(); // Marked as UFUNCTION to expose it to the engine
 
 protected:
-    APawn* Player;
+    /** Weak reference to player pawn - handles pawn respawn/death correctly */
+    TWeakObjectPtr<APawn> PlayerWeakPtr;
 
     UPROPERTY(EditAnywhere)
     TSubclassOf<ABaseLevel> Level1;
@@ -62,6 +64,8 @@ private:
 
     void SpawnInitialLevels();
     void DelayedDestroyOldestLevel();
+    void TryAcquirePlayerPawn();
 
-    FTimerHandle DestroyTimerHandle; // Add a timer handle for the destruction delay
+    /** Array of timer handles for pending destroy operations */
+    TArray<FTimerHandle> PendingDestroyTimers;
 };
