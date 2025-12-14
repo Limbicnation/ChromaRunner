@@ -570,12 +570,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
     // Apply instant death damage through health component
     const int32 InstantDeathDamage = HealthComponent->GetMaxHealth() * 10;
     HealthComponent->TakeDamage(InstantDeathDamage, EDamageType::Spikes);
-
-    // Check for death and handle accordingly
-    if (IsDead())
-    {
-        HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
-    }
+    // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
 
 void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
@@ -591,12 +586,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
     // Apply regular spike damage through health component
     const int32 SpikeDamage = static_cast<int32>(RegularSpike->DamageAmount);
     HealthComponent->TakeDamage(SpikeDamage, EDamageType::Spikes);
-
-    // Check for death and handle accordingly
-    if (IsDead())
-    {
-        HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
-    }
+    // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
 
 void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
@@ -614,12 +604,7 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 
     // Apply damage
     HealthComponent->TakeDamage(static_cast<int32>(DamageAmount), DamageType);
-
-    // Check for death
-    if (IsDead())
-    {
-        HandlePlayerDeath(HealthComponent->GetTotalHitsTaken());
-    }
+    // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
 
 bool ARunnerCharacter::IsDead() const
