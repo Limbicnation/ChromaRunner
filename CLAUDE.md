@@ -97,3 +97,47 @@ Use the provided Makefile commands for all build operations. The Makefile is aut
 - **Language**: C++20 with Unreal Engine 5.5 coding standards
 - **Naming**: Unreal's naming conventions (A/U/F/E prefixes)
 - **Architecture**: Component-based design with Blueprint integration points
+
+## Git LFS Configuration
+
+This repository uses **Git LFS** for large binary files (`.uasset`, `.umap`, images, etc.).
+
+### LFS Budget Issues
+
+If you encounter LFS download errors like "repository exceeded its LFS budget":
+
+1. **Increase GitHub LFS budget**: Go to GitHub → Settings → Billing → Budgets and alerts → Edit Git LFS budget
+2. **Uncheck "Stop usage when budget limit is reached"** to prevent blocking
+3. **Temporary workaround** - Skip LFS downloads:
+   ```bash
+   git lfs install --skip-smudge
+   git pull
+   ```
+4. **Restore LFS later** when budget is available:
+   ```bash
+   git lfs install --force
+   git lfs pull
+   ```
+
+### Common Git Troubleshooting
+
+```bash
+# Clean untracked files conflicting with merge
+git clean -fd
+
+# Reset to latest commit (discards local changes)
+git reset --hard HEAD
+
+# Stash all changes including untracked files
+git stash --include-untracked
+
+# Force skip LFS filter (if skip-smudge doesn't work)
+git config --local filter.lfs.smudge "git-lfs smudge --skip -- %f"
+git config --local filter.lfs.process "git-lfs filter-process --skip"
+```
+
+### LFS Tracked Files
+Run `git lfs ls-files` to see all LFS-tracked files. Key patterns in `.gitattributes`:
+- `*.uasset` - Unreal asset files
+- `*.umap` - Unreal map files
+- `*.png`, `*.jpg` - Images
