@@ -13,6 +13,7 @@
 #include "PlayerHealthComponent.h"
 #include "SideRunnerGameInstance.h"
 #include "GameFramework/PlayerStart.h"
+#include "SpawnLevel.h" // For ResetLevelsForRespawn on respawn
 #include "SideRunner.h" // Custom log categories
 
 // CRITICAL FIX: Comprehensive validation macro for HealthComponent access
@@ -877,49 +878,58 @@ void ARunnerCharacter::RespawnPlayer()
     // Reset animation state
     SetCharacterState(ECharacterState::Idle);
 
-    // CRITICAL FIX: Get respawn location from game instance (or use player start)
+    // CRITICAL FIX: Always use PlayerStart for respawn - it's the known valid location with ground
     FVector RespawnLocation = FVector::ZeroVector;
     FRotator RespawnRotation = FRotator::ZeroRotator;
 
-    // Try to get saved respawn location
-    CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
-    if (IsValid(CachedGameInstance))
-    {
-        RespawnLocation = CachedGameInstance->GetRespawnLocation();
-    }
+    // Find PlayerStart for respawn location (known to have valid geometry)
+    TArray<AActor*> PlayerStarts;
+    UGameplayStatics::GetAllActorsOfClass(World, APlayerStart::StaticClass(), PlayerStarts);
 
-    // If no saved location, find PlayerStart
-    if (RespawnLocation.IsZero())
+    if (PlayerStarts.Num() > 0)
     {
-        TArray<AActor*> PlayerStarts;
-        UGameplayStatics::GetAllActorsOfClass(World, APlayerStart::StaticClass(), PlayerStarts);
-
-        if (PlayerStarts.Num() > 0)
+        APlayerStart* PlayerStart = Cast<APlayerStart>(PlayerStarts[0]);
+        if (PlayerStart)
         {
-            APlayerStart* PlayerStart = Cast<APlayerStart>(PlayerStarts[0]);
-            if (PlayerStart)
-            {
-                RespawnLocation = PlayerStart->GetActorLocation();
-                RespawnRotation = PlayerStart->GetActorRotation();
-                UE_LOG(LogSideRunner, Log, TEXT("Using PlayerStart location: %s"), *RespawnLocation.ToString());
-            }
-        }
-        else
-        {
-            // Fallback to origin if no PlayerStart found
-            RespawnLocation = RunnerCharacterConstants::FALLBACK_RESPAWN_LOCATION;
-            UE_LOG(LogSideRunner, Warning, TEXT("No PlayerStart found - using fallback location"));
+            RespawnLocation = PlayerStart->GetActorLocation();
+            RespawnRotation = PlayerStart->GetActorRotation();
+            UE_LOG(LogSideRunner, Log, TEXT("Using PlayerStart location for respawn: %s"), *RespawnLocation.ToString());
         }
     }
+    else
+    {
+        // Fallback to origin if no PlayerStart found
+        RespawnLocation = RunnerCharacterConstants::FALLBACK_RESPAWN_LOCATION;
+        UE_LOG(LogSideRunner, Warning, TEXT("No PlayerStart found - using fallback location"));
+    }
 
-    // Teleport player to respawn location
+    // Teleport player to respawn location FIRST (before level reset)
     SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::ResetPhysics);
     SetActorRotation(RespawnRotation);
 
-    // Reset velocity
+    // Reset velocity immediately
     if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
     {
         MovementComponent->Velocity = FVector::ZeroVector;
+    }
+
+    // CRITICAL FIX: Reset all level spawners to create fresh levels at player position
+    TArray<AActor*> SpawnLevelActors;
+    UGameplayStatics::GetAllActorsOfClass(World, ASpawnLevel::StaticClass(), SpawnLevelActors);
+    for (AActor* Actor : SpawnLevelActors)
+    {
+        if (ASpawnLevel* SpawnLevelActor = Cast<ASpawnLevel>(Actor))
+        {
+            SpawnLevelActor->ResetLevelsForRespawn();
+        }
+    }
+
+    // Update respawn location in game instance for score tracking
+    // Use cached instance from BeginPlay (avoid redundant casting per performance comment in header)
+    if (IsValid(CachedGameInstance))
+    {
+        CachedGameInstance->SetRespawnLocation(RespawnLocation);
+        CachedGameInstance->InitializeDistanceTracking(RespawnLocation.X);
     }
 
     UE_LOG(LogSideRunner, Log, TEXT("Player respawned at: %s"), *RespawnLocation.ToString());

@@ -214,6 +214,54 @@ void ASpawnLevel::DestroyOldestLevel()
     }
 }
 
+void ASpawnLevel::ResetLevelsForRespawn()
+{
+    // Guard clause: Ensure we have a valid world context
+    if (!GetWorld())
+    {
+        UE_LOG(LogSideRunner, Warning, TEXT("ResetLevelsForRespawn: Called with no world, aborting."));
+        return;
+    }
+
+    UE_LOG(LogSideRunner, Log, TEXT("ResetLevelsForRespawn: Clearing all levels for player respawn"));
+
+    // Clear all pending destroy timers to prevent callbacks on destroyed levels
+    for (FTimerHandle& TimerHandle : PendingDestroyTimers)
+    {
+        if (GetWorld())
+        {
+            GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+        }
+    }
+    PendingDestroyTimers.Empty();
+
+    // Destroy all existing levels and unbind delegates
+    for (ABaseLevel* Level : LevelList)
+    {
+        if (IsValid(Level))
+        {
+            if (UBoxComponent* Trigger = Level->GetTrigger())
+            {
+                Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
+            }
+            Level->Destroy();
+        }
+    }
+    LevelList.Empty();
+
+    // Re-acquire player reference and spawn fresh levels
+    TryAcquirePlayerPawn();
+    if (PlayerWeakPtr.IsValid())
+    {
+        SpawnInitialLevels();
+        UE_LOG(LogSideRunner, Log, TEXT("ResetLevelsForRespawn: Spawned %d fresh levels"), LevelList.Num());
+    }
+    else
+    {
+        UE_LOG(LogSideRunner, Warning, TEXT("ResetLevelsForRespawn: Player not found, levels will spawn when player becomes available"));
+    }
+}
+
 void ASpawnLevel::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
     const FHitResult& SweepResult)
