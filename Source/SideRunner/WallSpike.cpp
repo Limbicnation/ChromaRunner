@@ -333,6 +333,12 @@ void AWallSpike::ResetPositionBehindPlayer(ARunnerCharacter* Player)
 		return;
 	}
 
+	// Cancel pending destruction timer since player respawned
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DeathDestroyTimerHandle);
+	}
+
 	// Calculate position behind player based on primary direction
 	const FVector PlayerLocation = Player->GetActorLocation();
 	const FVector PrimaryDir = GetPrimaryDirection();
@@ -559,9 +565,8 @@ void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector Hit
 		return;
 	}
 
-	// PERFORMANCE: Use lambda with timer for destruction
-	FTimerHandle DestroyTimer;
-	World->GetTimerManager().SetTimer(DestroyTimer, [this]()
+	// Store timer handle so we can cancel it if player respawns
+	World->GetTimerManager().SetTimer(DeathDestroyTimerHandle, [this]()
 	{
 		if (IsValid(this))
 		{

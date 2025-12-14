@@ -117,6 +117,9 @@ private:
 	UPROPERTY()
 	UAudioComponent* ChaseAudioComponent;
 
+	// Timer handle for destruction - stored so it can be canceled on player respawn
+	FTimerHandle DeathDestroyTimerHandle;
+
 	// PERFORMANCE: Core functionality methods
 	FVector GetPrimaryDirection() const;
 	void UpdateTargetPlayer();
