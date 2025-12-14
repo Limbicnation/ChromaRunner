@@ -235,7 +235,10 @@ void ARunnerCharacter::BeginPlay()
     }
 
     // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
-    CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
+    // CRITICAL FIX: Use UGameplayStatics for more reliable GameInstance retrieval
+    CachedGameInstance = Cast<USideRunnerGameInstance>(
+        UGameplayStatics::GetGameInstance(this)
+    );
 
     // Store initial spawn location as respawn point AND initialize score tracking
     if (CachedGameInstance)
@@ -244,6 +247,22 @@ void ARunnerCharacter::BeginPlay()
         CachedGameInstance->SetRespawnLocation(SpawnLocation);
         CachedGameInstance->InitializeDistanceTracking(SpawnLocation.X); // CRITICAL FIX: Start score from spawn X
         UE_LOG(LogSideRunner, Log, TEXT("Initial spawn location stored: %s"), *SpawnLocation.ToString());
+    }
+    else
+    {
+        // Diagnostic logging to identify why GameInstance is unavailable
+        UWorld* World = GetWorld();
+        UE_LOG(LogSideRunner, Warning, TEXT("BeginPlay: Failed to get GameInstance!"));
+        UE_LOG(LogSideRunner, Warning, TEXT("  World pointer: %p"), World);
+        if (World)
+        {
+            UGameInstance* RawGI = World->GetGameInstance();
+            UE_LOG(LogSideRunner, Warning, TEXT("  Raw GameInstance: %p"), RawGI);
+            if (RawGI)
+            {
+                UE_LOG(LogSideRunner, Warning, TEXT("  GameInstance class: %s"), *RawGI->GetClass()->GetName());
+            }
+        }
     }
 
     // CRITICAL FIX: Store initial X position for 2.5D constraint enforcement
@@ -661,7 +680,9 @@ bool ARunnerCharacter::IsGameOverSafe() const
 	}
 
 	// Validate game instance
-	USideRunnerGameInstance* GI = Cast<USideRunnerGameInstance>(GetGameInstance());
+	USideRunnerGameInstance* GI = Cast<USideRunnerGameInstance>(
+		UGameplayStatics::GetGameInstance(this)
+	);
 	if (!IsValid(GI))
 	{
 		UE_LOG(LogSideRunner, Error, TEXT("IsGameOverSafe: GameInstance is invalid"));
@@ -703,8 +724,30 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
 
     // NOTE: Death logging handled authoritatively by PlayerHealthComponent
 
-    // CRITICAL FIX: Re-validate game instance before use
-    CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
+    // CRITICAL FIX: Use UGameplayStatics for reliable GameInstance retrieval
+    // Enhanced diagnostic logging to identify exact failure point
+    UWorld* World = GetWorld();
+    UE_LOG(LogSideRunner, Log, TEXT("HandlePlayerDeath Diagnostics:"));
+    UE_LOG(LogSideRunner, Log, TEXT("  World pointer: %p"), World);
+
+    if (World)
+    {
+        UGameInstance* RawGI = World->GetGameInstance();
+        UE_LOG(LogSideRunner, Log, TEXT("  Raw GameInstance: %p"), RawGI);
+        UE_LOG(LogSideRunner, Log, TEXT("  World is tearing down: %s"),
+               World->bIsTearingDown ? TEXT("YES") : TEXT("NO"));
+
+        if (RawGI)
+        {
+            UE_LOG(LogSideRunner, Log, TEXT("  GameInstance class: %s"),
+                   *RawGI->GetClass()->GetName());
+        }
+    }
+
+    // Use UGameplayStatics instead of direct AActor::GetGameInstance
+    CachedGameInstance = Cast<USideRunnerGameInstance>(
+        UGameplayStatics::GetGameInstance(this)
+    );
 
     if (IsValid(CachedGameInstance))
     {
@@ -743,7 +786,6 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
             {
                 UE_LOG(LogSideRunnerScoring, Error, TEXT("Cannot call DeathOfPlayer - system validation failed!"));
                 // Fallback: Reload level directly to prevent soft-lock
-                UWorld* World = GetWorld();
                 if (World)
                 {
                     UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
@@ -754,6 +796,19 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
     else
     {
         UE_LOG(LogSideRunner, Error, TEXT("HandlePlayerDeath: GameInstance is invalid!"));
+        
+        // FALLBACK: Trigger immediate game over/restart to prevent soft-lock
+        if (IsValid(World) && IsValid(GetController<APlayerController>()))
+        {
+            UE_LOG(LogSideRunner, Warning, TEXT("Fallback: Calling DeathOfPlayer despite invalid GameInstance"));
+            DeathOfPlayer();
+        }
+        else if (World)
+        {
+            // Last resort: reload level
+            UE_LOG(LogSideRunner, Warning, TEXT("Last resort: Reloading current level as PlayerController is also invalid."));
+            UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this)));
+        }
     }
 }
 
