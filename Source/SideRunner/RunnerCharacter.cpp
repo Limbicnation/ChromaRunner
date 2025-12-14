@@ -13,6 +13,7 @@
 #include "PlayerHealthComponent.h"
 #include "SideRunnerGameInstance.h"
 #include "GameFramework/PlayerStart.h"
+#include "SideRunner.h" // Custom log categories
 
 // CRITICAL FIX: Comprehensive validation macro for HealthComponent access
 // Prevents access violations by validating component before use
@@ -20,7 +21,7 @@
 #define VALIDATE_HEALTH_COMPONENT_VOID() \
     if (!IsValid(HealthComponent)) \
     { \
-        UE_LOG(LogTemp, Error, TEXT("%s: HealthComponent invalid! Address: %p"), \
+        UE_LOG(LogSideRunner, Error, TEXT("%s: HealthComponent invalid! Address: %p"), \
                *FString(__FUNCTION__), HealthComponent); \
         return; \
     }
@@ -156,36 +157,36 @@ void ARunnerCharacter::BeginPlay()
         CameraBoom->SetRelativeRotation(FRotator(0.0f, 0.0f, -90.0f));
 
         // COMPREHENSIVE DEBUG: Diagnose why camera shows front view despite correct rotation
-        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
-        UE_LOG(LogTemp, Warning, TEXT("=== CAMERA DIAGNOSTIC INFO ==="));
-        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
+        UE_LOG(LogSideRunner, Verbose, TEXT("=========================================="));
+        UE_LOG(LogSideRunner, Verbose, TEXT("=== CAMERA DIAGNOSTIC INFO ==="));
+        UE_LOG(LogSideRunner, Verbose, TEXT("=========================================="));
 
         // Camera Boom Info
-        UE_LOG(LogTemp, Warning, TEXT("CameraBoom World Rotation: %s"), *CameraBoom->GetComponentRotation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("CameraBoom Relative Rotation: %s"), *CameraBoom->GetRelativeRotation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("CameraBoom World Location: %s"), *CameraBoom->GetComponentLocation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("CameraBoom Forward Vector: %s"), *CameraBoom->GetForwardVector().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("CameraBoom World Rotation: %s"), *CameraBoom->GetComponentRotation().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("CameraBoom Relative Rotation: %s"), *CameraBoom->GetRelativeRotation().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("CameraBoom World Location: %s"), *CameraBoom->GetComponentLocation().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("CameraBoom Forward Vector: %s"), *CameraBoom->GetForwardVector().ToString());
 
         // Camera Info
-        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera World Rotation: %s"), *SideViewCamera->GetComponentRotation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera World Location: %s"), *SideViewCamera->GetComponentLocation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("SideViewCamera Forward Vector: %s"), *SideViewCamera->GetForwardVector().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("SideViewCamera World Rotation: %s"), *SideViewCamera->GetComponentRotation().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("SideViewCamera World Location: %s"), *SideViewCamera->GetComponentLocation().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("SideViewCamera Forward Vector: %s"), *SideViewCamera->GetForwardVector().ToString());
 
         // Character Info
-        UE_LOG(LogTemp, Warning, TEXT("Character World Rotation: %s"), *GetActorRotation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("Character World Location: %s"), *GetActorLocation().ToString());
-        UE_LOG(LogTemp, Warning, TEXT("Character Forward Vector: %s"), *GetActorForwardVector().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("Character World Rotation: %s"), *GetActorRotation().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("Character World Location: %s"), *GetActorLocation().ToString());
+        UE_LOG(LogSideRunner, Verbose, TEXT("Character Forward Vector: %s"), *GetActorForwardVector().ToString());
 
         // Sprite Component Info (if exists)
         if (CharacterVisual)
         {
-            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual Component Name: %s"), *CharacterVisual->GetName());
-            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual World Rotation: %s"), *CharacterVisual->GetComponentRotation().ToString());
-            UE_LOG(LogTemp, Warning, TEXT("CharacterVisual Relative Rotation: %s"), *CharacterVisual->GetRelativeRotation().ToString());
+            UE_LOG(LogSideRunner, Verbose, TEXT("CharacterVisual Component Name: %s"), *CharacterVisual->GetName());
+            UE_LOG(LogSideRunner, Verbose, TEXT("CharacterVisual World Rotation: %s"), *CharacterVisual->GetComponentRotation().ToString());
+            UE_LOG(LogSideRunner, Verbose, TEXT("CharacterVisual Relative Rotation: %s"), *CharacterVisual->GetRelativeRotation().ToString());
         }
         else
         {
-            UE_LOG(LogTemp, Error, TEXT("CharacterVisual is NULL - sprite component not found!"));
+            UE_LOG(LogSideRunner, Error, TEXT("CharacterVisual is NULL - sprite component not found!"));
         }
 
         // Active Camera Info
@@ -193,16 +194,16 @@ void ARunnerCharacter::BeginPlay()
         if (PC)
         {
             AActor* ViewTarget = PC->GetViewTarget();
-            UE_LOG(LogTemp, Warning, TEXT("Active View Target: %s"), ViewTarget ? *ViewTarget->GetName() : TEXT("NULL"));
+            UE_LOG(LogSideRunner, Verbose, TEXT("Active View Target: %s"), ViewTarget ? *ViewTarget->GetName() : TEXT("NULL"));
 
             FVector CameraLoc;
             FRotator CameraRot;
             PC->GetPlayerViewPoint(CameraLoc, CameraRot);
-            UE_LOG(LogTemp, Warning, TEXT("Active Camera Location: %s"), *CameraLoc.ToString());
-            UE_LOG(LogTemp, Warning, TEXT("Active Camera Rotation: %s"), *CameraRot.ToString());
+            UE_LOG(LogSideRunner, Verbose, TEXT("Active Camera Location: %s"), *CameraLoc.ToString());
+            UE_LOG(LogSideRunner, Verbose, TEXT("Active Camera Rotation: %s"), *CameraRot.ToString());
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("=========================================="));
+        UE_LOG(LogSideRunner, Verbose, TEXT("=========================================="));
     }
 
     // CRITICAL FIX: Lock character rotation for 2.5D side-scroller
@@ -223,12 +224,12 @@ void ARunnerCharacter::BeginPlay()
                 HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
                 HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
 #if UE_BUILD_DEVELOPMENT
-                UE_LOG(LogTemp, Log, TEXT("Health component delegates bound successfully"));
+                UE_LOG(LogSideRunner, Log, TEXT("Health component delegates bound successfully"));
 #endif
             }
             else
             {
-                UE_LOG(LogTemp, Error, TEXT("Failed to bind health delegates - component not initialized"));
+                UE_LOG(LogSideRunner, Error, TEXT("Failed to bind health delegates - component not initialized"));
             }
         }, 0.1f, false);  // Small delay to ensure component initialization
     }
@@ -242,13 +243,13 @@ void ARunnerCharacter::BeginPlay()
         const FVector SpawnLocation = GetActorLocation();
         CachedGameInstance->SetRespawnLocation(SpawnLocation);
         CachedGameInstance->InitializeDistanceTracking(SpawnLocation.X); // CRITICAL FIX: Start score from spawn X
-        UE_LOG(LogTemp, Log, TEXT("Initial spawn location stored: %s"), *SpawnLocation.ToString());
+        UE_LOG(LogSideRunner, Log, TEXT("Initial spawn location stored: %s"), *SpawnLocation.ToString());
     }
 
     // CRITICAL FIX: Store initial X position for 2.5D constraint enforcement
     // This ensures character remains locked to the 2.5D plane even if physics tries to push them off
     InitialXPosition = GetActorLocation().X;
-    UE_LOG(LogTemp, Log, TEXT("2.5D Constraint: Initial X-position locked at %.2f"), InitialXPosition);
+    UE_LOG(LogSideRunner, Log, TEXT("2.5D Constraint: Initial X-position locked at %.2f"), InitialXPosition);
 }
 
 // Called every frame
@@ -267,7 +268,7 @@ void ARunnerCharacter::Tick(float DeltaTime)
         if (!CurrentRelativeRot.Equals(DesiredRotation, 0.1f))
         {
             CameraBoom->SetRelativeRotation(DesiredRotation);
-            UE_LOG(LogTemp, Warning, TEXT("TICK: Camera rotation was wrong (%s), forcing to side view (%s)"),
+            UE_LOG(LogSideRunner, Verbose, TEXT("TICK: Camera rotation was wrong (%s), forcing to side view (%s)"),
                    *CurrentRelativeRot.ToString(), *DesiredRotation.ToString());
         }
     }
@@ -295,7 +296,7 @@ void ARunnerCharacter::Tick(float DeltaTime)
         SetActorLocation(CurrentLocation, false, nullptr, ETeleportType::TeleportPhysics);
 
 #if UE_BUILD_DEVELOPMENT
-        UE_LOG(LogTemp, Warning, TEXT("2.5D Constraint: X-axis position corrected (%.2f -> %.2f) - character was pushed off plane"),
+        UE_LOG(LogSideRunner, Verbose, TEXT("2.5D Constraint: X-axis position corrected (%.2f -> %.2f) - character was pushed off plane"),
                GetActorLocation().X, InitialXPosition);
 #endif
     }
@@ -408,7 +409,7 @@ void ARunnerCharacter::SetCharacterState(ECharacterState NewState)
     StateTimer = RunnerCharacterConstants::STATE_TIMER_RESET;
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Verbose, TEXT("Character state changed from %s to %s"),
+    UE_LOG(LogSideRunner, Verbose, TEXT("Character state changed from %s to %s"),
         *UEnum::GetValueAsString(OldState),
         *UEnum::GetValueAsString(CurrentState));
 #endif
@@ -493,7 +494,7 @@ void ARunnerCharacter::MoveRight(float Value)
 
 void ARunnerCharacter::RestartLevel()
 {
-    UE_LOG(LogTemp, Log, TEXT("RestartLevel called"));
+    UE_LOG(LogSideRunner, Log, TEXT("RestartLevel called"));
 
     // CRITICAL FIX: Clean up before level transition
     CleanupBeforeDestroy();
@@ -502,7 +503,7 @@ void ARunnerCharacter::RestartLevel()
     const UWorld* World = GetWorld();
     if (!World)
     {
-        UE_LOG(LogTemp, Error, TEXT("RestartLevel: World is null!"));
+        UE_LOG(LogSideRunner, Error, TEXT("RestartLevel: World is null!"));
         return;
     }
 
@@ -543,7 +544,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
         return;
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Warning, TEXT("Player overlapped with WallSpike - applying instant death damage"));
+    UE_LOG(LogSideRunnerCombat, Verbose, TEXT("Player overlapped with WallSpike - applying instant death damage"));
 #endif
 
     // Apply instant death damage through health component
@@ -564,7 +565,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
         return;
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, VeryVerbose, TEXT("Player overlapped with regular Spikes - applying damage"));
+    UE_LOG(LogSideRunnerCombat, VeryVerbose, TEXT("Player overlapped with regular Spikes - applying damage"));
 #endif
 
     // Apply regular spike damage through health component
@@ -609,7 +610,7 @@ bool ARunnerCharacter::IsDead() const
     // Check 1: Use IsValid() first. This is the standard check.
     if (!IsValid(HealthComponent))
     {
-        UE_LOG(LogTemp, VeryVerbose, TEXT("IsDead: HealthComponent not valid - treating as ALIVE (not initialized yet)"));
+        UE_LOG(LogSideRunner, VeryVerbose, TEXT("IsDead: HealthComponent not valid - treating as ALIVE (not initialized yet)"));
         // During initialization, component may not be ready - treat as ALIVE to allow animations
         return false;  // ✓ FIXED: Return false (alive) instead of true (dead)
     }
@@ -617,7 +618,7 @@ bool ARunnerCharacter::IsDead() const
     // Check 2: Defensive check for fully initialized state
     if (!HealthComponent->IsFullyInitialized())
     {
-        UE_LOG(LogTemp, VeryVerbose, TEXT("IsDead: HealthComponent not fully initialized - treating as ALIVE"));
+        UE_LOG(LogSideRunner, VeryVerbose, TEXT("IsDead: HealthComponent not fully initialized - treating as ALIVE"));
         // Component exists but BeginPlay hasn't completed - treat as ALIVE
         return false;  // ✓ FIXED: Return false (alive) during initialization
     }
@@ -625,7 +626,7 @@ bool ARunnerCharacter::IsDead() const
     // Check 3: Verify component outer matches this character (memory corruption check)
     if (HealthComponent->GetOuter() != this)
     {
-        UE_LOG(LogTemp, Error, TEXT("IsDead CHECK FAILED: Character '%s' has a CORRUPTED HealthComponent pointer!"), *GetName());
+        UE_LOG(LogSideRunner, Error, TEXT("IsDead CHECK FAILED: Character '%s' has a CORRUPTED HealthComponent pointer!"), *GetName());
         // Memory corruption detected - fail-safe to ALIVE to prevent crash
         return false;  // ✓ FIXED: Return false (alive) to prevent animation lock
     }
@@ -639,7 +640,7 @@ bool ARunnerCharacter::IsGameOverSafe() const
 	// Validate this actor
 	if (!IsValid(this) || IsPendingKillPending())
 	{
-		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: Character is invalid or pending kill"));
+		UE_LOG(LogSideRunner, Error, TEXT("IsGameOverSafe: Character is invalid or pending kill"));
 		return false;
 	}
 
@@ -647,7 +648,7 @@ bool ARunnerCharacter::IsGameOverSafe() const
 	UWorld* World = GetWorld();
 	if (!World || World->bIsTearingDown)
 	{
-		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: World is invalid or tearing down"));
+		UE_LOG(LogSideRunner, Error, TEXT("IsGameOverSafe: World is invalid or tearing down"));
 		return false;
 	}
 
@@ -655,7 +656,7 @@ bool ARunnerCharacter::IsGameOverSafe() const
 	APlayerController* PC = World->GetFirstPlayerController();
 	if (!IsValid(PC))
 	{
-		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: PlayerController is invalid"));
+		UE_LOG(LogSideRunner, Error, TEXT("IsGameOverSafe: PlayerController is invalid"));
 		return false;
 	}
 
@@ -663,7 +664,7 @@ bool ARunnerCharacter::IsGameOverSafe() const
 	USideRunnerGameInstance* GI = Cast<USideRunnerGameInstance>(GetGameInstance());
 	if (!IsValid(GI))
 	{
-		UE_LOG(LogTemp, Error, TEXT("IsGameOverSafe: GameInstance is invalid"));
+		UE_LOG(LogSideRunner, Error, TEXT("IsGameOverSafe: GameInstance is invalid"));
 		return false;
 	}
 
@@ -700,9 +701,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
         MovementComponent->JumpZVelocity = 0.0f;
     }
 
-#if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Player died after taking %d hits"), TotalHitsTaken);
-#endif
+    // NOTE: Death logging handled authoritatively by PlayerHealthComponent
 
     // CRITICAL FIX: Re-validate game instance before use
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
@@ -714,7 +713,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
         if (bHasLivesRemaining)
         {
             // Player has lives remaining - respawn after brief pause
-            UE_LOG(LogTemp, Log, TEXT("Player has lives remaining - respawning"));
+            UE_LOG(LogSideRunnerScoring, Log, TEXT("Player has lives remaining - respawning"));
 
             // CRITICAL FIX: Use member variable RespawnTimerHandle (NOT local variable)
             // Brief delay to show death state, then respawn
@@ -724,25 +723,25 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
         else
         {
             // No lives remaining - game over (immediate, no delay)
-            UE_LOG(LogTemp, Warning, TEXT("No lives remaining - triggering game over"));
+            UE_LOG(LogSideRunnerScoring, Warning, TEXT("No lives remaining - triggering game over"));
             // Game over already triggered by DecrementLives()
 
             // CRITICAL: Add diagnostic logging before calling Blueprint event
-            UE_LOG(LogTemp, Warning, TEXT("=== HandlePlayerDeath: About to trigger game over ==="));
-            UE_LOG(LogTemp, Warning, TEXT("  this=%p valid=%d"), this, IsValid(this) ? 1 : 0);
-            UE_LOG(LogTemp, Warning, TEXT("  GameInstance=%p valid=%d"), CachedGameInstance, IsValid(CachedGameInstance) ? 1 : 0);
-            UE_LOG(LogTemp, Warning, TEXT("  World=%p"), GetWorld());
-            UE_LOG(LogTemp, Warning, TEXT("  PlayerController=%p"), GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("=== HandlePlayerDeath: About to trigger game over ==="));
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  this=%p valid=%d"), this, IsValid(this) ? 1 : 0);
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  GameInstance=%p valid=%d"), CachedGameInstance, IsValid(CachedGameInstance) ? 1 : 0);
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  World=%p"), GetWorld());
+            UE_LOG(LogSideRunnerScoring, Verbose, TEXT("  PlayerController=%p"), GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr);
 
             // CRITICAL FIX: Wrap blueprint event call with validation
             if (IsGameOverSafe())
             {
-                UE_LOG(LogTemp, Warning, TEXT("Calling DeathOfPlayer Blueprint event - all systems valid"));
+                UE_LOG(LogSideRunnerScoring, Verbose, TEXT("Calling DeathOfPlayer Blueprint event - all systems valid"));
                 DeathOfPlayer();
             }
             else
             {
-                UE_LOG(LogTemp, Error, TEXT("Cannot call DeathOfPlayer - system validation failed!"));
+                UE_LOG(LogSideRunnerScoring, Error, TEXT("Cannot call DeathOfPlayer - system validation failed!"));
                 // Fallback: Reload level directly to prevent soft-lock
                 UWorld* World = GetWorld();
                 if (World)
@@ -754,7 +753,7 @@ void ARunnerCharacter::HandlePlayerDeath(int32 TotalHitsTaken)
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("HandlePlayerDeath: GameInstance is invalid!"));
+        UE_LOG(LogSideRunner, Error, TEXT("HandlePlayerDeath: GameInstance is invalid!"));
     }
 }
 
@@ -774,13 +773,13 @@ float ARunnerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 
 void ARunnerCharacter::RespawnPlayer()
 {
-    UE_LOG(LogTemp, Log, TEXT("RespawnPlayer called"));
+    UE_LOG(LogSideRunner, Log, TEXT("RespawnPlayer called"));
 
     // CRITICAL FIX: Validate 'this' pointer itself (timer may fire on destroyed object)
     // UE 5.5: Use IsValid() for 'this' pointer validation
     if (!IsValid(this))
     {
-        UE_LOG(LogTemp, Error, TEXT("RespawnPlayer: 'this' pointer is invalid!"));
+        UE_LOG(LogSideRunner, Error, TEXT("RespawnPlayer: 'this' pointer is invalid!"));
         return;
     }
 
@@ -788,7 +787,7 @@ void ARunnerCharacter::RespawnPlayer()
     UWorld* World = GetWorld();
     if (!World)
     {
-        UE_LOG(LogTemp, Error, TEXT("RespawnPlayer: World is null!"));
+        UE_LOG(LogSideRunner, Error, TEXT("RespawnPlayer: World is null!"));
         return;
     }
 
@@ -847,14 +846,14 @@ void ARunnerCharacter::RespawnPlayer()
             {
                 RespawnLocation = PlayerStart->GetActorLocation();
                 RespawnRotation = PlayerStart->GetActorRotation();
-                UE_LOG(LogTemp, Log, TEXT("Using PlayerStart location: %s"), *RespawnLocation.ToString());
+                UE_LOG(LogSideRunner, Log, TEXT("Using PlayerStart location: %s"), *RespawnLocation.ToString());
             }
         }
         else
         {
             // Fallback to origin if no PlayerStart found
             RespawnLocation = RunnerCharacterConstants::FALLBACK_RESPAWN_LOCATION;
-            UE_LOG(LogTemp, Warning, TEXT("No PlayerStart found - using fallback location"));
+            UE_LOG(LogSideRunner, Warning, TEXT("No PlayerStart found - using fallback location"));
         }
     }
 
@@ -868,7 +867,7 @@ void ARunnerCharacter::RespawnPlayer()
         MovementComponent->Velocity = FVector::ZeroVector;
     }
 
-    UE_LOG(LogTemp, Log, TEXT("Player respawned at: %s"), *RespawnLocation.ToString());
+    UE_LOG(LogSideRunner, Log, TEXT("Player respawned at: %s"), *RespawnLocation.ToString());
 }
 
 void ARunnerCharacter::CleanupBeforeDestroy()
@@ -891,7 +890,7 @@ void ARunnerCharacter::CleanupBeforeDestroy()
         HealthComponent->OnPlayerDeath.RemoveAll(this);
     }
 
-    UE_LOG(LogTemp, Verbose, TEXT("RunnerCharacter cleanup completed"));
+    UE_LOG(LogSideRunner, Verbose, TEXT("RunnerCharacter cleanup completed"));
 }
 
 void ARunnerCharacter::BeginDestroy()

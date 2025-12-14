@@ -1,5 +1,6 @@
 #include "BaseLevel.h"
 #include "Components/BoxComponent.h"
+#include "SideRunner.h" // Custom log categories
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 
@@ -80,7 +81,7 @@ void ABaseLevel::ValidateLevelActors()
     });
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("BaseLevel %s validated %d level actors"), *GetName(), LevelActors.Num());
+    UE_LOG(LogSideRunner, Log, TEXT("BaseLevel %s validated %d level actors"), *GetName(), LevelActors.Num());
 #endif
 }
 
@@ -143,7 +144,7 @@ void ABaseLevel::OnTriggerOverlap(UPrimitiveComponent* OverlappedComponent, AAct
         OnLevelTriggered.Broadcast(this);
 
 #if UE_BUILD_DEVELOPMENT
-        UE_LOG(LogTemp, Log, TEXT("Level %s triggered by player"), *GetName());
+        UE_LOG(LogSideRunner, Log, TEXT("Level %s triggered by player"), *GetName());
 #endif
     }
 }
@@ -174,7 +175,7 @@ void ABaseLevel::ActivateLevel()
     }
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Level %s activated %d actors"), *GetName(), ActivatedCount);
+    UE_LOG(LogSideRunner, Log, TEXT("Level %s activated %d actors"), *GetName(), ActivatedCount);
 #endif
 }
 
@@ -194,7 +195,7 @@ void ABaseLevel::DeactivateLevel()
     }
 
 #if UE_BUILD_DEVELOPMENT
-    UE_LOG(LogTemp, Log, TEXT("Level %s deactivated %d actors"), *GetName(), DeactivatedCount);
+    UE_LOG(LogSideRunner, Log, TEXT("Level %s deactivated %d actors"), *GetName(), DeactivatedCount);
 #endif
 }
 

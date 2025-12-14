@@ -1,5 +1,6 @@
 #include "GameHUDWidget.h"
 #include "Components/TextBlock.h"
+#include "SideRunner.h" // Custom log categories
 #include "SideRunnerGameInstance.h"
 
 // UI Constants for Lives Display
@@ -22,7 +23,7 @@ void UGameHUDWidget::NativeConstruct()
 
     if (!CachedGameInstance)
     {
-        UE_LOG(LogTemp, Error, TEXT("GameHUDWidget: Failed to get SideRunnerGameInstance!"));
+        UE_LOG(LogSideRunner, Error, TEXT("GameHUDWidget: Failed to get SideRunnerGameInstance!"));
         return;
     }
 
@@ -36,7 +37,7 @@ void UGameHUDWidget::NativeConstruct()
     UpdateScoreDisplay(CachedGameInstance->GetCurrentScore());
     UpdateDistanceDisplay(CachedGameInstance->GetDistanceTraveled());
 
-    UE_LOG(LogTemp, Log, TEXT("GameHUDWidget constructed and delegates bound"));
+    UE_LOG(LogSideRunner, Log, TEXT("GameHUDWidget constructed and delegates bound"));
 }
 
 void UGameHUDWidget::NativeDestruct()
@@ -75,7 +76,7 @@ void UGameHUDWidget::UpdateLivesDisplay(int32 CurrentLives, int32 MaxLives)
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameHUDWidget: LivesText not bound!"));
+        UE_LOG(LogSideRunner, Error, TEXT("GameHUDWidget: LivesText not bound!"));
     }
 }
 
@@ -88,7 +89,7 @@ void UGameHUDWidget::UpdateScoreDisplay(int32 CurrentScore)
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameHUDWidget: ScoreText not bound!"));
+        UE_LOG(LogSideRunner, Error, TEXT("GameHUDWidget: ScoreText not bound!"));
     }
 }
 
@@ -101,7 +102,7 @@ void UGameHUDWidget::UpdateDistanceDisplay(float DistanceMeters)
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameHUDWidget: DistanceText not bound!"));
+        UE_LOG(LogSideRunner, Error, TEXT("GameHUDWidget: DistanceText not bound!"));
     }
 }
 

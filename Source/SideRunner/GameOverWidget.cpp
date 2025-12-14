@@ -1,5 +1,6 @@
 #include "GameOverWidget.h"
 #include "Components/TextBlock.h"
+#include "SideRunner.h" // Custom log categories
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -13,91 +14,91 @@ void UGameOverWidget::NativeConstruct()
     CachedGameInstance = Cast<USideRunnerGameInstance>(GetGameInstance());
 
     // CRITICAL: Comprehensive widget binding validation with detailed diagnostic logging
-    UE_LOG(LogTemp, Warning, TEXT("=== GameOverWidget Binding Validation ==="));
+    UE_LOG(LogSideRunner, Warning, TEXT("=== GameOverWidget Binding Validation ==="));
 
     bool bAllBindingsValid = true;
 
     // Validate text blocks
     if (!GameOverText)
     {
-        UE_LOG(LogTemp, Error, TEXT("  ❌ GameOverText is NULL - Add a TextBlock named 'GameOverText' in WBP_GameOver"));
+        UE_LOG(LogSideRunner, Error, TEXT("  ❌ GameOverText is NULL - Add a TextBlock named 'GameOverText' in WBP_GameOver"));
         bAllBindingsValid = false;
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("  ✓ GameOverText found"));
+        UE_LOG(LogSideRunner, Log, TEXT("  ✓ GameOverText found"));
     }
 
     if (!ScoreText)
     {
-        UE_LOG(LogTemp, Error, TEXT("  ❌ ScoreText is NULL - Add a TextBlock named 'ScoreText' in WBP_GameOver"));
+        UE_LOG(LogSideRunner, Error, TEXT("  ❌ ScoreText is NULL - Add a TextBlock named 'ScoreText' in WBP_GameOver"));
         bAllBindingsValid = false;
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("  ✓ ScoreText found"));
+        UE_LOG(LogSideRunner, Log, TEXT("  ✓ ScoreText found"));
     }
 
     if (!DistanceText)
     {
-        UE_LOG(LogTemp, Error, TEXT("  ❌ DistanceText is NULL - Add a TextBlock named 'DistanceText' in WBP_GameOver"));
+        UE_LOG(LogSideRunner, Error, TEXT("  ❌ DistanceText is NULL - Add a TextBlock named 'DistanceText' in WBP_GameOver"));
         bAllBindingsValid = false;
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("  ✓ DistanceText found"));
+        UE_LOG(LogSideRunner, Log, TEXT("  ✓ DistanceText found"));
     }
 
     if (!HighScoreText)
     {
-        UE_LOG(LogTemp, Error, TEXT("  ❌ HighScoreText is NULL - Add a TextBlock named 'HighScoreText' in WBP_GameOver"));
+        UE_LOG(LogSideRunner, Error, TEXT("  ❌ HighScoreText is NULL - Add a TextBlock named 'HighScoreText' in WBP_GameOver"));
         bAllBindingsValid = false;
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("  ✓ HighScoreText found"));
+        UE_LOG(LogSideRunner, Log, TEXT("  ✓ HighScoreText found"));
     }
 
     if (!LivesText)
     {
-        UE_LOG(LogTemp, Error, TEXT("  ❌ LivesText is NULL - Add a TextBlock named 'LivesText' in WBP_GameOver"));
+        UE_LOG(LogSideRunner, Error, TEXT("  ❌ LivesText is NULL - Add a TextBlock named 'LivesText' in WBP_GameOver"));
         bAllBindingsValid = false;
     }
     else
     {
-        UE_LOG(LogTemp, Log, TEXT("  ✓ LivesText found"));
+        UE_LOG(LogSideRunner, Log, TEXT("  ✓ LivesText found"));
     }
 
     // Validate buttons
     if (!RestartButton)
     {
-        UE_LOG(LogTemp, Error, TEXT("  ❌ RestartButton is NULL - Add a Button named 'RestartButton' in WBP_GameOver"));
+        UE_LOG(LogSideRunner, Error, TEXT("  ❌ RestartButton is NULL - Add a Button named 'RestartButton' in WBP_GameOver"));
         bAllBindingsValid = false;
     }
     else
     {
         RestartButton->OnClicked.AddDynamic(this, &UGameOverWidget::OnRestartClicked);
-        UE_LOG(LogTemp, Log, TEXT("  ✓ RestartButton found and bound"));
+        UE_LOG(LogSideRunner, Log, TEXT("  ✓ RestartButton found and bound"));
     }
 
     if (!QuitButton)
     {
-        UE_LOG(LogTemp, Error, TEXT("  ❌ QuitButton is NULL - Add a Button named 'QuitButton' in WBP_GameOver"));
+        UE_LOG(LogSideRunner, Error, TEXT("  ❌ QuitButton is NULL - Add a Button named 'QuitButton' in WBP_GameOver"));
         bAllBindingsValid = false;
     }
     else
     {
         QuitButton->OnClicked.AddDynamic(this, &UGameOverWidget::OnQuitClicked);
-        UE_LOG(LogTemp, Log, TEXT("  ✓ QuitButton found and bound"));
+        UE_LOG(LogSideRunner, Log, TEXT("  ✓ QuitButton found and bound"));
     }
 
     if (bAllBindingsValid)
     {
-        UE_LOG(LogTemp, Log, TEXT("=== All widget bindings valid ✓ ==="));
+        UE_LOG(LogSideRunner, Log, TEXT("=== All widget bindings valid ✓ ==="));
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("=== MISSING WIDGET ELEMENTS! See GAME_OVER_WIDGET_SETUP.md for setup guide ==="));
+        UE_LOG(LogSideRunner, Error, TEXT("=== MISSING WIDGET ELEMENTS! See GAME_OVER_WIDGET_SETUP.md for setup guide ==="));
     }
 
     // Show mouse cursor for button interaction
@@ -146,7 +147,7 @@ void UGameOverWidget::SetupGameOverDisplay(bool bWon, int32 FinalScore, float Di
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameOverWidget: GameOverText not bound!"));
+        UE_LOG(LogSideRunner, Error, TEXT("GameOverWidget: GameOverText not bound!"));
     }
 
     // Set score text
@@ -183,13 +184,13 @@ void UGameOverWidget::SetupGameOverDisplay(bool bWon, int32 FinalScore, float Di
         LivesText->SetText(FText::FromString(LivesString));
     }
 
-    UE_LOG(LogTemp, Log, TEXT("GameOverWidget display setup - Won: %s, Score: %d, Distance: %.1fm, Lives: %d"),
+    UE_LOG(LogSideRunner, Log, TEXT("GameOverWidget display setup - Won: %s, Score: %d, Distance: %.1fm, Lives: %d"),
         bWon ? TEXT("Yes") : TEXT("No"), FinalScore, DistanceMeters, LivesUsed);
 }
 
 void UGameOverWidget::OnRestartClicked()
 {
-    UE_LOG(LogTemp, Log, TEXT("Restart button clicked"));
+    UE_LOG(LogSideRunner, Log, TEXT("Restart button clicked"));
 
     // IMPROVED: Use IsValid() for UE5.5 best practices
     if (!IsValid(CachedGameInstance))
@@ -198,14 +199,14 @@ void UGameOverWidget::OnRestartClicked()
 
         if (!IsValid(CachedGameInstance))
         {
-            UE_LOG(LogTemp, Error, TEXT("GameOverWidget: Cannot restart - GameInstance is invalid!"));
+            UE_LOG(LogSideRunner, Error, TEXT("GameOverWidget: Cannot restart - GameInstance is invalid!"));
             return;
         }
     }
 
     // CRITICAL FIX: Unpause the game before level reload
     UGameplayStatics::SetGamePaused(this, false);
-    UE_LOG(LogTemp, Log, TEXT("GameOverWidget: Game unpaused for level restart"));
+    UE_LOG(LogSideRunner, Log, TEXT("GameOverWidget: Game unpaused for level restart"));
 
     // Reset game session (clears score, distance, resets lives to 3)
     CachedGameInstance->ResetGameSession();
@@ -222,13 +223,13 @@ void UGameOverWidget::OnRestartClicked()
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("GameOverWidget: Cannot restart - World is null!"));
+        UE_LOG(LogSideRunner, Error, TEXT("GameOverWidget: Cannot restart - World is null!"));
     }
 }
 
 void UGameOverWidget::OnQuitClicked()
 {
-    UE_LOG(LogTemp, Log, TEXT("Quit button clicked"));
+    UE_LOG(LogSideRunner, Log, TEXT("Quit button clicked"));
 
     // CRITICAL FIX: Unpause the game before quitting
     UGameplayStatics::SetGamePaused(this, false);

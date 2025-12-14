@@ -14,6 +14,7 @@
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
 #include "TimerManager.h"
+#include "SideRunner.h" // Custom log categories
 
 AWallSpike::AWallSpike()
 {
@@ -76,7 +77,7 @@ void AWallSpike::BeginPlay()
 	{
 		GetRootComponent()->SetMobility(EComponentMobility::Movable);
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
-		UE_LOG(LogTemp, Warning, TEXT("WallSpike root component mobility set to Movable"));
+		UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike root component mobility set to Movable"));
 #endif
 	}
 	
@@ -86,7 +87,7 @@ void AWallSpike::BeginPlay()
 	
 #if UE_BUILD_DEBUG
 	// OPTIMIZED DEBUG LOGGING - only in debug builds
-	UE_LOG(LogTemp, Log, TEXT("WallSpike initialized at location: %s with direction: %s"), 
+	UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike initialized at location: %s with direction: %s"), 
 		   *GetActorLocation().ToString(), *PrimaryDirection.ToString());
 #endif
 	
@@ -110,7 +111,7 @@ void AWallSpike::BeginPlay()
 #if UE_BUILD_DEBUG
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("WallSpike CollisionBox is null! Check Blueprint setup."));
+		UE_LOG(LogSideRunnerCombat, Error, TEXT("WallSpike CollisionBox is null! Check Blueprint setup."));
 	}
 #endif
 	
@@ -142,7 +143,7 @@ void AWallSpike::Tick(float DeltaTime)
 	{
 		if (IsValid(TargetPlayer))
 		{
-			UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike tracking player at distance: %.1f"),
+			UE_LOG(LogSideRunnerCombat, VeryVerbose, TEXT("WallSpike tracking player at distance: %.1f"),
 				   FVector::Dist(GetActorLocation(), TargetPlayer->GetActorLocation()));
 		}
 		DebugTimer = 0.0f;
@@ -266,7 +267,7 @@ void AWallSpike::HandlePlayerDeathOrLoss()
 		PlayerDeathTimer = 0.0f;
 		StopChaseAudio();
 #if UE_BUILD_DEBUG
-		UE_LOG(LogTemp, Log, TEXT("WallSpike: Player died, starting cleanup timer"));
+		UE_LOG(LogSideRunnerCombat, Log, TEXT("WallSpike: Player died, starting cleanup timer"));
 #endif
 	}
 	
@@ -283,7 +284,7 @@ void AWallSpike::HandlePlayerOutOfRange()
 	if (bHasTarget)
 	{
 #if UE_BUILD_DEBUG
-		UE_LOG(LogTemp, VeryVerbose, TEXT("WallSpike lost target - player too far"));
+		UE_LOG(LogSideRunnerCombat, VeryVerbose, TEXT("WallSpike lost target - player too far"));
 #endif
 		StopChaseAudio();
 	}
@@ -378,7 +379,7 @@ void AWallSpike::UpdateChaseMovement(float DeltaTime)
 			if (!bHasKilledPlayer)
 			{
 #if UE_BUILD_DEBUG
-				UE_LOG(LogTemp, Error, TEXT("WallSpike collision detected during movement!"));
+				UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike collision detected during movement!"));
 #endif
 				ApplyInstantDeathToPlayer(HitPlayer, HitResult.Location);
 			}
@@ -401,7 +402,7 @@ void AWallSpike::CheckProximityCollision()
 	if (DistanceSquared < ProximityThresholdSquared)
 	{
 #if UE_BUILD_DEBUG
-		UE_LOG(LogTemp, Warning, TEXT("WallSpike proximity collision detected!"));
+		UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike proximity collision detected!"));
 #endif
 		ApplyInstantDeathToPlayer(TargetPlayer, TargetPlayer->GetActorLocation());
 	}
@@ -423,7 +424,7 @@ void AWallSpike::CheckLifetimeAndCleanup()
 		if (PlayerDeathTimer >= DeathCleanupDelay)
 		{
 #if UE_BUILD_DEBUG
-			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - player dead for %.1fs"), PlayerDeathTimer);
+			UE_LOG(LogSideRunnerCombat, Log, TEXT("WallSpike destroying self - player dead for %.1fs"), PlayerDeathTimer);
 #endif
 			Destroy();
 			return;
@@ -447,7 +448,7 @@ void AWallSpike::CheckLifetimeAndCleanup()
 		if (MovingTowardsPlayer <= 0.0f)
 		{
 #if UE_BUILD_DEBUG
-			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - too far behind"));
+			UE_LOG(LogSideRunnerCombat, Log, TEXT("WallSpike destroying self - too far behind"));
 #endif
 			Destroy();
 			return;
@@ -457,7 +458,7 @@ void AWallSpike::CheckLifetimeAndCleanup()
 		if (TimeBehindPlayer >= MaxTimeBehindPlayer)
 		{
 #if UE_BUILD_DEBUG
-			UE_LOG(LogTemp, Log, TEXT("WallSpike destroying self - behind too long"));
+			UE_LOG(LogSideRunnerCombat, Log, TEXT("WallSpike destroying self - behind too long"));
 #endif
 			Destroy();
 			return;
@@ -479,7 +480,7 @@ void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector Hit
 	UPlayerHealthComponent* HealthComp = Player->HealthComponent;
 	if (!IsValid(HealthComp) || !HealthComp->IsFullyInitialized())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyInstantDeathToPlayer: HealthComponent not initialized - skipping"));
+		UE_LOG(LogSideRunnerCombat, Warning, TEXT("ApplyInstantDeathToPlayer: HealthComponent not initialized - skipping"));
 		return;
 	}
 
@@ -490,7 +491,7 @@ void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector Hit
 	bHasKilledPlayer = true;	
 
 #if UE_BUILD_DEBUG
-	UE_LOG(LogTemp, Error, TEXT("WallSpike collision with player - playing effects only!"));
+	UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike collision with player - playing effects only!"));
 #endif
 
 	// NOTE: Damage is now handled by ARunnerCharacter::HandleWallSpikeOverlap to prevent double damage
@@ -549,7 +550,7 @@ void AWallSpike::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiv
 		if (!bHasKilledPlayer)
 		{
 #if UE_BUILD_DEBUG
-			UE_LOG(LogTemp, Warning, TEXT("WallSpike NotifyHit backup collision detection"));
+			UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike NotifyHit backup collision detection"));
 #endif
 			ApplyInstantDeathToPlayer(HitPlayer, HitLocation);
 		}
@@ -565,7 +566,7 @@ void AWallSpike::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		if (!bHasKilledPlayer)
 		{
 #if UE_BUILD_DEBUG
-			UE_LOG(LogTemp, Error, TEXT("WallSpike overlap collision detected!"));
+			UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike overlap collision detected!"));
 #endif
 			FVector HitLocation;
 			if (SweepResult.IsValidBlockingHit())
@@ -589,7 +590,7 @@ void AWallSpike::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 		if (!bHasKilledPlayer)
 		{
 #if UE_BUILD_DEBUG
-			UE_LOG(LogTemp, Error, TEXT("WallSpike hit collision detected!"));
+			UE_LOG(LogSideRunnerCombat, Verbose, TEXT("WallSpike hit collision detected!"));
 #endif
 			ApplyInstantDeathToPlayer(HitPlayer, Hit.Location);
 		}
