@@ -30,6 +30,10 @@ public:
     UFUNCTION()
     void DestroyOldestLevel(); // Marked as UFUNCTION to expose it to the engine
 
+    /** Reset all spawned levels and respawn fresh levels around player position */
+    UFUNCTION(BlueprintCallable, Category="Level Management")
+    void ResetLevelsForRespawn();
+
 protected:
     /** Weak reference to player pawn - handles pawn respawn/death correctly */
     TWeakObjectPtr<APawn> PlayerWeakPtr;

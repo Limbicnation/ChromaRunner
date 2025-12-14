@@ -127,6 +127,7 @@ private:
 	void HandlePlayerOutOfRange();
 	void HandleChaseAudioStart(bool bWasHasTarget);
 	void StopChaseAudio();
+	void ResetPositionBehindPlayer(ARunnerCharacter* Player);
 	
 #if WITH_EDITOR
 	void DrawDebugVisualization();

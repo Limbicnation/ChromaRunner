@@ -223,6 +223,17 @@ void AWallSpike::UpdateTargetPlayer()
 		return;
 	}
 
+	// CRITICAL FIX: Detect player respawn - if we were tracking death but player is now alive
+	if (bTrackingPlayerDeath && !PlayerCharacter->IsDead())
+	{
+		// Player has respawned - reset WallSpike position behind player
+		ResetPositionBehindPlayer(PlayerCharacter);
+		bTrackingPlayerDeath = false;
+		PlayerDeathTimer = 0.0f;
+		bHasKilledPlayer = false;
+		UE_LOG(LogSideRunnerCombat, Log, TEXT("WallSpike detected player respawn - resetting position"));
+	}
+
 	// Now safe to check if player is dead
 	if (PlayerCharacter->IsDead())
 	{
@@ -244,13 +255,6 @@ void AWallSpike::UpdateTargetPlayer()
 		
 		// Handle sound effects for target acquisition
 		HandleChaseAudioStart(bWasHasTarget);
-		
-		// Reset death tracking if we found a living player
-		if (bTrackingPlayerDeath)
-		{
-			bTrackingPlayerDeath = false;
-			PlayerDeathTimer = 0.0f;
-		}
 	}
 	else
 	{
@@ -320,6 +324,33 @@ void AWallSpike::StopChaseAudio()
 	{
 		ChaseAudioComponent->Stop();
 	}
+}
+
+void AWallSpike::ResetPositionBehindPlayer(ARunnerCharacter* Player)
+{
+	if (!IsValid(Player))
+	{
+		return;
+	}
+
+	// Calculate position behind player based on primary direction
+	const FVector PlayerLocation = Player->GetActorLocation();
+	const FVector PrimaryDir = GetPrimaryDirection();
+	
+	// Position spike behind player (opposite of primary direction)
+	// Use a safe distance that gives player time to react
+	const float DistanceBehind = 1500.0f;
+	const FVector NewLocation = PlayerLocation - (PrimaryDir * DistanceBehind);
+	
+	SetActorLocation(NewLocation);
+	CurrentDirection = PrimaryDir;
+	
+	// Reset chase state
+	TargetPlayer = nullptr;
+	bHasTarget = false;
+	TimeBehindPlayer = 0.0f;
+	
+	UE_LOG(LogSideRunnerCombat, Log, TEXT("WallSpike reset behind player to: %s"), *NewLocation.ToString());
 }
 
 FVector AWallSpike::CalculateChaseDirection() const
