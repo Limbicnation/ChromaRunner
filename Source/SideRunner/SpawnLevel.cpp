@@ -4,11 +4,13 @@
 #include "Engine/World.h"
 #include "Components/BoxComponent.h"
 #include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ASpawnLevel::ASpawnLevel()
 {
     PrimaryActorTick.bCanEverTick = true;
+    FirstLevelSpawnPosition = FVector(0.0f, 1000.0f, 0.0f);
 }
 
 // Called when the game starts or when spawned
@@ -21,7 +23,9 @@ void ASpawnLevel::BeginPlay()
         PlayerWeakPtr = PC->GetPawn();
         if (PlayerWeakPtr.IsValid())
         {
-            SpawnInitialLevels();
+            // Spawn levels relative to player's Y position (game scrolls along Y axis)
+            FVector PlayerLoc = PlayerWeakPtr->GetActorLocation();
+            SpawnInitialLevels(FVector(0.0f, PlayerLoc.Y, 0.0f));
         }
         else
         {
@@ -58,9 +62,21 @@ void ASpawnLevel::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ASpawnLevel::TryAcquirePlayerPawn()
 {
-    if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+    UWorld* World = GetWorld();
+    if (!World)
+    {
+        return;
+    }
+
+    if (APlayerController* PC = World->GetFirstPlayerController())
     {
         PlayerWeakPtr = PC->GetPawn();
+    }
+
+    // Fallback: use GameplayStatics if controller path fails (handles mid-respawn transitions)
+    if (!PlayerWeakPtr.IsValid())
+    {
+        PlayerWeakPtr = UGameplayStatics::GetPlayerPawn(this, 0);
     }
 }
 
@@ -75,15 +91,19 @@ void ASpawnLevel::Tick(float DeltaTime)
         TryAcquirePlayerPawn();
         if (PlayerWeakPtr.IsValid() && LevelList.Num() == 0)
         {
-            SpawnInitialLevels();
+            // Tick recovery: spawn levels at player's current Y position
+            FVector PlayerLoc = PlayerWeakPtr->GetActorLocation();
+            SpawnInitialLevels(FVector(0.0f, PlayerLoc.Y, 0.0f));
         }
     }
 }
 
-void ASpawnLevel::SpawnInitialLevels()
+void ASpawnLevel::SpawnInitialLevels(const FVector& StartPosition)
 {
     if (LevelList.Num() == 0)
     {
+        // Store position so SpawnLevel(true) uses it for the first segment
+        FirstLevelSpawnPosition = StartPosition;
         for (int32 i = 0; i < 4; ++i)
         {
             SpawnLevel(i == 0);
@@ -93,7 +113,7 @@ void ASpawnLevel::SpawnInitialLevels()
 
 void ASpawnLevel::SpawnLevel(bool IsFirst)
 {
-    FVector NewSpawnLocation = FVector(0.0f, 1000.0f, 0.0f);
+    FVector NewSpawnLocation = FirstLevelSpawnPosition;
     FRotator NewSpawnRotation = FRotator(0, 90, 0);
 
     if (!IsFirst && LevelList.Num() > 0)
@@ -249,12 +269,13 @@ void ASpawnLevel::ResetLevelsForRespawn()
     }
     LevelList.Empty();
 
-    // Re-acquire player reference and spawn fresh levels
+    // Re-acquire player reference and spawn fresh levels at player's current position
     TryAcquirePlayerPawn();
     if (PlayerWeakPtr.IsValid())
     {
-        SpawnInitialLevels();
-        UE_LOG(LogSideRunner, Log, TEXT("ResetLevelsForRespawn: Spawned %d fresh levels"), LevelList.Num());
+        FVector PlayerLoc = PlayerWeakPtr->GetActorLocation();
+        SpawnInitialLevels(FVector(0.0f, PlayerLoc.Y, 0.0f));
+        UE_LOG(LogSideRunner, Log, TEXT("ResetLevelsForRespawn: Spawned %d fresh levels at Y=%.1f"), LevelList.Num(), PlayerLoc.Y);
     }
     else
     {

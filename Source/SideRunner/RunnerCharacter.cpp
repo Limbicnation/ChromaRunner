@@ -888,15 +888,19 @@ void ARunnerCharacter::RespawnPlayer()
         UE_LOG(LogSideRunner, Warning, TEXT("No PlayerStart found - using fallback location"));
     }
 
-    // Teleport player to respawn location FIRST (before level reset)
+    // RESPAWN FIX: Disable movement BEFORE teleport to prevent falling during level rebuild
+    // This eliminates the race condition where gravity applies between teleport and level spawn
+    UCharacterMovementComponent* MoveComp = GetCharacterMovement();
+    if (MoveComp)
+    {
+        MoveComp->GravityScale = 0.0f;
+        MoveComp->SetMovementMode(MOVE_None);
+        MoveComp->Velocity = FVector::ZeroVector;
+    }
+
+    // Teleport player to respawn location
     SetActorLocation(RespawnLocation, false, nullptr, ETeleportType::ResetPhysics);
     SetActorRotation(RespawnRotation);
-
-    // Reset velocity immediately
-    if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-    {
-        MovementComponent->Velocity = FVector::ZeroVector;
-    }
 
     // CRITICAL FIX: Reset all level spawners to create fresh levels at player position
     TArray<AActor*> SpawnLevelActors;
@@ -907,6 +911,13 @@ void ARunnerCharacter::RespawnPlayer()
         {
             SpawnLevelActor->ResetLevelsForRespawn();
         }
+    }
+
+    // RESPAWN FIX: Restore movement now that levels are spawned beneath the player
+    if (MoveComp)
+    {
+        MoveComp->GravityScale = 2.5f;  // Matches constructor value (line 100)
+        MoveComp->SetMovementMode(MOVE_Walking);
     }
 
     // Update respawn location in game instance for score tracking

@@ -79,6 +79,9 @@ DerivedDataCache/*
 .gemini/
 gha-creds-*.json
 
+# Backup files
+*.bak
+
 # Claude AI temp files
 .claude/
 

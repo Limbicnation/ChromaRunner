@@ -66,9 +66,12 @@ private:
     UPROPERTY()
     TArray<ABaseLevel*> LevelList;
 
-    void SpawnInitialLevels();
+    void SpawnInitialLevels(const FVector& StartPosition = FVector(0.0f, 1000.0f, 0.0f));
     void DelayedDestroyOldestLevel();
     void TryAcquirePlayerPawn();
+
+    /** Cached first-level spawn position - updated on each spawn cycle to match player location */
+    FVector FirstLevelSpawnPosition = FVector(0.0f, 1000.0f, 0.0f);
 
     /** Array of timer handles for pending destroy operations */
     TArray<FTimerHandle> PendingDestroyTimers;
