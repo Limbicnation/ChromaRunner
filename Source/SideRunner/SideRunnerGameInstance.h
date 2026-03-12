@@ -27,6 +27,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameWon);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGameLost);
 
 /**
+ * Delegate fired when a distance milestone is reached (every 1000m)
+ * @param MilestoneNumber - Which milestone (1 = 1000m, 2 = 2000m, etc.)
+ */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMilestoneReached, int32, MilestoneNumber);
+
+/**
  * Delegate fired when lives count changes
  * @param CurrentLives - Current remaining lives
  * @param MaxLives - Maximum lives capacity
@@ -87,15 +93,15 @@ public:
     // ======================================================================
 
     /**
-     * Updates the player's distance score based on current X position.
-     * Only counts forward progress (positive X movement).
+     * Updates the player's distance score based on current Y position.
+     * Only counts forward progress (positive Y movement).
      * Awards 1 point per meter traveled (100 Unreal units).
      * Automatically checks win condition after each update.
      *
-     * @param PlayerXPosition - Current X coordinate of the player in world space
+     * @param PlayerYPosition - Current Y coordinate of the player in world space
      */
     UFUNCTION(BlueprintCallable, Category = "Score")
-    void UpdateDistanceScore(float PlayerXPosition);
+    void UpdateDistanceScore(float PlayerYPosition);
 
     /**
      * Adds bonus points for collecting a coin.
@@ -185,6 +191,14 @@ public:
     UFUNCTION(BlueprintPure, Category = "Game")
     bool HasGameEnded() const { return bGameEnded; }
 
+    /**
+     * Returns whether endless mode is enabled.
+     *
+     * @return True if endless mode is active
+     */
+    UFUNCTION(BlueprintPure, Category = "Game")
+    bool IsEndlessMode() const { return bEndlessMode; }
+
     // ======================================================================
     // Lives Management
     // ======================================================================
@@ -249,10 +263,10 @@ public:
      * Initializes the distance tracking from player's starting position.
      * Should be called once at game start to ensure accurate score calculation.
      *
-     * @param StartingXPosition - Player's initial X coordinate in world space
+     * @param StartingYPosition - Player's initial Y coordinate in world space
      */
     UFUNCTION(BlueprintCallable, Category = "Score")
-    void InitializeDistanceTracking(float StartingXPosition);
+    void InitializeDistanceTracking(float StartingYPosition);
 
     // Note: Debug console commands have been moved to ASideRunnerPlayerController
     // for proper Exec function support in UE5.5 (Exec only works in PlayerController)
@@ -281,6 +295,10 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnLivesUpdated OnLivesUpdated;
 
+    /** Broadcast when a distance milestone is reached (every 1000m in endless mode) */
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FOnMilestoneReached OnMilestoneReached;
+
 protected:
     // ======================================================================
     // Scoring State
@@ -301,6 +319,10 @@ protected:
     /** Distance required to win in meters (default: 5000m) */
     UPROPERTY(EditDefaultsOnly, Category = "Game", meta = (ClampMin = "1000.0", ClampMax = "10000.0"))
     float WinDistance;
+
+    /** When true, the game has no win condition (infinite play). */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Game")
+    bool bEndlessMode = false;
 
     // ======================================================================
     // Lives State
@@ -323,11 +345,17 @@ private:
     // Internal State
     // ======================================================================
 
-    /** Last recorded X position - used to calculate forward progress only */
-    float LastRecordedX;
+    /** Last recorded Y position - used to calculate forward progress only */
+    float LastRecordedY;
 
     /** Flag to prevent processing after game ends */
     bool bGameEnded;
+
+    /** Last milestone reached (floor(DistanceMeters / 1000)) */
+    int32 LastMilestone;
+
+    /** Checks and fires milestone delegate if a new 1000m threshold is crossed. */
+    void CheckMilestone();
 
     // ======================================================================
     // Helper Functions

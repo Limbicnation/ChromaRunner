@@ -60,6 +60,26 @@ public:
     
     UFUNCTION(BlueprintCallable, BlueprintPure, Category="Level Generation")
     bool IsEndLevel() const;
+
+    // ======================================================================
+    // Procedural Injection API
+    // ======================================================================
+
+    /** Set the actors that make up this level (for procedural generation). */
+    UFUNCTION(BlueprintCallable, Category="Level Generation")
+    void SetLevelActors(const TArray<AActor*>& InActors);
+
+    /** Set the length of this level chunk. */
+    UFUNCTION(BlueprintCallable, Category="Level Generation")
+    void SetLevelLength(float InLength);
+
+    /** Set the difficulty level. */
+    UFUNCTION(BlueprintCallable, Category="Level Generation")
+    void SetDifficultyLevel(int32 InDifficulty);
+
+    /** Returns level actors to caller for pool management, then clears internal array. */
+    UFUNCTION(BlueprintCallable, Category="Level Generation")
+    TArray<AActor*> CleanupLevelActors();
     
 protected:
     // PERFORMANCE: Collision detection

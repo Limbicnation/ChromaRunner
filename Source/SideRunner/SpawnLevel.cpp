@@ -1,5 +1,8 @@
 #include "SpawnLevel.h"
 #include "BaseLevel.h"
+#include "ProceduralLevelBuilder.h"
+#include "DifficultyScaler.h"
+#include "SideRunnerGameInstance.h"
 #include "SideRunner.h" // Custom log categories
 #include "Engine/World.h"
 #include "Components/BoxComponent.h"
@@ -11,12 +14,27 @@ ASpawnLevel::ASpawnLevel()
 {
     PrimaryActorTick.bCanEverTick = true;
     FirstLevelSpawnPosition = FVector(0.0f, 1000.0f, 0.0f);
+
+    // Create procedural builder component
+    ProceduralBuilder = CreateDefaultSubobject<UProceduralLevelBuilder>(TEXT("ProceduralBuilder"));
+
+    // Create difficulty scaler (UObject — not a component)
+    DifficultyScaler = CreateDefaultSubobject<UDifficultyScaler>(TEXT("DifficultyScaler"));
+
+    // Initialize seed from system time for variety between sessions
+    CurrentSeed = FMath::Rand();
+
+    CachedGameInstance = nullptr;
 }
 
 // Called when the game starts or when spawned
 void ASpawnLevel::BeginPlay()
 {
     Super::BeginPlay();
+
+    // Cache game instance for distance queries
+    CachedGameInstance = Cast<USideRunnerGameInstance>(
+        UGameplayStatics::GetGameInstance(this));
 
     if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
     {
@@ -56,6 +74,12 @@ void ASpawnLevel::EndPlay(const EEndPlayReason::Type EndPlayReason)
         }
     }
     LevelList.Empty();
+
+    // Clear object pools
+    if (ProceduralBuilder)
+    {
+        ProceduralBuilder->ClearPools();
+    }
 
     Super::EndPlay(EndPlayReason);
 }
@@ -111,6 +135,10 @@ void ASpawnLevel::SpawnInitialLevels(const FVector& StartPosition)
     }
 }
 
+// ======================================================================
+// Main Spawn Entry Point
+// ======================================================================
+
 void ASpawnLevel::SpawnLevel(bool IsFirst)
 {
     FVector NewSpawnLocation = FirstLevelSpawnPosition;
@@ -145,8 +173,24 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
         }
     }
 
-    int32 MaxLevels = 6;
-    int32 RandomLevel = FMath::RandRange(1, MaxLevels);
+    // Decide: procedural or handcrafted?
+    if (ShouldUseProceduralAtCurrentDistance())
+    {
+        SpawnProceduralLevel(NewSpawnLocation, NewSpawnRotation);
+    }
+    else
+    {
+        SpawnHandcraftedLevel(NewSpawnLocation, NewSpawnRotation);
+    }
+}
+
+// ======================================================================
+// Handcrafted Spawn Path (original behavior preserved)
+// ======================================================================
+
+void ASpawnLevel::SpawnHandcraftedLevel(const FVector& SpawnPos, const FRotator& SpawnRot)
+{
+    int32 RandomLevel = FMath::RandRange(1, 6);
     TSubclassOf<ABaseLevel> LevelClass = nullptr;
 
     switch (RandomLevel)
@@ -162,7 +206,7 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
 
     if (LevelClass)
     {
-        ABaseLevel* NewLevel = GetWorld()->SpawnActor<ABaseLevel>(LevelClass, NewSpawnLocation, NewSpawnRotation, FActorSpawnParameters());
+        ABaseLevel* NewLevel = GetWorld()->SpawnActor<ABaseLevel>(LevelClass, SpawnPos, SpawnRot, FActorSpawnParameters());
         if (NewLevel)
         {
             if (NewLevel->GetTrigger())
@@ -171,13 +215,127 @@ void ASpawnLevel::SpawnLevel(bool IsFirst)
             }
             LevelList.Add(NewLevel);
 
-            if (LevelList.Num() > MaxLevels)
+            if (LevelList.Num() > MaxActiveLevels)
             {
                 DelayedDestroyOldestLevel();
             }
         }
     }
 }
+
+// ======================================================================
+// Procedural Spawn Path
+// ======================================================================
+
+void ASpawnLevel::SpawnProceduralLevel(const FVector& SpawnPos, const FRotator& SpawnRot)
+{
+    UWorld* World = GetWorld();
+    if (!World || !ProceduralBuilder || !DifficultyScaler)
+    {
+        UE_LOG(LogSideRunner, Error, TEXT("SpawnProceduralLevel: Missing required components"));
+        // Fallback to handcrafted
+        SpawnHandcraftedLevel(SpawnPos, SpawnRot);
+        return;
+    }
+
+    // Spawn a bare ABaseLevel (no Blueprint variant)
+    ABaseLevel* NewLevel = World->SpawnActor<ABaseLevel>(ABaseLevel::StaticClass(),
+        SpawnPos, SpawnRot, FActorSpawnParameters());
+
+    if (!NewLevel)
+    {
+        UE_LOG(LogSideRunner, Error, TEXT("SpawnProceduralLevel: Failed to spawn ABaseLevel"));
+        return;
+    }
+
+    // Calculate difficulty from current distance
+    const float DistanceMeters = GetCurrentDistanceMeters();
+    float Difficulty = DifficultyScaler->GetDifficultyAtDistance(DistanceMeters);
+
+    // Respawn safety buffer: if this is the first level in a fresh set, reduce difficulty
+    if (LevelList.Num() == 0)
+    {
+        Difficulty = FMath::Max(1.0f, Difficulty - 2.0f);
+        UE_LOG(LogSideRunner, Log, TEXT("SpawnProceduralLevel: Respawn safety buffer applied (Difficulty=%.1f)"), Difficulty);
+    }
+
+    // Generate content
+    CurrentSeed++;
+    TArray<AActor*> GeneratedActors = ProceduralBuilder->GenerateLevelContent(
+        World, SpawnPos.Y, Difficulty, CurrentSeed);
+
+    // Inject into level
+    NewLevel->SetLevelActors(GeneratedActors);
+    NewLevel->SetLevelLength(ProceduralBuilder->ChunkLength);
+    NewLevel->SetDifficultyLevel(FMath::RoundToInt(Difficulty));
+
+    // Configure trigger at chunk start position with extent covering the chunk
+    if (UBoxComponent* Trigger = NewLevel->GetTrigger())
+    {
+        // Set extent to cover chunk dimensions (half-extents: X=width, Y=half chunk length, Z=height)
+        Trigger->SetBoxExtent(FVector(200.0f, ProceduralBuilder->ChunkLength * 0.5f, 500.0f));
+        Trigger->OnComponentBeginOverlap.AddDynamic(this, &ASpawnLevel::OnOverlapBegin);
+    }
+
+    // Configure spawn location marker at end of chunk (start of next)
+    if (UBoxComponent* SpawnLoc = NewLevel->GetSpawnLocation())
+    {
+        SpawnLoc->SetRelativeLocation(FVector(0.0f, ProceduralBuilder->ChunkLength, 0.0f));
+    }
+
+    LevelList.Add(NewLevel);
+
+    if (LevelList.Num() > MaxActiveLevels)
+    {
+        DelayedDestroyOldestLevel();
+    }
+
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogSideRunner, Log, TEXT("SpawnProceduralLevel: Spawned level at Y=%.0f (Difficulty=%.1f, Seed=%d, Actors=%d)"),
+           SpawnPos.Y, Difficulty, CurrentSeed, GeneratedActors.Num());
+#endif
+}
+
+// ======================================================================
+// Hybrid Mode Helpers
+// ======================================================================
+
+float ASpawnLevel::GetCurrentDistanceMeters() const
+{
+    if (IsValid(CachedGameInstance))
+    {
+        return CachedGameInstance->GetDistanceTraveled();
+    }
+
+    // Fallback: estimate from player Y position
+    if (PlayerWeakPtr.IsValid())
+    {
+        return FMath::Max(0.0f, PlayerWeakPtr->GetActorLocation().Y / 100.0f);
+    }
+
+    return 0.0f;
+}
+
+bool ASpawnLevel::ShouldUseProceduralAtCurrentDistance() const
+{
+    if (!bUseProceduralGeneration)
+    {
+        return false;
+    }
+
+    // If ProceduralStartDistance is 0, always use procedural
+    if (ProceduralStartDistance <= 0.0f)
+    {
+        return true;
+    }
+
+    // Hybrid mode: use handcrafted until ProceduralStartDistance
+    return GetCurrentDistanceMeters() >= ProceduralStartDistance;
+}
+
+// ======================================================================
+// Level Destruction
+// ======================================================================
 
 void ASpawnLevel::DelayedDestroyOldestLevel()
 {
@@ -198,6 +356,13 @@ void ASpawnLevel::DelayedDestroyOldestLevel()
     {
         if (LevelToDestroy.IsValid())
         {
+            // Return actors to pool before destroying level
+            if (bUseProceduralGeneration && ProceduralBuilder)
+            {
+                TArray<AActor*> ActorsToPool = LevelToDestroy->CleanupLevelActors();
+                ProceduralBuilder->ReturnActorsToPool(ActorsToPool);
+            }
+
             // Unbind delegate before destruction to prevent stale callbacks
             if (UBoxComponent* Trigger = LevelToDestroy->GetTrigger())
             {
@@ -218,13 +383,20 @@ void ASpawnLevel::DelayedDestroyOldestLevel()
 
 void ASpawnLevel::DestroyOldestLevel()
 {
-    // Legacy function kept for backward compatibility - now handled by lambda in DelayedDestroyOldestLevel
+    // Legacy function kept for backward compatibility
     if (LevelList.Num() > 0)
     {
         ABaseLevel* OldestLevel = LevelList[0];
         LevelList.RemoveAt(0);
         if (IsValid(OldestLevel))
         {
+            // Return actors to pool if using procedural generation
+            if (bUseProceduralGeneration && ProceduralBuilder)
+            {
+                TArray<AActor*> ActorsToPool = OldestLevel->CleanupLevelActors();
+                ProceduralBuilder->ReturnActorsToPool(ActorsToPool);
+            }
+
             if (UBoxComponent* Trigger = OldestLevel->GetTrigger())
             {
                 Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
@@ -260,6 +432,13 @@ void ASpawnLevel::ResetLevelsForRespawn()
     {
         if (IsValid(Level))
         {
+            // Return actors to pool if using procedural generation
+            if (bUseProceduralGeneration && ProceduralBuilder)
+            {
+                TArray<AActor*> ActorsToPool = Level->CleanupLevelActors();
+                ProceduralBuilder->ReturnActorsToPool(ActorsToPool);
+            }
+
             if (UBoxComponent* Trigger = Level->GetTrigger())
             {
                 Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);

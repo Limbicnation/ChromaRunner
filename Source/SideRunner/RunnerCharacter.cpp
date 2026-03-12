@@ -246,7 +246,7 @@ void ARunnerCharacter::BeginPlay()
     {
         const FVector SpawnLocation = GetActorLocation();
         CachedGameInstance->SetRespawnLocation(SpawnLocation);
-        CachedGameInstance->InitializeDistanceTracking(SpawnLocation.X); // CRITICAL FIX: Start score from spawn X
+        CachedGameInstance->InitializeDistanceTracking(SpawnLocation.Y); // CRITICAL FIX: Start score from spawn Y (movement axis)
         UE_LOG(LogSideRunner, Log, TEXT("Initial spawn location stored: %s"), *SpawnLocation.ToString());
     }
     else
@@ -301,10 +301,10 @@ void ARunnerCharacter::Tick(float DeltaTime)
         return;
     }
 
-    // Update distance score in game instance
+    // Update distance score in game instance (Y-axis is the movement/forward axis)
     if (!IsDead() && CachedGameInstance)
     {
-        CachedGameInstance->UpdateDistanceScore(GetActorLocation().X);
+        CachedGameInstance->UpdateDistanceScore(GetActorLocation().Y);
     }
 
     // BELT-AND-SUSPENDERS: Enforce X-axis constraint in case physics pushes character off-plane
@@ -925,7 +925,7 @@ void ARunnerCharacter::RespawnPlayer()
     if (IsValid(CachedGameInstance))
     {
         CachedGameInstance->SetRespawnLocation(RespawnLocation);
-        CachedGameInstance->InitializeDistanceTracking(RespawnLocation.X);
+        CachedGameInstance->InitializeDistanceTracking(RespawnLocation.Y);
     }
 
     UE_LOG(LogSideRunner, Log, TEXT("Player respawned at: %s"), *RespawnLocation.ToString());

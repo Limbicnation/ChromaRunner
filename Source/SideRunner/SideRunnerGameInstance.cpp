@@ -10,8 +10,9 @@ void USideRunnerGameInstance::Init()
     CurrentScore = 0;
     DistanceTraveled = 0.0f;
     HighScore = 0;
-    LastRecordedX = 0.0f;
+    LastRecordedY = 0.0f;
     bGameEnded = false;
+    LastMilestone = 0;
 
     // Set default win distance
     WinDistance = SideRunnerGameInstanceConstants::DEFAULT_WIN_DISTANCE;
@@ -24,7 +25,7 @@ void USideRunnerGameInstance::Init()
     UE_LOG(LogSideRunnerScoring, Log, TEXT("SideRunnerGameInstance initialized - Win distance: %.1f meters, Lives: %d"), WinDistance, MaxLives);
 }
 
-void USideRunnerGameInstance::UpdateDistanceScore(float PlayerXPosition)
+void USideRunnerGameInstance::UpdateDistanceScore(float PlayerYPosition)
 {
     // PERFORMANCE: Early exit if game has ended
     if (bGameEnded)
@@ -32,11 +33,11 @@ void USideRunnerGameInstance::UpdateDistanceScore(float PlayerXPosition)
         return;
     }
 
-    // PERFORMANCE: Only count forward progress (positive X movement)
-    if (PlayerXPosition > LastRecordedX)
+    // PERFORMANCE: Only count forward progress (positive Y movement)
+    if (PlayerYPosition > LastRecordedY)
     {
         // Calculate distance delta
-        const float DeltaDistance = PlayerXPosition - LastRecordedX;
+        const float DeltaDistance = PlayerYPosition - LastRecordedY;
         DistanceTraveled += DeltaDistance;
 
         // PERFORMANCE: Convert distance to points (1 meter = 1 point)
@@ -54,13 +55,16 @@ void USideRunnerGameInstance::UpdateDistanceScore(float PlayerXPosition)
         }
 
         // Update last recorded position
-        LastRecordedX = PlayerXPosition;
+        LastRecordedY = PlayerYPosition;
 
         // Broadcast distance update for UI
         OnDistanceUpdated.Broadcast(DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS);
 
         // PERFORMANCE: Check win condition after each update
         CheckWinCondition();
+
+        // Check for milestone (every 1000m)
+        CheckMilestone();
     }
 }
 
@@ -116,6 +120,12 @@ void USideRunnerGameInstance::CheckWinCondition()
 {
     // PERFORMANCE: Early exit if already ended
     if (bGameEnded)
+    {
+        return;
+    }
+
+    // In endless mode, the win condition is disabled
+    if (bEndlessMode)
     {
         return;
     }
@@ -199,8 +209,9 @@ void USideRunnerGameInstance::ResetGameSession()
     // Reset scoring state
     CurrentScore = 0;
     DistanceTraveled = 0.0f;
-    LastRecordedX = 0.0f;
+    LastRecordedY = 0.0f;
     bGameEnded = false;
+    LastMilestone = 0;
 
     // Reset lives
     ResetLives();
@@ -251,11 +262,32 @@ void USideRunnerGameInstance::SetRespawnLocation(const FVector& RespawnLocation)
     UE_LOG(LogSideRunner, VeryVerbose, TEXT("Respawn location set to: %s"), *RespawnLocation.ToString());
 }
 
-void USideRunnerGameInstance::InitializeDistanceTracking(float StartingXPosition)
+void USideRunnerGameInstance::InitializeDistanceTracking(float StartingYPosition)
 {
-    LastRecordedX = StartingXPosition;
-    UE_LOG(LogSideRunnerScoring, Log, TEXT("Distance tracking initialized at X=%.1f"), StartingXPosition);
+    LastRecordedY = StartingYPosition;
+    UE_LOG(LogSideRunnerScoring, Log, TEXT("Distance tracking initialized at Y=%.1f"), StartingYPosition);
 }
 
 // Note: Debug console commands have been moved to ASideRunnerPlayerController
 // for proper Exec function support in UE5.5 (Exec only works in PlayerController)
+
+void USideRunnerGameInstance::CheckMilestone()
+{
+    // Only relevant in endless mode
+    if (!bEndlessMode)
+    {
+        return;
+    }
+
+    const float DistanceMeters = DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS;
+    const int32 CurrentMilestone = FMath::FloorToInt(DistanceMeters / 1000.0f);
+
+    if (CurrentMilestone > LastMilestone)
+    {
+        LastMilestone = CurrentMilestone;
+        OnMilestoneReached.Broadcast(LastMilestone);
+
+        UE_LOG(LogSideRunnerScoring, Log, TEXT("Milestone reached: %d (Distance: %.0fm)"),
+               LastMilestone, DistanceMeters);
+    }
+}
