@@ -57,6 +57,33 @@ void UProceduralLevelBuilder::CalculateJumpDistances()
 }
 
 // ======================================================================
+// Pool-or-Spawn Helper
+// ======================================================================
+
+AActor* UProceduralLevelBuilder::GetOrSpawnActor(FActorPool<AActor>& Pool, TArray<AActor*>& GCRefs,
+    UWorld* World, UClass* ActorClass, const FVector& SpawnLocation)
+{
+    AActor* Actor = Pool.GetActor();
+    if (Actor)
+    {
+        GCRefs.Remove(Actor);
+        Actor->SetActorLocation(SpawnLocation);
+        Actor->SetActorHiddenInGame(false);
+        Actor->SetActorEnableCollision(true);
+        Actor->SetActorTickEnabled(true);
+    }
+    else if (ActorClass)
+    {
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+        Actor = World->SpawnActor<AActor>(ActorClass, SpawnLocation,
+            FRotator::ZeroRotator, SpawnParams);
+    }
+    return Actor;
+}
+
+// ======================================================================
 // Core Generation
 // ======================================================================
 
@@ -154,27 +181,9 @@ void UProceduralLevelBuilder::GeneratePlatforms(UWorld* World, float StartY, flo
             }
         }
 
-        // Spawn platform (try pool first)
-        AActor* Platform = PlatformPool.GetActor();
-        if (Platform)
-        {
-            PlatformPoolGCRefs.Remove(Platform);
-            // Reuse pooled platform
-            Platform->SetActorLocation(FVector(0.0f, Placement.YPosition, Placement.ZPosition));
-            Platform->SetActorHiddenInGame(false);
-            Platform->SetActorEnableCollision(true);
-            Platform->SetActorTickEnabled(true);
-        }
-        else
-        {
-            // Spawn new platform
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-            Platform = World->SpawnActor<AActor>(SpawnClass,
-                FVector(0.0f, Placement.YPosition, Placement.ZPosition),
-                FRotator::ZeroRotator, SpawnParams);
-        }
+        // Spawn platform (try pool first, then spawn new)
+        const FVector PlatformLocation(0.0f, Placement.YPosition, Placement.ZPosition);
+        AActor* Platform = GetOrSpawnActor(PlatformPool, PlatformPoolGCRefs, World, SpawnClass, PlatformLocation);
 
         if (Platform)
         {
@@ -240,26 +249,9 @@ void UProceduralLevelBuilder::GenerateObstacles(UWorld* World, float Difficulty,
             continue;
         }
 
-        // Spawn obstacle (try pool first)
-        AActor* Obstacle = ObstaclePool.GetActor();
+        // Spawn obstacle (try pool first, then spawn new)
         FVector SpawnLocation(0.0f, Placement.YPosition + Placement.Width * 0.5f, Placement.ZPosition + 50.0f);
-
-        if (Obstacle)
-        {
-            ObstaclePoolGCRefs.Remove(Obstacle);
-            Obstacle->SetActorLocation(SpawnLocation);
-            Obstacle->SetActorHiddenInGame(false);
-            Obstacle->SetActorEnableCollision(true);
-            Obstacle->SetActorTickEnabled(true);
-        }
-        else
-        {
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-            Obstacle = World->SpawnActor<ASpikes>(SpikeClass, SpawnLocation,
-                FRotator::ZeroRotator, SpawnParams);
-        }
+        AActor* Obstacle = GetOrSpawnActor(ObstaclePool, ObstaclePoolGCRefs, World, SpikeClass, SpawnLocation);
 
         if (Obstacle)
         {
@@ -362,29 +354,12 @@ void UProceduralLevelBuilder::GenerateCoins(UWorld* World, float Difficulty, FRa
         FVector CoinLocation(0.0f, Placement.YPosition + Placement.Width * 0.5f,
                              Placement.ZPosition + CoinHeightOffset);
 
-        // Try pool first
-        AActor* Coin = CoinPool.GetActor();
-        if (Coin)
-        {
-            CoinPoolGCRefs.Remove(Coin);
-            Coin->SetActorLocation(CoinLocation);
-            Coin->SetActorHiddenInGame(false);
-            Coin->SetActorEnableCollision(true);
-            Coin->SetActorTickEnabled(true);
+        AActor* Coin = GetOrSpawnActor(CoinPool, CoinPoolGCRefs, World, CoinClass, CoinLocation);
 
-            // Reset coin state if it's an ACoinPickup
-            if (ACoinPickup* CoinPickup = Cast<ACoinPickup>(Coin))
-            {
-                CoinPickup->Respawn();
-            }
-        }
-        else
+        // Reset coin state for reused coins
+        if (ACoinPickup* CoinPickup = Cast<ACoinPickup>(Coin))
         {
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-            Coin = World->SpawnActor<ACoinPickup>(CoinClass, CoinLocation,
-                FRotator::ZeroRotator, SpawnParams);
+            CoinPickup->Respawn();
         }
 
         if (Coin)
@@ -421,28 +396,12 @@ void UProceduralLevelBuilder::GenerateCoins(UWorld* World, float Difficulty, FRa
 
                 const FVector ArcCoinLocation(0.0f, CoinY, CoinZ);
 
-                // Try pool first (same pattern as single coins)
-                AActor* ArcCoin = CoinPool.GetActor();
-                if (ArcCoin)
-                {
-                    CoinPoolGCRefs.Remove(ArcCoin);
-                    ArcCoin->SetActorLocation(ArcCoinLocation);
-                    ArcCoin->SetActorHiddenInGame(false);
-                    ArcCoin->SetActorEnableCollision(true);
-                    ArcCoin->SetActorTickEnabled(true);
+                AActor* ArcCoin = GetOrSpawnActor(CoinPool, CoinPoolGCRefs, World, CoinClass, ArcCoinLocation);
 
-                    if (ACoinPickup* CoinPickup = Cast<ACoinPickup>(ArcCoin))
-                    {
-                        CoinPickup->Respawn();
-                    }
-                }
-                else
+                // Reset coin state for reused coins
+                if (ACoinPickup* CoinPickup = Cast<ACoinPickup>(ArcCoin))
                 {
-                    FActorSpawnParameters SpawnParams;
-                    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-                    ArcCoin = World->SpawnActor<ACoinPickup>(CoinClass,
-                        ArcCoinLocation, FRotator::ZeroRotator, SpawnParams);
+                    CoinPickup->Respawn();
                 }
 
                 if (ArcCoin)
@@ -452,6 +411,33 @@ void UProceduralLevelBuilder::GenerateCoins(UWorld* World, float Difficulty, FRa
             }
         }
     }
+}
+
+// ======================================================================
+// Actor Type Identification
+// ======================================================================
+
+bool UProceduralLevelBuilder::IsPlatformActor(const AActor* Actor) const
+{
+    if (!Actor)
+    {
+        return false;
+    }
+
+    if (PlatformClass && Actor->IsA(PlatformClass))
+    {
+        return true;
+    }
+
+    for (const TSubclassOf<AActor>& Variant : PlatformVariants)
+    {
+        if (Variant && Actor->IsA(Variant))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // ======================================================================
@@ -483,10 +469,16 @@ void UProceduralLevelBuilder::ReturnActorsToPool(const TArray<AActor*>& Actors)
             CoinPool.ReturnActor(Actor);
             CoinPoolGCRefs.AddUnique(Actor);
         }
-        else
+        else if (IsPlatformActor(Actor))
         {
             PlatformPool.ReturnActor(Actor);
             PlatformPoolGCRefs.AddUnique(Actor);
+        }
+        else
+        {
+            // Unknown actor type (e.g. WallSpike) — not pooled, just destroy
+            UE_LOG(LogSideRunner, Verbose, TEXT("ReturnActorsToPool: Actor %s not poolable, destroying"), *Actor->GetName());
+            Actor->Destroy();
         }
     }
 

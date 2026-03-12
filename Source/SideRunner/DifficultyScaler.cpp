@@ -13,7 +13,7 @@ float UDifficultyScaler::GetDifficultyAtDistance(float DistanceMeters) const
     if (DifficultyOverrideCurve)
     {
         const float CurveValue = DifficultyOverrideCurve->GetFloatValue(DistanceMeters);
-        return FMath::Clamp(CurveValue, 1.0f, 10.0f);
+        return FMath::Clamp(CurveValue, DifficultyConstants::MIN_DIFFICULTY, DifficultyConstants::MAX_DIFFICULTY);
     }
 
     return CalculateDefaultDifficulty(DistanceMeters);
@@ -33,18 +33,18 @@ float UDifficultyScaler::CalculateDefaultDifficulty(float DistanceMeters) const
 
     float Difficulty;
 
-    if (DistanceMeters <= 5000.0f)
+    if (DistanceMeters <= DifficultyConstants::PHASE1_END_DISTANCE)
     {
-        // Phase 1: Linear ramp from 1.0 at 0m to 5.0 at 5000m
-        const float Alpha = DistanceMeters / 5000.0f;
-        Difficulty = FMath::Lerp(1.0f, 5.0f, Alpha);
+        // Phase 1: Linear ramp from MIN to MID over PHASE1_END_DISTANCE
+        const float Alpha = DistanceMeters / DifficultyConstants::PHASE1_END_DISTANCE;
+        Difficulty = FMath::Lerp(DifficultyConstants::MIN_DIFFICULTY, DifficultyConstants::MID_DIFFICULTY, Alpha);
     }
     else
     {
-        // Phase 2: Slower ramp from 5.0 at 5000m to 10.0 at 20000m
-        const float Alpha = FMath::Min((DistanceMeters - 5000.0f) / 15000.0f, 1.0f);
-        Difficulty = FMath::Lerp(5.0f, 10.0f, Alpha);
+        // Phase 2: Slower ramp from MID to MAX over PHASE2_RAMP_LENGTH
+        const float Alpha = FMath::Min((DistanceMeters - DifficultyConstants::PHASE1_END_DISTANCE) / DifficultyConstants::PHASE2_RAMP_LENGTH, 1.0f);
+        Difficulty = FMath::Lerp(DifficultyConstants::MID_DIFFICULTY, DifficultyConstants::MAX_DIFFICULTY, Alpha);
     }
 
-    return FMath::Clamp(Difficulty, 1.0f, 10.0f);
+    return FMath::Clamp(Difficulty, DifficultyConstants::MIN_DIFFICULTY, DifficultyConstants::MAX_DIFFICULTY);
 }

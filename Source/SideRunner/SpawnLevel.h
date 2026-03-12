@@ -110,6 +110,9 @@ private:
     /** Should we use procedural generation at the current distance? (hybrid mode check) */
     bool ShouldUseProceduralAtCurrentDistance() const;
 
+    /** Returns a level's actors to the procedural pool and unbinds its trigger delegate. */
+    void ReturnLevelToPool(ABaseLevel* Level);
+
     /** Cached first-level spawn position - updated on each spawn cycle to match player location */
     FVector FirstLevelSpawnPosition = FVector(0.0f, 1000.0f, 0.0f);
 

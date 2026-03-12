@@ -59,6 +59,9 @@ namespace SideRunnerGameInstanceConstants
 
     /** Default starting lives count */
     constexpr int32 DEFAULT_MAX_LIVES = 3;
+
+    /** Distance interval for milestones in meters (endless mode) */
+    constexpr float MILESTONE_DISTANCE_METERS = 1000.0f;
 }
 
 /**

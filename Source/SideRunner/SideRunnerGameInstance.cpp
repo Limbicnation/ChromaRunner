@@ -280,7 +280,7 @@ void USideRunnerGameInstance::CheckMilestone()
     }
 
     const float DistanceMeters = DistanceTraveled / SideRunnerGameInstanceConstants::METERS_TO_UNREAL_UNITS;
-    const int32 CurrentMilestone = FMath::FloorToInt(DistanceMeters / 1000.0f);
+    const int32 CurrentMilestone = FMath::FloorToInt(DistanceMeters / SideRunnerGameInstanceConstants::MILESTONE_DISTANCE_METERS);
 
     if (CurrentMilestone > LastMilestone)
     {

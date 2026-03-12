@@ -4,6 +4,25 @@
 #include "UObject/NoExportTypes.h"
 #include "DifficultyScaler.generated.h"
 
+/** Difficulty scaling constants for the default dual-slope ramp. */
+namespace DifficultyConstants
+{
+    /** Distance at which Phase 1 ends and Phase 2 begins (meters). */
+    constexpr float PHASE1_END_DISTANCE = 5000.0f;
+
+    /** Length of Phase 2 ramp (meters from PHASE1_END_DISTANCE to max difficulty). */
+    constexpr float PHASE2_RAMP_LENGTH = 15000.0f;
+
+    /** Difficulty at distance 0 (easiest). */
+    constexpr float MIN_DIFFICULTY = 1.0f;
+
+    /** Difficulty at PHASE1_END_DISTANCE (midpoint). */
+    constexpr float MID_DIFFICULTY = 5.0f;
+
+    /** Maximum difficulty (hardest). */
+    constexpr float MAX_DIFFICULTY = 10.0f;
+}
+
 /**
  * Stateless utility for mapping player distance to difficulty level.
  * Produces a value from 1.0 (easy) to 10.0 (hardest).

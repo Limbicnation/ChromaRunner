@@ -72,5 +72,5 @@ public:
 
 private:
     TMap<FName, TArray<T*>> PooledActors;
-    TArray<T*> ActiveActors;
+    TSet<T*> ActiveActors;
 };

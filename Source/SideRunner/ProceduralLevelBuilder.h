@@ -158,6 +158,20 @@ private:
     /** Computes max jump distances from physics constants. */
     void CalculateJumpDistances();
 
+    /**
+     * Retrieves an actor from the specified pool, or spawns a new one if the pool is empty.
+     * Handles GC ref array bookkeeping and actor reactivation.
+     *
+     * @param Pool - Actor pool to check
+     * @param GCRefs - GC root reference array for this pool
+     * @param World - World context for spawning
+     * @param ActorClass - Class to spawn if pool is empty
+     * @param SpawnLocation - Location for the actor
+     * @return Retrieved or newly spawned actor, or nullptr on failure
+     */
+    AActor* GetOrSpawnActor(FActorPool<AActor>& Pool, TArray<AActor*>& GCRefs,
+                            UWorld* World, UClass* ActorClass, const FVector& SpawnLocation);
+
     /** Returns a difficulty alpha in [0,1] from difficulty [1,10]. */
     FORCEINLINE float GetDifficultyAlpha(float Difficulty) const
     {
@@ -166,6 +180,9 @@ private:
 
     /** Selects an obstacle movement type appropriate for the difficulty. */
     uint8 SelectMovementTypeForDifficulty(float Difficulty, FRandomStream& RandomStream) const;
+
+    /** Returns true if the actor matches PlatformClass or any PlatformVariant class. */
+    bool IsPlatformActor(const AActor* Actor) const;
 
     // ======================================================================
     // Object Pools

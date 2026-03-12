@@ -9,6 +9,15 @@
 #include "TimerManager.h"
 #include "Kismet/GameplayStatics.h"
 
+namespace SpawnLevelConstants
+{
+    /** Half-extent width (X) for procedural level trigger boxes. */
+    constexpr float TRIGGER_HALF_WIDTH = 200.0f;
+
+    /** Half-extent height (Z) for procedural level trigger boxes. */
+    constexpr float TRIGGER_HALF_HEIGHT = 500.0f;
+}
+
 // Sets default values
 ASpawnLevel::ASpawnLevel()
 {
@@ -273,7 +282,7 @@ void ASpawnLevel::SpawnProceduralLevel(const FVector& SpawnPos, const FRotator& 
     if (UBoxComponent* Trigger = NewLevel->GetTrigger())
     {
         // Set extent to cover chunk dimensions (half-extents: X=width, Y=half chunk length, Z=height)
-        Trigger->SetBoxExtent(FVector(200.0f, ProceduralBuilder->ChunkLength * 0.5f, 500.0f));
+        Trigger->SetBoxExtent(FVector(SpawnLevelConstants::TRIGGER_HALF_WIDTH, ProceduralBuilder->ChunkLength * 0.5f, SpawnLevelConstants::TRIGGER_HALF_HEIGHT));
         Trigger->OnComponentBeginOverlap.AddDynamic(this, &ASpawnLevel::OnOverlapBegin);
     }
 
@@ -334,6 +343,33 @@ bool ASpawnLevel::ShouldUseProceduralAtCurrentDistance() const
 }
 
 // ======================================================================
+// Level Pool Return Helper
+// ======================================================================
+
+void ASpawnLevel::ReturnLevelToPool(ABaseLevel* Level)
+{
+    if (!IsValid(Level))
+    {
+        return;
+    }
+
+    // Return actors to pool if using procedural generation
+    if (bUseProceduralGeneration && ProceduralBuilder)
+    {
+        TArray<AActor*> ActorsToPool = Level->CleanupLevelActors();
+        ProceduralBuilder->ReturnActorsToPool(ActorsToPool);
+    }
+
+    // Unbind delegate before destruction to prevent stale callbacks
+    if (UBoxComponent* Trigger = Level->GetTrigger())
+    {
+        Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
+    }
+
+    Level->Destroy();
+}
+
+// ======================================================================
 // Level Destruction
 // ======================================================================
 
@@ -356,20 +392,7 @@ void ASpawnLevel::DelayedDestroyOldestLevel()
     {
         if (LevelToDestroy.IsValid())
         {
-            // Return actors to pool before destroying level
-            if (bUseProceduralGeneration && ProceduralBuilder)
-            {
-                TArray<AActor*> ActorsToPool = LevelToDestroy->CleanupLevelActors();
-                ProceduralBuilder->ReturnActorsToPool(ActorsToPool);
-            }
-
-            // Unbind delegate before destruction to prevent stale callbacks
-            if (UBoxComponent* Trigger = LevelToDestroy->GetTrigger())
-            {
-                Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
-            }
-
-            LevelToDestroy->Destroy();
+            ReturnLevelToPool(LevelToDestroy.Get());
             UE_LOG(LogSideRunner, Verbose, TEXT("Destroyed old level segment"));
         }
 
@@ -388,21 +411,7 @@ void ASpawnLevel::DestroyOldestLevel()
     {
         ABaseLevel* OldestLevel = LevelList[0];
         LevelList.RemoveAt(0);
-        if (IsValid(OldestLevel))
-        {
-            // Return actors to pool if using procedural generation
-            if (bUseProceduralGeneration && ProceduralBuilder)
-            {
-                TArray<AActor*> ActorsToPool = OldestLevel->CleanupLevelActors();
-                ProceduralBuilder->ReturnActorsToPool(ActorsToPool);
-            }
-
-            if (UBoxComponent* Trigger = OldestLevel->GetTrigger())
-            {
-                Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
-            }
-            OldestLevel->Destroy();
-        }
+        ReturnLevelToPool(OldestLevel);
     }
 }
 
@@ -430,21 +439,7 @@ void ASpawnLevel::ResetLevelsForRespawn()
     // Destroy all existing levels and unbind delegates
     for (ABaseLevel* Level : LevelList)
     {
-        if (IsValid(Level))
-        {
-            // Return actors to pool if using procedural generation
-            if (bUseProceduralGeneration && ProceduralBuilder)
-            {
-                TArray<AActor*> ActorsToPool = Level->CleanupLevelActors();
-                ProceduralBuilder->ReturnActorsToPool(ActorsToPool);
-            }
-
-            if (UBoxComponent* Trigger = Level->GetTrigger())
-            {
-                Trigger->OnComponentBeginOverlap.RemoveDynamic(this, &ASpawnLevel::OnOverlapBegin);
-            }
-            Level->Destroy();
-        }
+        ReturnLevelToPool(Level);
     }
     LevelList.Empty();
 
