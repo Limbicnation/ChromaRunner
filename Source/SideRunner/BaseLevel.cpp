@@ -10,10 +10,10 @@
 
 // Sets default values
 ABaseLevel::ABaseLevel()
-    : bShowDebugBoxes(false)
-    , LevelLength(1000.0f)
+    : LevelLength(1000.0f)
     , DifficultyLevel(1)
     , bIsEndLevel(false)
+    , bShowDebugBoxes(false)
 {
     // PERFORMANCE: Disable tick by default - only enable when debug visualization is needed
     PrimaryActorTick.bCanEverTick = false;

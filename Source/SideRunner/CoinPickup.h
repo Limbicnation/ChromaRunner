@@ -2,45 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "ActorPool.h"
 #include "CoinPickup.generated.h"
-
-// PERFORMANCE: Simple actor pool template for efficient object reuse
-template<class T>
-class FActorPool
-{
-public:
-    T* GetActor(FName Tag = NAME_None)
-    {
-        TArray<T*>& Pool = PooledActors.FindOrAdd(Tag);
-        if (Pool.Num() > 0)
-        {
-            T* Actor = Pool.Pop();
-            ActiveActors.Add(Actor);
-            return Actor;
-        }
-        return nullptr;
-    }
-    
-    void ReturnActor(T* Actor, FName Tag = NAME_None)
-    {
-        if (Actor)
-        {
-            TArray<T*>& Pool = PooledActors.FindOrAdd(Tag);
-            Pool.Add(Actor);
-            ActiveActors.Remove(Actor);
-        }
-    }
-    
-    void Clear()
-    {
-        PooledActors.Empty();
-        ActiveActors.Empty();
-    }
-    
-private:
-    TMap<FName, TArray<T*>> PooledActors;
-    TArray<T*> ActiveActors;
-};
 
 /**
  * Performance-optimized coin pickup with magnetism, animation, and pooling support.
