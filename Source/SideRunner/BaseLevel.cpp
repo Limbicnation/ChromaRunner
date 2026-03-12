@@ -10,10 +10,10 @@
 
 // Sets default values
 ABaseLevel::ABaseLevel()
-    : bShowDebugBoxes(false)
-    , LevelLength(1000.0f)
+    : LevelLength(1000.0f)
     , DifficultyLevel(1)
     , bIsEndLevel(false)
+    , bShowDebugBoxes(false)
 {
     // PERFORMANCE: Disable tick by default - only enable when debug visualization is needed
     PrimaryActorTick.bCanEverTick = false;
@@ -212,6 +212,63 @@ int32 ABaseLevel::GetDifficultyLevel() const
 bool ABaseLevel::IsEndLevel() const
 {
     return bIsEndLevel;
+}
+
+// ======================================================================
+// Procedural Injection API
+// ======================================================================
+
+void ABaseLevel::SetLevelActors(const TArray<AActor*>& InActors)
+{
+    LevelActors = InActors;
+
+    // Attach actors as children so they auto-destroy with this level
+    for (AActor* Actor : LevelActors)
+    {
+        if (IsValid(Actor))
+        {
+            Actor->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+        }
+    }
+
+    ValidateLevelActors();
+
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogSideRunner, Log, TEXT("BaseLevel %s: Set %d level actors (procedural)"), *GetName(), LevelActors.Num());
+#endif
+}
+
+void ABaseLevel::SetLevelLength(float InLength)
+{
+    LevelLength = FMath::Max(100.0f, InLength);
+}
+
+void ABaseLevel::SetDifficultyLevel(int32 InDifficulty)
+{
+    DifficultyLevel = FMath::Clamp(InDifficulty, 1, 10);
+}
+
+TArray<AActor*> ABaseLevel::CleanupLevelActors()
+{
+    TArray<AActor*> ActorsToReturn;
+
+    for (AActor* Actor : LevelActors)
+    {
+        if (IsValid(Actor))
+        {
+            // Detach from parent so pool can reuse
+            Actor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+            ActorsToReturn.Add(Actor);
+        }
+    }
+
+    LevelActors.Empty();
+
+#if UE_BUILD_DEVELOPMENT
+    UE_LOG(LogSideRunner, Log, TEXT("BaseLevel %s: Cleaned up %d actors for pooling"), *GetName(), ActorsToReturn.Num());
+#endif
+
+    return ActorsToReturn;
 }
 
 #if WITH_EDITOR

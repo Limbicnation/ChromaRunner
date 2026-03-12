@@ -74,7 +74,7 @@ ACoinPickup::ACoinPickup()
     // Debug and networking
     bShowDebugInfo = false;
     bReplicates = false; // Optimize by disabling replication unless needed
-    NetUpdateFrequency = 0.1f; // Reduced frequency for better performance
+    SetNetUpdateFrequency(0.1f); // Reduced frequency for better performance
 }
 
 void ACoinPickup::BeginPlay()

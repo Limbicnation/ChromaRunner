@@ -5,6 +5,9 @@
 #include "SpawnLevel.generated.h"
 
 class ABaseLevel;
+class UProceduralLevelBuilder;
+class UDifficultyScaler;
+class USideRunnerGameInstance;
 
 UCLASS()
 class SIDERUNNER_API ASpawnLevel : public AActor
@@ -59,6 +62,31 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level Management")
     float LevelDestroyDelay = 1.0f; // Delay before destroying the oldest level
 
+    // ======================================================================
+    // Procedural Generation
+    // ======================================================================
+
+    /** When true, levels are generated procedurally instead of using BP variants. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Procedural Generation")
+    bool bUseProceduralGeneration = false;
+
+    /** Procedural content builder component. Created in constructor. */
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Procedural Generation")
+    UProceduralLevelBuilder* ProceduralBuilder;
+
+    /** Difficulty scaler instance. Created in constructor. */
+    UPROPERTY()
+    UDifficultyScaler* DifficultyScaler;
+
+    /** Maximum number of active levels before oldest is destroyed. Replaces hardcoded 6. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Level Management", meta=(ClampMin="3", ClampMax="12"))
+    int32 MaxActiveLevels = 6;
+
+    /** Distance (meters) at which procedural generation begins in hybrid mode.
+     *  Before this distance, handcrafted BP_Level1-6 are used. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Procedural Generation", meta=(ClampMin="0.0", ClampMax="10000.0"))
+    float ProceduralStartDistance = 2000.0f;
+
 private:
     FVector SpawnLocation;
     FRotator SpawnRotation;
@@ -70,9 +98,31 @@ private:
     void DelayedDestroyOldestLevel();
     void TryAcquirePlayerPawn();
 
+    /** Procedural spawn path: spawn a bare ABaseLevel and fill with generated content. */
+    void SpawnProceduralLevel(const FVector& SpawnPos, const FRotator& SpawnRot);
+
+    /** Handcrafted spawn path: pick a random BP_Level1-6. */
+    void SpawnHandcraftedLevel(const FVector& SpawnPos, const FRotator& SpawnRot);
+
+    /** Returns current player distance in meters for difficulty calculation. */
+    float GetCurrentDistanceMeters() const;
+
+    /** Should we use procedural generation at the current distance? (hybrid mode check) */
+    bool ShouldUseProceduralAtCurrentDistance() const;
+
+    /** Returns a level's actors to the procedural pool and unbinds its trigger delegate. */
+    void ReturnLevelToPool(ABaseLevel* Level);
+
     /** Cached first-level spawn position - updated on each spawn cycle to match player location */
     FVector FirstLevelSpawnPosition = FVector(0.0f, 1000.0f, 0.0f);
 
     /** Array of timer handles for pending destroy operations */
     TArray<FTimerHandle> PendingDestroyTimers;
+
+    /** Current seed for procedural generation (incremented per chunk). */
+    int32 CurrentSeed = 0;
+
+    /** Cached game instance for distance queries. */
+    UPROPERTY()
+    USideRunnerGameInstance* CachedGameInstance;
 };
