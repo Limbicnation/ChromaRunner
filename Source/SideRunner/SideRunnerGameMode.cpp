@@ -7,7 +7,6 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
-#include "EngineUtils.h"
 
 ASideRunnerGameMode::ASideRunnerGameMode()
 {
@@ -18,21 +17,16 @@ ASideRunnerGameMode::ASideRunnerGameMode()
 void ASideRunnerGameMode::BeginPlay()
 {
     Super::BeginPlay();
+    // Player binding is now handled by BindPlayerCharacter(), called from RunnerCharacter::BeginPlay
+    UE_LOG(LogSideRunner, Log, TEXT("[GameMode] BeginPlay — waiting for player to register"));
+}
 
-    // Bind to the player character's death delegate if one exists in this session
-    if (UWorld* World = GetWorld())
-    {
-        for (TActorIterator<ARunnerCharacter> It(World); It; ++It)
-        {
-            ARunnerCharacter* Player = *It;
-            if (Player && Player->HealthComponent)
-            {
-                Player->HealthComponent->OnDeath.AddUniqueDynamic(this, &ASideRunnerGameMode::OnPlayerDeath);
-                UE_LOG(LogSideRunner, Log, TEXT("[GameMode] Bound to %s death delegate"), *Player->GetName());
-            }
-            break; // only one player character
-        }
-    }
+void ASideRunnerGameMode::BindPlayerCharacter(ARunnerCharacter* PlayerCharacter)
+{
+    if (!PlayerCharacter || !PlayerCharacter->HealthComponent) return;
+
+    PlayerCharacter->HealthComponent->OnDeath.AddUniqueDynamic(this, &ASideRunnerGameMode::OnPlayerDeath);
+    UE_LOG(LogSideRunner, Log, TEXT("[GameMode] Bound to %s death delegate"), *PlayerCharacter->GetName());
 }
 
 void ASideRunnerGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)

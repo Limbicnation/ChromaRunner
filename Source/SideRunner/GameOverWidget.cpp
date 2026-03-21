@@ -2,7 +2,6 @@
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 void UGameOverWidget::NativeConstruct()
 {
@@ -35,19 +34,26 @@ void UGameOverWidget::SetFinalScore(int32 Score)
 
 void UGameOverWidget::OnRestartClicked()
 {
-    // Restart the current level (TheGame)
-    UKismetSystemLibrary::ExecuteConsoleCommand(this, TEXT("RestartLevel"), nullptr);
+    // Unpause the game before reloading
+    UGameplayStatics::SetGamePaused(this, false);
 
-    // Fallback: reopen the same level
-    UGameplayStatics::OpenLevel(this, FName(TEXT("TheGame")), false);
+    // Remove this widget
+    RemoveFromParent();
+
+    // Reload the current level
+    const FString CurrentLevel = UGameplayStatics::GetCurrentLevelName(this, true);
+    UGameplayStatics::OpenLevel(this, FName(*CurrentLevel), false);
 }
 
 void UGameOverWidget::OnMainMenuClicked()
 {
-    // Close this widget first
+    // Unpause the game before navigating
+    UGameplayStatics::SetGamePaused(this, false);
+
+    // Close this widget
     RemoveFromParent();
 
-    // Navigate to main menu — replace "MainMenu" with your actual map name
-    // If no main menu exists yet, this just restarts:
-    UGameplayStatics::OpenLevel(this, FName(TEXT("TheGame")), false);
+    // Navigate to the current level (replace with main menu map when available)
+    const FString CurrentLevel = UGameplayStatics::GetCurrentLevelName(this, true);
+    UGameplayStatics::OpenLevel(this, FName(*CurrentLevel), false);
 }

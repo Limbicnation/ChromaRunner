@@ -105,7 +105,7 @@ public:
     int32 GetMaxHealth() const { return FMath::RoundHalfFromZero(MaxHealth); }
 
     UFUNCTION(BlueprintCallable, Category = "Health")
-    void ResetHealth() { CurrentHealth = MaxHealth; BroadcastHealthChange(); }
+    void ResetHealth() { CurrentHealth = MaxHealth; bDead = false; BroadcastHealthChange(); }
 
     UFUNCTION(BlueprintCallable, Category = "Health|Invincibility")
     void SetInvulnerabilityTime(float Duration) { TriggerInvincibility(Duration); }
@@ -123,6 +123,7 @@ protected:
 
 private:
     bool bInitialized = false;
+    bool bDead = false;
     bool bInvincible = false;
     int32 TotalHitsTaken = 0;
     float InvincibilityTimer = 0.0f;

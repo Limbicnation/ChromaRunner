@@ -4,6 +4,7 @@
 #include "SideRunnerGameMode.generated.h"
 
 class UUserWidget;
+class ARunnerCharacter;
 
 /**
  * Chroma Runner Game Mode.
@@ -47,6 +48,9 @@ public:
     void HandleGameWon();
 
     // ── API ──────────────────────────────────────────────────────────────────
+
+    /** Called by the player character in BeginPlay to register for death events. */
+    void BindPlayerCharacter(ARunnerCharacter* PlayerCharacter);
 
     /** Add Points to the current score. */
     UFUNCTION(BlueprintCallable, Category = "Game|Score")

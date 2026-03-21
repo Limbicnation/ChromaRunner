@@ -9,11 +9,11 @@
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 
-DEFINE_LOG_CATEGORY(LogSideRunner);
+// LogSideRunner already defined in SideRunner.cpp — no duplicate needed
 
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
-    PrimaryComponentTick.bCanEverTick = true;
+    PrimaryComponentTick.bCanEverTick = false;
     bInitialized = false;
 }
 
@@ -49,6 +49,7 @@ void UPlayerHealthComponent::InitHealth()
 
     CurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, MaxHealth);
     bInitialized = true;
+    bDead = false;
 
     UE_LOG(LogSideRunner, Log,
         TEXT("[Health] %s initialized — Health: %.1f / %.1f"),
@@ -157,7 +158,7 @@ float UPlayerHealthComponent::GetHealthPercent() const
 
 bool UPlayerHealthComponent::IsDead() const
 {
-    return bInitialized && CurrentHealth <= 0.0f;
+    return bInitialized && bDead;
 }
 
 void UPlayerHealthComponent::BroadcastHealthChange()
@@ -167,8 +168,9 @@ void UPlayerHealthComponent::BroadcastHealthChange()
 
 void UPlayerHealthComponent::TriggerDeath()
 {
-    if (IsDead()) return; // already triggered
+    if (bDead) return; // already triggered
 
+    bDead = true;
     UE_LOG(LogSideRunner, Log, TEXT("[Health] %s has died."), *GetOwner()->GetName());
     OnPlayerDeath.Broadcast(TotalHitsTaken);
     OnDeath.Broadcast();

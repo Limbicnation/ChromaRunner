@@ -16,6 +16,7 @@
 #include "SpawnLevel.h" // For ResetLevelsForRespawn on respawn
 #include "SideRunner.h" // Custom log categories
 #include "EnemyCharacter.h"
+#include "SideRunnerGameMode.h"
 
 // CRITICAL FIX: Comprehensive validation macro for HealthComponent access
 // Prevents access violations by validating component before use
@@ -249,6 +250,12 @@ void ARunnerCharacter::BeginPlay()
                 UE_LOG(LogSideRunner, Error, TEXT("Failed to bind health delegates - component not initialized"));
             }
         }, 0.1f, false);  // Small delay to ensure component initialization
+    }
+
+    // Register with the GameMode for death delegate binding
+    if (ASideRunnerGameMode* GM = Cast<ASideRunnerGameMode>(UGameplayStatics::GetGameMode(this)))
+    {
+        GM->BindPlayerCharacter(this);
     }
 
     // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
@@ -600,8 +607,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 #endif
 
     // Apply regular spike damage through health component
-    const int32 SpikeDamage = static_cast<int32>(RegularSpike->DamageAmount);
-    HealthComponent->TakeDamage(SpikeDamage, EDamageType::Spikes);
+    HealthComponent->TakeDamage(RegularSpike->DamageAmount, EDamageType::Spikes);
     // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
 
@@ -623,7 +629,7 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
     }
 
     // Apply damage
-    HealthComponent->TakeDamage(static_cast<int32>(DamageAmount), DamageType);
+    HealthComponent->TakeDamage(DamageAmount, DamageType);
     // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
 
