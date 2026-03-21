@@ -25,6 +25,8 @@ class AActor;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, CurrentHealth, float, MaxHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMaxHealthChanged, float, CurrentHealth, float, MaxHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLegacyOnTakeDamage, int32, DamageAmount, EDamageType, DamageType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLegacyOnPlayerDeath, int32, TotalHitsTaken);
 DECLARE_MULTICAST_DELEGATE(FOnHealthInitialized);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -53,9 +55,6 @@ public:
     FOnDeath OnDeath;
 
     // Legacy delegates (backward compat) — signatures match old int32-based API
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLegacyOnTakeDamage, int32, DamageAmount, EDamageType, DamageType);
-    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLegacyOnPlayerDeath, int32, TotalHitsTaken);
-
     UPROPERTY(BlueprintAssignable, Category = "Health|Events|Legacy")
     FLegacyOnTakeDamage OnTakeDamage;
 
@@ -105,7 +104,7 @@ public:
     int32 GetMaxHealth() const { return FMath::RoundHalfFromZero(MaxHealth); }
 
     UFUNCTION(BlueprintCallable, Category = "Health")
-    void ResetHealth() { CurrentHealth = MaxHealth; bDead = false; bInitialized = true; OnHealthInitialized.Broadcast(); BroadcastHealthChange(); }
+    void ResetHealth();
 
     UFUNCTION(BlueprintCallable, Category = "Health|Invincibility")
     void SetInvulnerabilityTime(float Duration) { TriggerInvincibility(Duration); }

@@ -172,7 +172,6 @@ void AEnemyCharacter::PatrolStep()
 	}
 
 	// Move along Y axis (side-scroller direction)
-	const FVector MoveDelta(0.0f, PatrolDirection * PatrolSpeed * PATROL_STEP_INTERVAL, 0.0f);
 	AddMovementInput(FVector(0.0f, PatrolDirection, 0.0f), 1.0f);
 
 	UpdateSpriteDirection();

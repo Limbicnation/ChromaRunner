@@ -53,7 +53,7 @@ void UGameOverWidget::OnMainMenuClicked()
     // Close this widget
     RemoveFromParent();
 
-    // Navigate to the current level (replace with main menu map when available)
+    // TODO: Navigate to main menu map instead of reloading current level
     const FString CurrentLevel = UGameplayStatics::GetCurrentLevelName(this, true);
     UGameplayStatics::OpenLevel(this, FName(*CurrentLevel), false);
 }

@@ -125,6 +125,25 @@ float UPlayerHealthComponent::Heal(float Amount)
     return AmountHealed;
 }
 
+void UPlayerHealthComponent::ResetHealth()
+{
+    CurrentHealth = MaxHealth;
+    bDead = false;
+    bInitialized = true;
+    TotalHitsTaken = 0;
+
+    // Clear invincibility state and timer
+    bInvincible = false;
+    InvincibilityTimer = 0.0f;
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(InvincibilityTimerHandle);
+    }
+
+    OnHealthInitialized.Broadcast();
+    BroadcastHealthChange();
+}
+
 void UPlayerHealthComponent::SetHealth(float NewHealth)
 {
     if (!bInitialized) return;
@@ -185,15 +204,15 @@ void UPlayerHealthComponent::TriggerInvincibility(float Duration)
 {
     if (Duration <= 0.0f || IsDead()) return;
 
+    UWorld* World = GetWorld();
+    if (!World) return;
+
     bInvincible = true;
     InvincibilityTimer = Duration;
 
     UE_LOG(LogSideRunner, Log,
         TEXT("[Health] Invincibility triggered on %s for %.1fs"),
         *GetOwner()->GetName(), Duration);
-
-    UWorld* World = GetWorld();
-    if (!World) return;
 
     FTimerManager& TM = World->GetTimerManager();
     TM.ClearTimer(InvincibilityTimerHandle);
