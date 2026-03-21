@@ -56,14 +56,14 @@ void UHealthBarWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 // Health Component Event Handlers
 // ============================================================================
 
-void UHealthBarWidget::OnHealthChanged(int32 NewHealth, int32 NewMaxHealth)
+void UHealthBarWidget::OnHealthChanged(float NewHealth, float NewMaxHealth)
 {
 	// Update cached values
-	CurrentHealth = static_cast<float>(NewHealth);
+	CurrentHealth = NewHealth;
 	MaxHealth = static_cast<float>(NewMaxHealth);
 
 #if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogSideRunner, VeryVerbose, TEXT("HealthBarWidget: Health changed to %d / %d (%.1f%%)"),
+	UE_LOG(LogSideRunner, VeryVerbose, TEXT("HealthBarWidget: Health changed to %.1f / %.1f (%.1f%%)"),
 		NewHealth, NewMaxHealth, GetHealthPercent() * 100.0f);
 #endif
 

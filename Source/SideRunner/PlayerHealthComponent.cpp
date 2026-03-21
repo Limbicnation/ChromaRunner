@@ -9,7 +9,7 @@
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 
-DEFINE_LOG_CATEGORY_EXTERN(LogSideRunner);
+DEFINE_LOG_CATEGORY(LogSideRunner);
 
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
@@ -82,6 +82,10 @@ float UPlayerHealthComponent::TakeDamage(float DamageAmount, EDamageType DamageT
     // ── Apply damage ───────────────────────────────────────────────────────
     const float ActualDamage = FMath::Min(DamageAmount, CurrentHealth);
     CurrentHealth = FMath::Clamp(CurrentHealth - ActualDamage, 0.0f, MaxHealth);
+
+    // Legacy compat: fire OnTakeDamage and increment hit counter
+    TotalHitsTaken++;
+    OnTakeDamage.Broadcast(FMath::RoundHalfFromZero(ActualDamage), DamageType);
 
     UE_LOG(LogSideRunner, Log,
         TEXT("[Health] %s took %.1f damage → Health: %.1f / %.1f"),
@@ -166,6 +170,7 @@ void UPlayerHealthComponent::TriggerDeath()
     if (IsDead()) return; // already triggered
 
     UE_LOG(LogSideRunner, Log, TEXT("[Health] %s has died."), *GetOwner()->GetName());
+    OnPlayerDeath.Broadcast(TotalHitsTaken);
     OnDeath.Broadcast();
 }
 

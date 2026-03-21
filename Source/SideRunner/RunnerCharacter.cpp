@@ -584,7 +584,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 #endif
 
     // Apply instant death damage through health component
-    const int32 InstantDeathDamage = HealthComponent->GetMaxHealth() * 10;
+    const float InstantDeathDamage = HealthComponent->GetMaxHealthInt() * 10.0f;
     HealthComponent->TakeDamage(InstantDeathDamage, EDamageType::Spikes);
     // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
@@ -592,7 +592,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 {
     // CRITICAL FIX: Centralized damage handling to prevent double damage
-    if (!RegularSpike || !IsValid(HealthComponent) || HealthComponent->IsInvulnerable())
+    if (!RegularSpike || !IsValid(HealthComponent) || HealthComponent->IsInvincible())
         return;
 
 #if UE_BUILD_DEVELOPMENT
@@ -608,7 +608,7 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 {
     // PERFORMANCE: Validate inputs
-    if (!IsValid(HealthComponent) || HealthComponent->IsInvulnerable() || DamageAmount <= 0.0f)
+    if (!IsValid(HealthComponent) || HealthComponent->IsInvincible() || DamageAmount <= 0.0f)
         return;
 
     // Determine damage type based on causer

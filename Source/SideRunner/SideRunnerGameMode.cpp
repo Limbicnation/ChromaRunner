@@ -7,6 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "EngineUtils.h"
 
 ASideRunnerGameMode::ASideRunnerGameMode()
 {
@@ -21,16 +22,15 @@ void ASideRunnerGameMode::BeginPlay()
     // Bind to the player character's death delegate if one exists in this session
     if (UWorld* World = GetWorld())
     {
-        TArray<AActor*> Players;
-        World->GetPawnsOfType(ARunnerCharacter::StaticClass(), Players);
-        if (Players.Num() > 0)
+        for (TActorIterator<ARunnerCharacter> It(World); It; ++It)
         {
-            ARunnerCharacter* Player = Cast<ARunnerCharacter>(Players[0]);
+            ARunnerCharacter* Player = *It;
             if (Player && Player->HealthComponent)
             {
                 Player->HealthComponent->OnDeath.AddUniqueDynamic(this, &ASideRunnerGameMode::OnPlayerDeath);
                 UE_LOG(LogSideRunner, Log, TEXT("[GameMode] Bound to %s death delegate"), *Player->GetName());
             }
+            break; // only one player character
         }
     }
 }

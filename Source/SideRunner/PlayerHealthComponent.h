@@ -52,6 +52,16 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Health|Events")
     FOnDeath OnDeath;
 
+    // Legacy delegates (backward compat) — signatures match old int32-based API
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FLegacyOnTakeDamage, int32, DamageAmount, EDamageType, DamageType);
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLegacyOnPlayerDeath, int32, TotalHitsTaken);
+
+    UPROPERTY(BlueprintAssignable, Category = "Health|Events|Legacy")
+    FLegacyOnTakeDamage OnTakeDamage;
+
+    UPROPERTY(BlueprintAssignable, Category = "Health|Events|Legacy")
+    FLegacyOnPlayerDeath OnPlayerDeath;
+
     FOnHealthInitialized OnHealthInitialized;
 
     UFUNCTION(BlueprintCallable, Category = "Health")
@@ -81,6 +91,29 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Health|Invincibility")
     void TriggerInvincibility(float Duration);
 
+    // ── Backward-compat shims (maps old API to new) ─────────────────────────
+    UFUNCTION(BlueprintPure, Category = "Health")
+    int32 GetTotalHitsTaken() const { return TotalHitsTaken; }
+
+    UFUNCTION(BlueprintPure, Category = "Health")
+    int32 GetCurrentHealth() const { return FMath::RoundHalfFromZero(CurrentHealth); }
+
+    UFUNCTION(BlueprintPure, Category = "Health")
+    int32 GetMaxHealthInt() const { return FMath::RoundHalfFromZero(MaxHealth); }
+
+    UFUNCTION(BlueprintPure, Category = "Health")
+    int32 GetMaxHealth() const { return FMath::RoundHalfFromZero(MaxHealth); }
+
+    UFUNCTION(BlueprintCallable, Category = "Health")
+    void ResetHealth() { CurrentHealth = MaxHealth; BroadcastHealthChange(); }
+
+    UFUNCTION(BlueprintCallable, Category = "Health|Invincibility")
+    void SetInvulnerabilityTime(float Duration) { TriggerInvincibility(Duration); }
+
+    UFUNCTION(BlueprintPure, Category = "Health|Invincibility")
+    bool IsInvulnerable() const { return bInvincible; }
+
+    // ── New API ───────────────────────────────────────────────────────────
     UFUNCTION(BlueprintPure, Category = "Health|Invincibility")
     bool IsInvincible() const;
 
@@ -91,6 +124,7 @@ protected:
 private:
     bool bInitialized = false;
     bool bInvincible = false;
+    int32 TotalHitsTaken = 0;
     float InvincibilityTimer = 0.0f;
 
     static constexpr float INVINCIBILITY_TICK_RATE = 0.05f;
