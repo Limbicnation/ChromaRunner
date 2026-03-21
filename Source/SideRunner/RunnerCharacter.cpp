@@ -651,7 +651,7 @@ bool ARunnerCharacter::IsDead() const
     }
 
     // All checks passed - safely get health status
-    return (HealthComponent->GetCurrentHealth() <= 0);
+    return HealthComponent->IsDead();
 }
 
 bool ARunnerCharacter::IsGameOverSafe() const
