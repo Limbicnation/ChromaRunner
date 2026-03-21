@@ -35,70 +35,49 @@ class SIDERUNNER_API UPlayerHealthComponent : public UActorComponent
 public:
     UPlayerHealthComponent();
 
-    /** Current health value. Clamped to [0, MaxHealth]. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health",
         meta = (ClampMin = "0.0", UIMin = "0.0"))
     float CurrentHealth = 3.0f;
 
-    /** Maximum health. Must be > 0. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health",
         meta = (ClampMin = "1.0", UIMin = "1.0"))
     float MaxHealth = 3.0f;
 
-    // ── Delegates ──────────────────────────────────────────────────────────────
-
-    /** Fired whenever health changes (gain or loss). */
     UPROPERTY(BlueprintAssignable, Category = "Health|Events")
     FOnHealthChanged OnHealthChanged;
 
-    /** Fired when max health changes (e.g. upgrade). */
     UPROPERTY(BlueprintAssignable, Category = "Health|Events")
     FOnMaxHealthChanged OnMaxHealthChanged;
 
-    /** Fired when health reaches zero. */
     UPROPERTY(BlueprintAssignable, Category = "Health|Events")
     FOnDeath OnDeath;
 
-    /** Fired once health component is fully initialized and health values are valid. */
     FOnHealthInitialized OnHealthInitialized;
 
-    // ── API ───────────────────────────────────────────────────────────────────
-
-    /** Apply damage. Respects invincibility frames. Returns actual damage dealt. */
     UFUNCTION(BlueprintCallable, Category = "Health")
     float TakeDamage(float DamageAmount, EDamageType DamageType);
 
-    /** Heal by Amount. Will not exceed MaxHealth. Returns actual amount healed. */
     UFUNCTION(BlueprintCallable, Category = "Health")
     float Heal(float Amount);
 
-    /** Immediately set health to a specific value. Clamped to [0, MaxHealth]. */
     UFUNCTION(BlueprintCallable, Category = "Health")
     void SetHealth(float NewHealth);
 
-    /** Change max health. If NewMaxHealth < CurrentHealth, health is clamped. */
     UFUNCTION(BlueprintCallable, Category = "Health")
     void SetMaxHealth(float NewMaxHealth);
 
-    /** Returns current health as a 0..1 fraction of MaxHealth. */
     UFUNCTION(BlueprintPure, Category = "Health")
     float GetHealthPercent() const;
 
-    /** Returns true if health is currently at or below zero. */
     UFUNCTION(BlueprintPure, Category = "Health")
     bool IsDead() const;
 
-    /** Returns true once InitHealth() has been called. */
     UFUNCTION(BlueprintPure, Category = "Health")
     bool IsFullyInitialized() const;
 
-    /** Must be called once before use, typically from the owning Blueprint's BeginPlay. */
     UFUNCTION(BlueprintCallable, Category = "Health")
     void InitHealth();
 
-    // ── Invincibility frames ──────────────────────────────────────────────────
-
-    /** Trigger invincibility frames for Duration seconds. Subsequent TakeDamage calls are ignored while active. */
     UFUNCTION(BlueprintCallable, Category = "Health|Invincibility")
     void TriggerInvincibility(float Duration);
 
@@ -110,30 +89,20 @@ protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-    // ── Internal state ───────────────────────────────────────────────────────
-
-    /** Internal flag — InitHealth() must be called before the component is usable. */
     bool bInitialized = false;
-
     bool bInvincible = false;
     float InvincibilityTimer = 0.0f;
 
-    static constexpr float INVINCIBILITY_TICK_RATE = 0.05f; // 50ms
+    static constexpr float INVINCIBILITY_TICK_RATE = 0.05f;
 
     FTimerHandle InvincibilityTimerHandle;
-    FTimerDelegate InvincibilityTimerDelegate;
 
-    // ── Helpers ─────────────────────────────────────────────────────────────
-
-    /** Broadcast OnHealthChanged. Called after any health change. */
     UFUNCTION()
     void BroadcastHealthChange();
 
-    /** Tick invincibility timer. */
     UFUNCTION()
-    void TickInvincibility(float DeltaTime);
+    void TickInvincibility();
 
-    /** Internal death sequence — clamp health, fire OnDeath. */
     UFUNCTION()
     void TriggerDeath();
 };
