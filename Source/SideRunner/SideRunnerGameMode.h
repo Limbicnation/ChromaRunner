@@ -1,118 +1,85 @@
 #pragma once
 
-#include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "SideRunnerGameMode.generated.h"
 
+class UUserWidget;
+
 /**
- * ChromaRunner Game Mode - Manages UI lifecycle and game state flow.
+ * Chroma Runner Game Mode.
  *
- * Responsibilities:
- * - Creates and displays GameHUDWidget at game start
- * - Listens to GameInstance delegates (OnGameWon, OnGameLost)
- * - Shows GameOverWidget when game ends
- * - Manages input mode transitions (game <-> UI)
+ * Manages the overall game state: spawning players, tracking score,
+ * and displaying HUD / Game Over widgets.
  *
- * Blueprint Setup:
- * - Extend this class as BP_SideRunnerGameMode
- * - Set GameHUDWidgetClass and GameOverWidgetClass to Blueprint widgets
- * - Assign to Project Settings > Default GameMode
+ * Widget classes are assigned as Blueprintable UPROPERTY so that
+ * BP_SideRunnerGameMode (a Blueprint subclass) can configure them
+ * without modifying C++ code.
  */
-UCLASS()
+UCLASS(Abstract, Blueprintable)
 class SIDERUNNER_API ASideRunnerGameMode : public AGameModeBase
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	ASideRunnerGameMode();
+    ASideRunnerGameMode();
+
+    // ── Widget Class Properties ────────────────────────────────────────────────
+    // Assign these in BP_SideRunnerGameMode → Class Defaults.
+    // WBP_GameHUD: displayed during gameplay (health, score, coins)
+    // WBP_GameOver: displayed when the player dies
+
+    /** Widget displayed on-screen during gameplay (health, score, coins). */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+    TSubclassOf<UUserWidget> GameHUDWidgetClass;
+
+    /** Widget displayed on the Game Over screen with score and restart button. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+    TSubclassOf<UUserWidget> GameOverWidgetClass;
+
+    // ── Blueprint Events ────────────────────────────────────────────────────────
+
+    /** Called when the game should display the Game Over screen. Override in BP. */
+    UFUNCTION(BlueprintImplementableEvent, Category = "Game|Events")
+    void HandleGameOver();
+
+    /** Called when the player reaches a win condition (e.g. 5000m). Override in BP. */
+    UFUNCTION(BlueprintImplementableEvent, Category = "Game|Events")
+    void HandleGameWon();
+
+    // ── API ──────────────────────────────────────────────────────────────────
+
+    /** Add Points to the current score. */
+    UFUNCTION(BlueprintCallable, Category = "Game|Score")
+    void AddScore(int32 Points);
+
+    /** Get the current score. */
+    UFUNCTION(BlueprintPure, Category = "Game|Score")
+    int32 GetScore() const;
+
+    UFUNCTION(BlueprintPure, Category = "Game|Score")
+    int32 GetHighScore() const;
 
 protected:
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    // ── AGameModeBase overrides ──────────────────────────────────────────────
 
-	// ======================================================================
-	// Widget Configuration (Set in Blueprint)
-	// ======================================================================
+    virtual void BeginPlay() override;
 
-	/** Widget class for in-game HUD (set to WBP_GameHUD in Blueprint) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<class UGameHUDWidget> GameHUDWidgetClass;
+    // ── Actor lifecycle ─────────────────────────────────────────────────────
 
-	/** Widget class for game over screen (set to WBP_GameOver in Blueprint) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<class UGameOverWidget> GameOverWidgetClass;
-
-	// ======================================================================
-	// Widget Instance Management
-	// ======================================================================
-
-	/** Active HUD widget instance (weak reference prevents GC issues) */
-	UPROPERTY()
-	TWeakObjectPtr<class UGameHUDWidget> ActiveHUDWidget;
-
-	/** Active game over widget instance (weak reference) */
-	UPROPERTY()
-	TWeakObjectPtr<class UGameOverWidget> ActiveGameOverWidget;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-	// ======================================================================
-	// GameInstance Integration
-	// ======================================================================
+    int32 Score = 0;
+    int32 HighScore = 0;
 
-	/** Cached game instance reference for delegate binding */
-	UPROPERTY()
-	class USideRunnerGameInstance* CachedGameInstance;
+    /** Widget instance currently on screen (HUD or GameOver). */
+    UPROPERTY()
+    UUserWidget* CurrentWidget = nullptr;
 
-	/** Flag to prevent duplicate game over processing */
-	bool bGameOverActive;
+    /** Cached reference to the player character — used for delegate binding. */
+    UFUNCTION()
+    void OnPlayerDeath();
 
-	// ======================================================================
-	// UI Lifecycle Functions
-	// ======================================================================
-
-	/**
-	 * Creates and displays the in-game HUD.
-	 * Called at BeginPlay.
-	 */
-	void CreateGameHUD();
-
-	/**
-	 * Shows the game over screen with final statistics.
-	 * @param bWon - True if player won, false if player lost
-	 */
-	void ShowGameOverScreen(bool bWon);
-
-	/**
-	 * Removes the game HUD from viewport.
-	 * Called when game over screen appears.
-	 */
-	void HideGameHUD();
-
-	// ======================================================================
-	// Delegate Handlers (bound to GameInstance events)
-	// ======================================================================
-
-	/** Called when player wins (reaches target distance) */
-	UFUNCTION()
-	void OnGameWonHandler();
-
-	/** Called when player loses (runs out of lives) */
-	UFUNCTION()
-	void OnGameLostHandler();
-
-	// ======================================================================
-	// Input Mode Management
-	// ======================================================================
-
-	/**
-	 * Switches input mode to UI for game over screen interaction.
-	 * Shows mouse cursor and enables click events.
-	 */
-	void SetInputModeUI();
-
-	/**
-	 * Switches input mode back to game.
-	 * Hides mouse cursor and disables UI input.
-	 */
-	void SetInputModeGame();
+    UFUNCTION()
+    void OnPlayerWon();
 };

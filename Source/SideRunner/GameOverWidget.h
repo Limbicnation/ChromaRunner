@@ -5,85 +5,50 @@
 #include "GameOverWidget.generated.h"
 
 /**
- * Game Over Widget - Displays win/loss state, score, distance, and lives used.
- * Provides restart and quit functionality.
- *
- * Blueprint Setup Required:
- * - Create WBP_GameOver based on this class
- * - Add TextBlocks: GameOverText, ScoreText, DistanceText, HighScoreText, LivesText
- * - Add Buttons: RestartButton, QuitButton
- * - Bind widgets using "Is Variable" and matching names
- *
- * Performance: Widgets are created on-demand and destroyed after use.
+ * Game Over screen widget for Chroma Runner.
+ * Displays final score and offers Restart / Main Menu options.
+ * Created by Blueprint to allow widget class assignment in BP_SideRunnerGameMode.
  */
-UCLASS()
+UCLASS(Abstract, Blueprintable)
 class SIDERUNNER_API UGameOverWidget : public UUserWidget
 {
     GENERATED_BODY()
 
 public:
-    /**
-     * Configures the game over display with final game statistics.
-     *
-     * @param bWon - True if player won, false if player lost
-     * @param FinalScore - Final score achieved
-     * @param DistanceMeters - Distance traveled in meters
-     * @param HighScore - Current high score
-     * @param LivesUsed - Total lives consumed (e.g., started with 3, ended with 0 = 3 used)
-     */
+    /** Called by GameMode to pass in the final score before the widget is shown. */
     UFUNCTION(BlueprintCallable, Category = "UI")
-    void SetupGameOverDisplay(bool bWon, int32 FinalScore, float DistanceMeters, int32 HighScore, int32 LivesUsed);
+    void SetFinalScore(int32 Score);
 
 protected:
+    /** Cached score value for restart button logic. */
+    int32 FinalScore = 0;
+
+    // ── Widget Bindings ────────────────────────────────────────────────
+    // These use meta=(BindWidget) and require TextBlock/Button widgets
+    // named exactly as shown in the Designer (txt_Title, txt_FinalScore,
+    // btn_Restart, btn_MainMenu).
+
+    UPROPERTY(meta = (BindWidget))
+    class UTextBlock* txt_Title = nullptr;
+
+    UPROPERTY(meta = (BindWidget))
+    class UTextBlock* txt_FinalScore = nullptr;
+
+    UPROPERTY(meta = (BindWidget))
+    class UButton* btn_Restart = nullptr;
+
+    UPROPERTY(meta = (BindWidget))
+    class UButton* btn_MainMenu = nullptr;
+
+    // ── Native lifecycle ────────────────────────────────────────────────
+
     virtual void NativeConstruct() override;
-    virtual void NativeDestruct() override;
 
-    // ======================================================================
-    // Widget Bindings (must match UMG widget names exactly)
-    // ======================================================================
+    // ── Button handlers ─────────────────────────────────────────────────
 
-    /** Main game over message text ("YOU WIN!" / "GAME OVER") */
-    UPROPERTY(meta = (BindWidgetOptional))
-    class UTextBlock* GameOverText;
-
-    /** Displays final score */
-    UPROPERTY(meta = (BindWidgetOptional))
-    class UTextBlock* ScoreText;
-
-    /** Displays distance traveled */
-    UPROPERTY(meta = (BindWidgetOptional))
-    class UTextBlock* DistanceText;
-
-    /** Displays high score */
-    UPROPERTY(meta = (BindWidgetOptional))
-    class UTextBlock* HighScoreText;
-
-    /** Displays lives used in this attempt */
-    UPROPERTY(meta = (BindWidgetOptional))
-    class UTextBlock* LivesText;
-
-    /** Restart button */
-    UPROPERTY(meta = (BindWidgetOptional))
-    class UButton* RestartButton;
-
-    /** Quit button */
-    UPROPERTY(meta = (BindWidgetOptional))
-    class UButton* QuitButton;
-
-    // ======================================================================
-    // Button Click Handlers
-    // ======================================================================
-
-    /** Called when restart button is clicked */
     UFUNCTION()
     void OnRestartClicked();
 
-    /** Called when quit button is clicked */
     UFUNCTION()
-    void OnQuitClicked();
-
-private:
-    /** Cached game instance reference for restart functionality */
-    UPROPERTY()
-    class USideRunnerGameInstance* CachedGameInstance;
+    void OnMainMenuClicked();
 };

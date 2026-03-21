@@ -1,171 +1,224 @@
 #include "PlayerHealthComponent.h"
+#include "SideRunner/RunnerCharacter.h"
+#include "GameFramework/NavMovementComponent.h"
+#include "Components/TextBlock.h"
+#include "Components/ProgressBar.h"
+#include "Kismet/GameplayStatics.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 #include "Engine/Engine.h"
-#include "SideRunner.h" // Custom log categories
+
+DEFINE_LOG_CATEGORY_STATIC(LogSideRunner, Log, All);
 
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickInterval = 0.1f; // Reduce frequency for performance
-
-	// Initialize default values with proper sizing
-	MaxHealth = 100;
-	CurrentHealth = MaxHealth;
-	TotalHitsTaken = 0;
-	InvulnerabilityTime = 1.0f;
-	InvulnerabilityTimeRemaining = 0.0f;
-
-	// Initialize default damage values
-	DamageValues = {
-		25, // Spikes
-		20, // Enemy melee
-		15, // Enemy projectile
-		50  // Environmental hazard
-	};
-
-	// Component is NOT fully initialized until BeginPlay completes
-	bIsFullyInitialized = false;
+    PrimaryComponentTick.bCanEverTick = true;
+    bInitialized = false;
 }
 
 void UPlayerHealthComponent::BeginPlay()
 {
-	Super::BeginPlay();
-
-	// Initialize health when game starts
-	ResetHealth();
-
-	// Mark component as fully initialized
-	bIsFullyInitialized = true;
-
-#if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogSideRunnerCombat, Log, TEXT("PlayerHealthComponent initialized with %d/%d health"), CurrentHealth, MaxHealth);
-#endif
+    Super::BeginPlay();
+    UE_LOG(LogSideRunner, Log, TEXT("[Health] Component spawned on %s"), *GetOwner()->GetName());
 }
 
-void UPlayerHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UPlayerHealthComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// Update invulnerability timer
-	if (InvulnerabilityTimeRemaining > 0.0f)
-	{
-		InvulnerabilityTimeRemaining = FMath::Max(0.0f, InvulnerabilityTimeRemaining - DeltaTime);
-	}
-	else
-	{
-		// Disable tick when not needed for performance
-		SetComponentTickEnabled(false);
-	}
+    // Clear any active timers
+    if (UWorld* World = GetWorld())
+    {
+        World->GetTimerManager().ClearTimer(InvincibilityTimerHandle);
+    }
+    Super::EndPlay(EndPlayReason);
 }
 
-void UPlayerHealthComponent::TakeDamage(int32 DamageAmount, EDamageType Type)
+void UPlayerHealthComponent::InitHealth()
 {
-	// CRITICAL FIX: Prevent access before component is fully initialized
-	if (!bIsFullyInitialized)
-	{
-		UE_LOG(LogSideRunnerCombat, Warning, TEXT("TakeDamage called before component initialization - ignoring"));
-		return;
-	}
+    if (bInitialized)
+    {
+        UE_LOG(LogSideRunner, Warning, TEXT("[Health] InitHealth() called twice on %s"), *GetOwner()->GetName());
+        return;
+    }
 
-	// CRITICAL FIX: Validate owner before processing
-	// UE 5.5: Use IsValid() global function for comprehensive validation
-	AActor* Owner = GetOwner();
-	if (!IsValid(Owner))
-	{
-		UE_LOG(LogSideRunnerCombat, Warning, TEXT("TakeDamage called but owner is invalid"));
-		return;
-	}
+    if (MaxHealth <= 0.0f)
+    {
+        UE_LOG(LogSideRunner, Error, TEXT("[Health] MaxHealth must be > 0 on %s. Clamping to 1."), *GetOwner()->GetName());
+        MaxHealth = 1.0f;
+    }
 
-	// Check if damage is valid
-	if (DamageAmount <= 0)
-	{
-		return;
-	}
+    CurrentHealth = FMath::Clamp(CurrentHealth, 0.0f, MaxHealth);
+    bInitialized = true;
 
-	// Check if player is currently invulnerable
-	if (IsInvulnerable())
-	{
-		return;
-	}
+    UE_LOG(LogSideRunner, Log,
+        TEXT("[Health] %s initialized — Health: %.1f / %.1f"),
+        *GetOwner()->GetName(), CurrentHealth, MaxHealth);
 
-	// Apply damage
-	int32 OldHealth = CurrentHealth;
-	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0, MaxHealth);
-	
-	// Increment hit counter
-	TotalHitsTaken++;
-	
-	// Set invulnerability time
-	InvulnerabilityTimeRemaining = InvulnerabilityTime;
-	SetComponentTickEnabled(true); // Enable tick for invulnerability timer
-	
-	// Trigger damage event
-	OnTakeDamage.Broadcast(DamageAmount, Type);
-	
-	// Trigger health changed event if health actually changed
-	if (OldHealth != CurrentHealth)
-	{
-		OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
-		
-		// Check for death
-		if (CurrentHealth <= 0)
-		{
-#if UE_BUILD_DEVELOPMENT
-			UE_LOG(LogSideRunnerCombat, Warning, TEXT("Player died after %d hits"), TotalHitsTaken);
-#endif
-			// CRITICAL FIX: Only broadcast if owner is still valid and not pending destruction
-			if (IsValid(Owner) && !Owner->IsPendingKillPending())
-			{
-				OnPlayerDeath.Broadcast(TotalHitsTaken);
-			}
-			else
-			{
-				UE_LOG(LogSideRunnerCombat, Error, TEXT("TakeDamage: Cannot broadcast OnPlayerDeath - Owner is invalid or pending destruction"));
-			}
-		}
-	}
-
-#if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogSideRunnerCombat, VeryVerbose, TEXT("Player took %d damage of type %d. Health: %d/%d, Hits taken: %d"),
-		DamageAmount, (int32)Type, CurrentHealth, MaxHealth, TotalHitsTaken);
-#endif
+    OnHealthInitialized.Broadcast();
 }
 
-void UPlayerHealthComponent::ResetHealth()
+bool UPlayerHealthComponent::IsFullyInitialized() const
 {
-	// Reset health to maximum
-	int32 OldHealth = CurrentHealth;
-	CurrentHealth = MaxHealth;
-	
-	// Reset hit counter
-	TotalHitsTaken = 0;
-	
-	// Reset invulnerability time
-	InvulnerabilityTimeRemaining = 0.0f;
-	
-	// Disable tick when not needed
-	SetComponentTickEnabled(false);
-	
-	// Broadcast health changed event if different
-	if (OldHealth != CurrentHealth)
-	{
-		OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
-	}
-	
-#if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogSideRunnerCombat, Log, TEXT("Player health reset to %d/%d"), CurrentHealth, MaxHealth);
-#endif
+    return bInitialized;
 }
 
-void UPlayerHealthComponent::SetInvulnerabilityTime(float Duration)
+float UPlayerHealthComponent::TakeDamage(float DamageAmount, EDamageType DamageType)
 {
-	// Grant temporary invulnerability for specified duration
-	InvulnerabilityTimeRemaining = Duration;
+    if (!bInitialized)
+    {
+        UE_LOG(LogSideRunner, Error, TEXT("[Health] TakeDamage() called before InitHealth() on %s"), *GetOwner()->GetName());
+        return 0.0f;
+    }
 
-	// Enable tick to count down invulnerability timer
-	SetComponentTickEnabled(true);
+    // ── Invincibility guard ────────────────────────────────────────────────
+    if (bInvincible || IsDead())
+    {
+        UE_LOG(LogSideRunner, Verbose,
+            TEXT("[Health] TakeDamage(%.1f) ignored on %s — Invincible=%d, Dead=%d"),
+            DamageAmount, *GetOwner()->GetName(), bInvincible, IsDead());
+        return 0.0f;
+    }
 
-#if UE_BUILD_DEVELOPMENT
-	UE_LOG(LogSideRunnerCombat, Log, TEXT("Invulnerability granted for %.1f seconds"), Duration);
-#endif
+    // ── Apply damage ───────────────────────────────────────────────────────
+    const float ActualDamage = FMath::Min(DamageAmount, CurrentHealth);
+    CurrentHealth = FMath::Clamp(CurrentHealth - ActualDamage, 0.0f, MaxHealth);
+
+    UE_LOG(LogSideRunner, Log,
+        TEXT("[Health] %s took %.1f damage → Health: %.1f / %.1f"),
+        *GetOwner()->GetName(), ActualDamage, CurrentHealth, MaxHealth);
+
+    BroadcastHealthChange();
+
+    // ── Death check ────────────────────────────────────────────────────────
+    if (CurrentHealth <= 0.0f)
+    {
+        TriggerDeath();
+    }
+
+    return ActualDamage;
+}
+
+float UPlayerHealthComponent::Heal(float Amount)
+{
+    if (!bInitialized || IsDead()) return 0.0f;
+    if (Amount <= 0.0f) return 0.0f;
+
+    const float OldHealth = CurrentHealth;
+    CurrentHealth = FMath::Clamp(CurrentHealth + Amount, 0.0f, MaxHealth);
+    const float AmountHealed = CurrentHealth - OldHealth;
+
+    if (AmountHealed > 0.0f)
+    {
+        BroadcastHealthChange();
+    }
+
+    return AmountHealed;
+}
+
+void UPlayerHealthComponent::SetHealth(float NewHealth)
+{
+    if (!bInitialized) return;
+    CurrentHealth = FMath::Clamp(NewHealth, 0.0f, MaxHealth);
+    BroadcastHealthChange();
+    if (CurrentHealth <= 0.0f) TriggerDeath();
+}
+
+void UPlayerHealthComponent::SetMaxHealth(float NewMaxHealth)
+{
+    if (NewMaxHealth <= 0.0f) return;
+
+    const float OldMaxHealth = MaxHealth;
+    MaxHealth = NewMaxHealth;
+
+    // Clamp current health to new max
+    if (CurrentHealth > MaxHealth)
+    {
+        CurrentHealth = MaxHealth;
+    }
+
+    UE_LOG(LogSideRunner, Log,
+        TEXT("[Health] MaxHealth changed: %.1f → %.1f"),
+        OldMaxHealth, MaxHealth);
+
+    // ── Broadcast both delegates so HUD can update MaxHealth display ──────────
+    BroadcastHealthChange();                    // fires OnHealthChanged
+    OnMaxHealthChanged.Broadcast(CurrentHealth, MaxHealth); // fires OnMaxHealthChanged
+}
+
+float UPlayerHealthComponent::GetHealthPercent() const
+{
+    if (MaxHealth <= 0.0f) return 0.0f;
+    return CurrentHealth / MaxHealth;
+}
+
+bool UPlayerHealthComponent::IsDead() const
+{
+    return bInitialized && CurrentHealth <= 0.0f;
+}
+
+void UPlayerHealthComponent::BroadcastHealthChange()
+{
+    OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
+}
+
+void UPlayerHealthComponent::TriggerDeath()
+{
+    if (IsDead()) return; // already triggered
+
+    UE_LOG(LogSideRunner, Log, TEXT("[Health] %s has died."), *GetOwner()->GetName());
+    OnDeath.Broadcast();
+}
+
+void UPlayerHealthComponent::TriggerInvincibility(float Duration)
+{
+    if (Duration <= 0.0f || IsDead()) return;
+
+    bInvincible = true;
+    InvincibilityTimer = Duration;
+
+    UE_LOG(LogSideRunner, Log,
+        TEXT("[Health] Invincibility triggered on %s for %.1fs"),
+        *GetOwner()->GetName(), Duration);
+
+    // Tick invincibility countdown every INVINCIBILITY_TICK_RATE seconds
+    InvincibilityTimerDelegate.BindUFunction(this, TEXT("TickInvincibility"), GetWorld()->GetTimerManager().GetTimerElapsed(InvincibilityTimerHandle));
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    FTimerManager& TM = World->GetTimerManager();
+    TM.ClearTimer(InvincibilityTimerHandle);
+    TM.SetTimer(
+        InvincibilityTimerHandle,
+        this,
+        &UPlayerHealthComponent::TickInvincibility,
+        INVINCIBILITY_TICK_RATE,
+        true
+    );
+}
+
+void UPlayerHealthComponent::TickInvincibility(float DeltaTime)
+{
+    if (!bInvincible) return;
+
+    InvincibilityTimer -= DeltaTime;
+    if (InvincibilityTimer <= 0.0f)
+    {
+        bInvincible = false;
+        InvincibilityTimer = 0.0f;
+
+        UWorld* World = GetWorld();
+        if (World)
+        {
+            World->GetTimerManager().ClearTimer(InvincibilityTimerHandle);
+        }
+
+        UE_LOG(LogSideRunner, Log,
+            TEXT("[Health] Invincibility ended on %s"),
+            *GetOwner()->GetName());
+    }
+}
+
+bool UPlayerHealthComponent::IsInvincible() const
+{
+    return bInvincible;
 }
