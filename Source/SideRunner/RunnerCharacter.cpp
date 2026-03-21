@@ -15,6 +15,7 @@
 #include "GameFramework/PlayerStart.h"
 #include "SpawnLevel.h" // For ResetLevelsForRespawn on respawn
 #include "SideRunner.h" // Custom log categories
+#include "EnemyCharacter.h"
 
 // CRITICAL FIX: Comprehensive validation macro for HealthComponent access
 // Prevents access violations by validating component before use
@@ -136,6 +137,21 @@ ARunnerCharacter::ARunnerCharacter()
 void ARunnerCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    // Auto-find CharacterVisual if not set in Blueprint defaults
+    if (!CharacterVisual)
+    {
+        TArray<UMeshComponent*> MeshComponents;
+        GetComponents<UMeshComponent>(MeshComponents);
+        for (UMeshComponent* Mesh : MeshComponents)
+        {
+            if (Mesh != GetMesh()) // Skip the default skeletal mesh (CharacterMesh0)
+            {
+                CharacterVisual = Mesh;
+                break;
+            }
+        }
+    }
 
     // PERFORMANCE: Bind overlap events efficiently
     if (UCapsuleComponent* Capsule = GetCapsuleComponent())
@@ -600,6 +616,10 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
     if (Cast<ASpikes>(DamageCauser))
     {
         DamageType = EDamageType::Spikes;
+    }
+    else if (Cast<AEnemyCharacter>(DamageCauser))
+    {
+        DamageType = EDamageType::EnemyMelee;
     }
 
     // Apply damage
