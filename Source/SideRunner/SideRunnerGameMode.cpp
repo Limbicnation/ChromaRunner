@@ -1,4 +1,5 @@
 #include "SideRunnerGameMode.h"
+#include "SideRunner.h"
 #include "SideRunner/RunnerCharacter.h"
 #include "Components/Widget.h"
 #include "Kismet/GameplayStatics.h"
@@ -6,8 +7,6 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogSideRunner, Log, All);
 
 ASideRunnerGameMode::ASideRunnerGameMode()
 {

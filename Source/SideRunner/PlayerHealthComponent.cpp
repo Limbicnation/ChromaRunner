@@ -1,4 +1,5 @@
 #include "PlayerHealthComponent.h"
+#include "SideRunner.h"
 #include "SideRunner/RunnerCharacter.h"
 #include "GameFramework/NavMovementComponent.h"
 #include "Components/TextBlock.h"
@@ -7,8 +8,6 @@
 #include "TimerManager.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogSideRunner, Log, All);
 
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
