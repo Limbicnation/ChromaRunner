@@ -97,3 +97,4 @@ endless-runner.md
 
 # GitHub workflows for AI assistants (optional - comment out if you want to track these)
 .github/workflows/gemini-*.yml
+Content/StarterContent/

@@ -183,8 +183,8 @@ void ASideRunnerPlayerController::KillPlayer()
 	UPlayerHealthComponent* HealthComp = PlayerCharacter->HealthComponent;
 	if (IsValid(HealthComp) && HealthComp->IsFullyInitialized())
 	{
-		const int32 MaxHealth = HealthComp->GetMaxHealth();
-		HealthComp->TakeDamage(MaxHealth * 10, EDamageType::EnvironmentalHazard);
+		const float MaxHealthVal = HealthComp->MaxHealth;
+		HealthComp->TakeDamage(MaxHealthVal * 10, EDamageType::EnvironmentalHazard);
 
 		UE_LOG(LogSideRunner, Warning, TEXT("DEBUG: Player killed via console command"));
 

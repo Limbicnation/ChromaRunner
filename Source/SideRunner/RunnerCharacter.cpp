@@ -15,6 +15,8 @@
 #include "GameFramework/PlayerStart.h"
 #include "SpawnLevel.h" // For ResetLevelsForRespawn on respawn
 #include "SideRunner.h" // Custom log categories
+#include "EnemyCharacter.h"
+#include "SideRunnerGameMode.h"
 
 // CRITICAL FIX: Comprehensive validation macro for HealthComponent access
 // Prevents access violations by validating component before use
@@ -137,6 +139,21 @@ void ARunnerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
+    // Auto-find CharacterVisual if not set in Blueprint defaults
+    if (!CharacterVisual)
+    {
+        TArray<UMeshComponent*> MeshComponents;
+        GetComponents<UMeshComponent>(MeshComponents);
+        for (UMeshComponent* MeshComp : MeshComponents)
+        {
+            if (MeshComp != GetMesh()) // Skip the default skeletal mesh (CharacterMesh0)
+            {
+                CharacterVisual = MeshComp;
+                break;
+            }
+        }
+    }
+
     // PERFORMANCE: Bind overlap events efficiently
     if (UCapsuleComponent* Capsule = GetCapsuleComponent())
     {
@@ -211,28 +228,22 @@ void ARunnerCharacter::BeginPlay()
     // Character should face forward (sprite orientation) and never rotate
     SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
 
-    // CRITICAL FIX: Defer delegate binding until next frame to ensure HealthComponent is fully initialized
-    // This prevents accessing an uninitialized component during BeginPlay ordering issues
+    // HealthComponent::BeginPlay() now auto-calls InitHealth(), so the component is
+    // always initialized before RunnerCharacter's BeginPlay executes. Direct binding is safe.
     if (IsValid(HealthComponent))
     {
-        // Use a short timer to ensure HealthComponent BeginPlay has completed
-        FTimerHandle BindDelegatesTimer;
-        GetWorldTimerManager().SetTimer(BindDelegatesTimer, [this]()
-        {
-            if (IsValid(this) && IsValid(HealthComponent) && HealthComponent->IsFullyInitialized())
-            {
-                HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
-                HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
-                HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+        HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
+        HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
+        HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
 #if UE_BUILD_DEVELOPMENT
-                UE_LOG(LogSideRunner, Log, TEXT("Health component delegates bound successfully"));
+        UE_LOG(LogSideRunner, Log, TEXT("Health component delegates bound successfully"));
 #endif
-            }
-            else
-            {
-                UE_LOG(LogSideRunner, Error, TEXT("Failed to bind health delegates - component not initialized"));
-            }
-        }, 0.1f, false);  // Small delay to ensure component initialization
+    }
+
+    // Register with the GameMode for death delegate binding
+    if (ASideRunnerGameMode* GM = Cast<ASideRunnerGameMode>(UGameplayStatics::GetGameMode(this)))
+    {
+        GM->BindPlayerCharacter(this);
     }
 
     // PERFORMANCE: Cache GameInstance to avoid 60 casts/second in Tick()
@@ -568,7 +579,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 #endif
 
     // Apply instant death damage through health component
-    const int32 InstantDeathDamage = HealthComponent->GetMaxHealth() * 10;
+    const float InstantDeathDamage = HealthComponent->GetMaxHealthInt() * 10.0f;
     HealthComponent->TakeDamage(InstantDeathDamage, EDamageType::Spikes);
     // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
@@ -576,7 +587,7 @@ void ARunnerCharacter::HandleWallSpikeOverlap(AWallSpike* WallSpike)
 void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 {
     // CRITICAL FIX: Centralized damage handling to prevent double damage
-    if (!RegularSpike || !IsValid(HealthComponent) || HealthComponent->IsInvulnerable())
+    if (!RegularSpike || !IsValid(HealthComponent) || HealthComponent->IsInvincible())
         return;
 
 #if UE_BUILD_DEVELOPMENT
@@ -584,15 +595,14 @@ void ARunnerCharacter::HandleRegularSpikeOverlap(ASpikes* RegularSpike)
 #endif
 
     // Apply regular spike damage through health component
-    const int32 SpikeDamage = static_cast<int32>(RegularSpike->DamageAmount);
-    HealthComponent->TakeDamage(SpikeDamage, EDamageType::Spikes);
+    HealthComponent->TakeDamage(RegularSpike->DamageAmount, EDamageType::Spikes);
     // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
 
 void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
 {
     // PERFORMANCE: Validate inputs
-    if (!IsValid(HealthComponent) || HealthComponent->IsInvulnerable() || DamageAmount <= 0.0f)
+    if (!IsValid(HealthComponent) || HealthComponent->IsInvincible() || DamageAmount <= 0.0f)
         return;
 
     // Determine damage type based on causer
@@ -601,9 +611,13 @@ void ARunnerCharacter::ProcessDamage(float DamageAmount, AActor* DamageCauser)
     {
         DamageType = EDamageType::Spikes;
     }
+    else if (Cast<AEnemyCharacter>(DamageCauser))
+    {
+        DamageType = EDamageType::EnemyMelee;
+    }
 
     // Apply damage
-    HealthComponent->TakeDamage(static_cast<int32>(DamageAmount), DamageType);
+    HealthComponent->TakeDamage(DamageAmount, DamageType);
     // NOTE: HandlePlayerDeath is triggered via OnPlayerDeath delegate when health <= 0
 }
 
@@ -637,7 +651,7 @@ bool ARunnerCharacter::IsDead() const
     }
 
     // All checks passed - safely get health status
-    return (HealthComponent->GetCurrentHealth() <= 0);
+    return HealthComponent->IsDead();
 }
 
 bool ARunnerCharacter::IsGameOverSafe() const

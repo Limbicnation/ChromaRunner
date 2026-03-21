@@ -78,7 +78,7 @@ protected:
 
 	/** Callback when player health changes */
 	UFUNCTION()
-	void OnHealthChanged(int32 NewHealth, int32 NewMaxHealth);
+	void OnHealthChanged(float NewHealth, float NewMaxHealth);
 
 	/** Callback when player takes damage */
 	UFUNCTION()

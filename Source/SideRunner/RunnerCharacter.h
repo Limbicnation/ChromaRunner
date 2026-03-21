@@ -95,7 +95,7 @@ public:
     
     // Blueprint events for health system
     UFUNCTION(BlueprintImplementableEvent, Category = "Health")
-    void OnHealthChanged(int32 CurrentHealth, int32 MaxHealth);
+    void OnHealthChanged(float CurrentHealth, float MaxHealth);
     
     UFUNCTION(BlueprintImplementableEvent, Category = "Health")
     void OnTakeDamage(int32 DamageAmount, EDamageType DamageType);
