@@ -105,7 +105,7 @@ public:
     int32 GetMaxHealth() const { return FMath::RoundHalfFromZero(MaxHealth); }
 
     UFUNCTION(BlueprintCallable, Category = "Health")
-    void ResetHealth() { CurrentHealth = MaxHealth; bDead = false; BroadcastHealthChange(); }
+    void ResetHealth() { CurrentHealth = MaxHealth; bDead = false; bInitialized = true; OnHealthInitialized.Broadcast(); BroadcastHealthChange(); }
 
     UFUNCTION(BlueprintCallable, Category = "Health|Invincibility")
     void SetInvulnerabilityTime(float Duration) { TriggerInvincibility(Duration); }

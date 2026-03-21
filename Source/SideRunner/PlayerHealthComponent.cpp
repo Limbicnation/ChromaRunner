@@ -21,6 +21,11 @@ void UPlayerHealthComponent::BeginPlay()
 {
     Super::BeginPlay();
     UE_LOG(LogSideRunner, Log, TEXT("[Health] Component spawned on %s"), *GetOwner()->GetName());
+
+    // Auto-initialize so the component is always ready before any Blueprint BeginPlay runs.
+    // This guarantees TakeDamage(), delegate binding, etc. all work from the first frame.
+    // Blueprint can still call InitHealth() to re-initialize if needed (e.g., after respawn).
+    InitHealth();
 }
 
 void UPlayerHealthComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

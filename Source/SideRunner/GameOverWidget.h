@@ -28,16 +28,16 @@ protected:
     // named exactly as shown in the Designer (txt_Title, txt_FinalScore,
     // btn_Restart, btn_MainMenu).
 
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* txt_Title = nullptr;
 
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UTextBlock* txt_FinalScore = nullptr;
 
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UButton* btn_Restart = nullptr;
 
-    UPROPERTY(meta = (BindWidget))
+    UPROPERTY(meta = (BindWidgetOptional))
     class UButton* btn_MainMenu = nullptr;
 
     // ── Native lifecycle ────────────────────────────────────────────────

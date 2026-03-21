@@ -228,28 +228,16 @@ void ARunnerCharacter::BeginPlay()
     // Character should face forward (sprite orientation) and never rotate
     SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
 
-    // CRITICAL FIX: Defer delegate binding until next frame to ensure HealthComponent is fully initialized
-    // This prevents accessing an uninitialized component during BeginPlay ordering issues
+    // HealthComponent::BeginPlay() now auto-calls InitHealth(), so the component is
+    // always initialized before RunnerCharacter's BeginPlay executes. Direct binding is safe.
     if (IsValid(HealthComponent))
     {
-        // Use a short timer to ensure HealthComponent BeginPlay has completed
-        FTimerHandle BindDelegatesTimer;
-        GetWorldTimerManager().SetTimer(BindDelegatesTimer, [this]()
-        {
-            if (IsValid(this) && IsValid(HealthComponent) && HealthComponent->IsFullyInitialized())
-            {
-                HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
-                HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
-                HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
+        HealthComponent->OnHealthChanged.AddDynamic(this, &ARunnerCharacter::OnHealthChanged);
+        HealthComponent->OnTakeDamage.AddDynamic(this, &ARunnerCharacter::OnTakeDamage);
+        HealthComponent->OnPlayerDeath.AddDynamic(this, &ARunnerCharacter::HandlePlayerDeath);
 #if UE_BUILD_DEVELOPMENT
-                UE_LOG(LogSideRunner, Log, TEXT("Health component delegates bound successfully"));
+        UE_LOG(LogSideRunner, Log, TEXT("Health component delegates bound successfully"));
 #endif
-            }
-            else
-            {
-                UE_LOG(LogSideRunner, Error, TEXT("Failed to bind health delegates - component not initialized"));
-            }
-        }, 0.1f, false);  // Small delay to ensure component initialization
     }
 
     // Register with the GameMode for death delegate binding
