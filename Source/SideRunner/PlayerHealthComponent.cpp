@@ -9,6 +9,8 @@
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 
+DEFINE_LOG_CATEGORY_EXTERN(LogSideRunner);
+
 UPlayerHealthComponent::UPlayerHealthComponent()
 {
     PrimaryComponentTick.bCanEverTick = true;
@@ -178,9 +180,6 @@ void UPlayerHealthComponent::TriggerInvincibility(float Duration)
         TEXT("[Health] Invincibility triggered on %s for %.1fs"),
         *GetOwner()->GetName(), Duration);
 
-    // Tick invincibility countdown every INVINCIBILITY_TICK_RATE seconds
-    InvincibilityTimerDelegate.BindUFunction(this, TEXT("TickInvincibility"), GetWorld()->GetTimerManager().GetTimerElapsed(InvincibilityTimerHandle));
-
     UWorld* World = GetWorld();
     if (!World) return;
 
@@ -195,11 +194,11 @@ void UPlayerHealthComponent::TriggerInvincibility(float Duration)
     );
 }
 
-void UPlayerHealthComponent::TickInvincibility(float DeltaTime)
+void UPlayerHealthComponent::TickInvincibility()
 {
     if (!bInvincible) return;
 
-    InvincibilityTimer -= DeltaTime;
+    InvincibilityTimer -= INVINCIBILITY_TICK_RATE;
     if (InvincibilityTimer <= 0.0f)
     {
         bInvincible = false;

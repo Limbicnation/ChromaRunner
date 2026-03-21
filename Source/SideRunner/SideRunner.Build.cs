@@ -4,44 +4,44 @@ using UnrealBuildTool;
 
 public class SideRunner : ModuleRules
 {
-	public SideRunner(ReadOnlyTargetRules Target) : base(Target)
-	{
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+    public SideRunner(ReadOnlyTargetRules Target) : base(Target)
+    {
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		// PERFORMANCE: Core dependencies for optimized builds
+        // PERFORMANCE: Core dependencies for optimized builds
         PublicDependencyModuleNames.AddRange(new string[] {
-			"Core",
-			"CoreUObject",
-			"Engine",
-			"InputCore",
-			"UMG",				// For C++ UMG widgets
+            "Core",
+            "CoreUObject",
+            "Engine",
+            "InputCore",
+            "UMG",				// For C++ UMG widgets
 			"Slate",			// Required for UMG
 			"SlateCore",		// Required for UMG
 			"Paper2D"			// For PaperFlipbookComponent (EnemyCharacter sprite)
 		});
 
-		// PERFORMANCE: Private dependencies for specific features
-        PrivateDependencyModuleNames.AddRange(new string[] { 
-			"AudioMixer"			// For optimized audio
+        // PERFORMANCE: Private dependencies for specific features
+        PrivateDependencyModuleNames.AddRange(new string[] {
+            "AudioMixer"			// For optimized audio
 		});
 
-		// PERFORMANCE: Enable optimizations for shipping builds
-		if (Target.Configuration == UnrealTargetConfiguration.Shipping)
-		{
-			bUseUnity = true;
-			MinFilesUsingPrecompiledHeaderOverride = 1;
-		}
+        // PERFORMANCE: Enable optimizations for shipping builds
+        if (Target.Configuration == UnrealTargetConfiguration.Shipping)
+        {
+            bUseUnity = true;
+            MinFilesUsingPrecompiledHeaderOverride = 1;
+        }
 
-		// PERFORMANCE: Enable faster compilation in development
-		if (Target.Configuration == UnrealTargetConfiguration.Development)
-		{
-			bUseUnity = true;
-		}
+        // PERFORMANCE: Enable faster compilation in development
+        if (Target.Configuration == UnrealTargetConfiguration.Development)
+        {
+            bUseUnity = true;
+        }
 
-		// PERFORMANCE: Compiler optimizations
-		OptimizeCode = CodeOptimization.InShippingBuildsOnly;
-		
-		// PERFORMANCE: Use precompiled headers for faster builds
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	}
+        // PERFORMANCE: Compiler optimizations
+        OptimizeCode = CodeOptimization.InShippingBuildsOnly;
+
+        // PERFORMANCE: Use precompiled headers for faster builds
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+    }
 }
