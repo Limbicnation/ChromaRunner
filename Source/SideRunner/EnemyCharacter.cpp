@@ -8,6 +8,7 @@
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
 #include "TimerManager.h"
+#include "Engine/DamageEvents.h"
 
 DEFINE_LOG_CATEGORY(LogSideRunnerEnemy);
 

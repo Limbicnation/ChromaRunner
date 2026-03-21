@@ -143,11 +143,11 @@ void ARunnerCharacter::BeginPlay()
     {
         TArray<UMeshComponent*> MeshComponents;
         GetComponents<UMeshComponent>(MeshComponents);
-        for (UMeshComponent* Mesh : MeshComponents)
+        for (UMeshComponent* MeshComp : MeshComponents)
         {
-            if (Mesh != GetMesh()) // Skip the default skeletal mesh (CharacterMesh0)
+            if (MeshComp != GetMesh()) // Skip the default skeletal mesh (CharacterMesh0)
             {
-                CharacterVisual = Mesh;
+                CharacterVisual = MeshComp;
                 break;
             }
         }
