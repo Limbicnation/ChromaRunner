@@ -338,11 +338,10 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 
 ## 📞 Contact & Community
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/[YourUsername]/ChromaRunner/issues)
-- **Discussions**: [Ask questions or share ideas](https://github.com/[YourUsername]/ChromaRunner/discussions)
-- **Twitter/X**: [@YourGameDevHandle](https://twitter.com/YourHandle)
-- **Discord**: [Join our community](https://discord.gg/YourInvite) *(optional)*
-- **Email**: your.email@example.com
+- **GitHub Issues**: [Report bugs or request features](https://github.com/Limbicnation/ChromaRunner/issues)
+- **Discussions**: [Ask questions or share ideas](https://github.com/Limbicnation/ChromaRunner/discussions)
+- **Twitter/X**: [@Limbicnation](https://x.com/Limbicnation)
+- **Discord**: [Join our community](https://discord.com/channels/797028829239312385/1327379017661288448)
 
 ---
 
