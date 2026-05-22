@@ -61,6 +61,22 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol", meta = (ClampMin = "0.0"))
 	float PatrolPauseTime = 0.5f;
 
+	/** Duration values for each patrol segment (seconds). Used by CalculatePatrolMetric. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
+	TArray<int32> PatrolNodes;
+
+	/** World-space locations the enemy navigates through via MoveToPatrolNode. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
+	TArray<FVector> PatrolWaypoints;
+
+	/** Current index into PatrolNodes/PatrolWaypoints being traversed. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
+	int32 CurrentNodeIndex = 0;
+
+	/** Cached total of all PatrolNodes values. Updated by CalculatePatrolMetric. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
+	int32 TotalPatrolDuration = 0;
+
 	/** Damage dealt to player on contact */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "1"))
 	int32 ContactDamage = 1;
@@ -90,6 +106,14 @@ public:
 	/** Kill this enemy — plays death anim then destroys */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void DefeatEnemy();
+
+	/** Sums all PatrolNodes durations using Algo::Accumulate. Returns 0 for empty arrays. */
+	UFUNCTION(BlueprintCallable, Category = "Patrol|Nodes")
+	int32 CalculatePatrolMetric();
+
+	/** Navigates actor to PatrolWaypoints[NodeIndex] via UNavigationSystemV1 pathfinding. */
+	UFUNCTION(BlueprintCallable, Category = "Patrol|Nodes")
+	bool MoveToPatrolNode(int32 NodeIndex);
 
 protected:
 	virtual void BeginPlay() override;
