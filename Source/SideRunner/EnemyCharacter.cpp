@@ -11,6 +11,7 @@
 #include "Engine/DamageEvents.h"
 #include "Algo/Accumulate.h"
 #include "NavigationSystem.h"
+#include "Navigation/NavigationPath.h"
 
 DEFINE_LOG_CATEGORY(LogSideRunnerEnemy);
 
@@ -223,10 +224,10 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 		return true;
 	}
 
-	FNavPathSharedPtr Path = NavSys->FindPathToLocationSynchronously(
-		World, CurrentLocation, TargetLocation);
+	UNavigationPath* NavPath = NavSys->FindPathToLocationSynchronously(
+		CurrentLocation, TargetLocation);
 
-	if (!Path.IsValid() || Path->GetPathPoints().Num() == 0)
+	if (!NavPath || !NavPath->IsValid() || NavPath->GetPathPoints().Num() == 0)
 	{
 		UE_LOG(LogSideRunnerEnemy, Warning,
 			TEXT("MoveToPatrolNode: No valid path from %s to node %d at %s"),
@@ -234,7 +235,7 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 		return false;
 	}
 
-	const FVector NextPoint = Path->GetPathPoints()[0].Location;
+	const FVector NextPoint = NavPath->GetPathPoints()[0].Location;
 	const FVector MoveDir = (NextPoint - CurrentLocation).GetSafeNormal();
 	const FVector NavMovement(0.0f, MoveDir.Y * PatrolSpeed * 0.016f, 0.0f);
 	SetActorLocation(CurrentLocation + NavMovement);
@@ -244,7 +245,7 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 
 	UE_LOG(LogSideRunnerEnemy, Log,
 		TEXT("MoveToPatrolNode: Moving to node %d at %s (path points: %d)"),
-		NodeIndex, *TargetLocation.ToString(), Path->GetPathPoints().Num());
+		NodeIndex, *TargetLocation.ToString(), NavPath->GetPathPoints().Num());
 
 	return true;
 }
