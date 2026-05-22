@@ -134,9 +134,11 @@ private:
 	// --- Patrol Logic (Timer-driven, NOT Tick) ---
 
 	void StartPatrol();
+	void StopPatrolTimer();
 	void PatrolStep();
 	void PauseAtEndpoint();
 	void ResumePatrol();
+	bool ValidatePatrolArrays() const;
 
 	// --- Overlap Callbacks ---
 

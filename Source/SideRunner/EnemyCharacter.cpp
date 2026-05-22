@@ -11,7 +11,6 @@
 #include "Engine/DamageEvents.h"
 #include "Algo/Accumulate.h"
 #include "NavigationSystem.h"
-#include "Navigation/PathFollowingComponent.h"
 
 DEFINE_LOG_CATEGORY(LogSideRunnerEnemy);
 
@@ -146,18 +145,18 @@ void AEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 int32 AEnemyCharacter::CalculatePatrolMetric()
 {
-	if (!ensureMsgf(PatrolNodes.Num() >= 0, TEXT("PatrolNodes array is in an invalid state")))
-	{
-		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("CalculatePatrolMetric: PatrolNodes invalid, returning 0"));
-		TotalPatrolDuration = 0;
-		return 0;
-	}
-
 	if (PatrolNodes.IsEmpty())
 	{
 		UE_LOG(LogSideRunnerEnemy, Log, TEXT("CalculatePatrolMetric: PatrolNodes is empty, returning 0"));
 		TotalPatrolDuration = 0;
 		return 0;
+	}
+
+	if (!ValidatePatrolArrays())
+	{
+		UE_LOG(LogSideRunnerEnemy, Warning,
+			TEXT("CalculatePatrolMetric: PatrolNodes(%d) and PatrolWaypoints(%d) size mismatch"),
+			PatrolNodes.Num(), PatrolWaypoints.Num());
 	}
 
 	TotalPatrolDuration = Algo::Accumulate(PatrolNodes, 0);
@@ -171,7 +170,7 @@ int32 AEnemyCharacter::CalculatePatrolMetric()
 
 bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 {
-	if (!ensureMsgf(!PatrolWaypoints.IsEmpty(), TEXT("MoveToPatrolNode: PatrolWaypoints is empty — no nodes to navigate to")))
+	if (!ensureMsgf(!PatrolWaypoints.IsEmpty(), TEXT("MoveToPatrolNode: PatrolWaypoints is empty")))
 	{
 		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("MoveToPatrolNode: PatrolWaypoints empty, cannot move"));
 		return false;
@@ -192,7 +191,19 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 		return false;
 	}
 
+	// Stop timer-driven patrol to prevent dual movement conflict
+	StopPatrolTimer();
+
 	const FVector TargetLocation = PatrolWaypoints[NodeIndex];
+	const FVector CurrentLocation = GetActorLocation();
+
+	// Update PatrolDirection so UpdateSpriteDirection faces the correct way
+	const float YDirection = TargetLocation.Y - CurrentLocation.Y;
+	if (!FMath::IsNearlyZero(YDirection))
+	{
+		PatrolDirection = (YDirection > 0.0f) ? 1.0f : -1.0f;
+	}
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -204,16 +215,14 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 	if (!NavSys)
 	{
 		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("MoveToPatrolNode: No NavigationSystem found, falling back to direct movement"));
-		// Fallback: move directly along Y axis (2.5D side-scroller)
-		const FVector Direction = (TargetLocation - GetActorLocation()).GetSafeNormal();
-		AddMovementInput(FVector(0.0f, Direction.Y, 0.0f), 1.0f);
+		const FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
+		const FVector FallbackMovement(0.0f, Direction.Y * PatrolSpeed * 0.016f, 0.0f);
+		SetActorLocation(CurrentLocation + FallbackMovement);
 		CurrentNodeIndex = NodeIndex;
 		UpdateSpriteDirection();
 		return true;
 	}
 
-	// Find path synchronously to validate reachability
-	const FVector CurrentLocation = GetActorLocation();
 	FNavPathSharedPtr Path = NavSys->FindPathToLocationSynchronously(
 		World, CurrentLocation, TargetLocation);
 
@@ -225,10 +234,10 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 		return false;
 	}
 
-	// Move along the first path segment (2.5D: Y-axis only)
 	const FVector NextPoint = Path->GetPathPoints()[0].Location;
 	const FVector MoveDir = (NextPoint - CurrentLocation).GetSafeNormal();
-	AddMovementInput(FVector(0.0f, MoveDir.Y, 0.0f), 1.0f);
+	const FVector NavMovement(0.0f, MoveDir.Y * PatrolSpeed * 0.016f, 0.0f);
+	SetActorLocation(CurrentLocation + NavMovement);
 
 	CurrentNodeIndex = NodeIndex;
 	UpdateSpriteDirection();
@@ -243,6 +252,23 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 // ============================================================================
 // Patrol System (Timer-Driven — NO Tick)
 // ============================================================================
+
+void AEnemyCharacter::StopPatrolTimer()
+{
+	bIsPatrolling = false;
+	GetWorldTimerManager().ClearTimer(PatrolTimerHandle);
+	GetWorldTimerManager().ClearTimer(PauseTimerHandle);
+}
+
+bool AEnemyCharacter::ValidatePatrolArrays() const
+{
+	if (PatrolWaypoints.IsEmpty())
+	{
+		// PatrolNodes alone is valid — waypoint navigation is optional
+		return true;
+	}
+	return PatrolNodes.Num() == PatrolWaypoints.Num();
+}
 
 void AEnemyCharacter::StartPatrol()
 {
@@ -275,7 +301,8 @@ void AEnemyCharacter::PatrolStep()
 	}
 
 	// Move along Y axis (side-scroller direction)
-	AddMovementInput(FVector(0.0f, PatrolDirection, 0.0f), 1.0f);
+	const FVector PatrolMovement(0.0f, PatrolDirection * PatrolSpeed * PATROL_STEP_INTERVAL, 0.0f);
+	SetActorLocation(GetActorLocation() + PatrolMovement);
 
 	UpdateSpriteDirection();
 }
