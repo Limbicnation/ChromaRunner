@@ -12,6 +12,17 @@ class UPaperFlipbook;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSideRunnerEnemy, Log, All);
 
+/** How the enemy traverses its PatrolWaypoints array. */
+UENUM(BlueprintType)
+enum class EPatrolTraversalMode : uint8
+{
+    /** 0->1->2->1->0->1... reverses at endpoints. */
+    PingPong UMETA(DisplayName = "Ping-Pong"),
+
+    /** 0->1->2->0->1->2... wraps to start after last node. */
+    Loop     UMETA(DisplayName = "Loop")
+};
+
 /**
  * AEnemyCharacter — Base enemy for ChromaRunner endless runner.
  *
@@ -49,7 +60,8 @@ public:
 
 	// --- Tuning (Data-Driven, editable per-instance) ---
 
-	/** Distance to patrol in each direction from spawn point (Y-axis for side-scroller) */
+	/** Distance to patrol in each direction from spawn point (Y-axis for side-scroller).
+	 *  Only used when PatrolWaypoints is EMPTY (fallback simple patrol). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol", meta = (ClampMin = "50.0"))
 	float PatrolDistance = 300.0f;
 
@@ -60,6 +72,27 @@ public:
 	/** Pause duration at each patrol endpoint before reversing */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol", meta = (ClampMin = "0.0"))
 	float PatrolPauseTime = 0.5f;
+
+	/** How the enemy traverses the PatrolWaypoints array. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
+	EPatrolTraversalMode TraversalMode = EPatrolTraversalMode::PingPong;
+
+	/** Duration values for each patrol segment (seconds). Used by CalculatePatrolMetric. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
+	TArray<int32> PatrolNodes;
+
+	/** World-space locations the enemy navigates through via waypoint patrol.
+	 *  If empty, falls back to simple origin-based patrol using PatrolDistance. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
+	TArray<FVector> PatrolWaypoints;
+
+	/** Current index into PatrolNodes/PatrolWaypoints being traversed. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
+	int32 CurrentNodeIndex = 0;
+
+	/** Cached total of all PatrolNodes values. Updated by CalculatePatrolMetric. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
+	int32 TotalPatrolDuration = 0;
 
 	/** Damage dealt to player on contact */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "1"))
@@ -91,6 +124,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void DefeatEnemy();
 
+	/** Sums all PatrolNodes durations using Algo::Accumulate. Returns 0 for empty arrays. */
+	UFUNCTION(BlueprintCallable, Category = "Patrol|Nodes")
+	int32 CalculatePatrolMetric();
+
+	/** Moves actor toward PatrolWaypoints[NodeIndex] via direct interpolation.
+	 *  @return true if movement was applied. */
+	UFUNCTION(BlueprintCallable, Category = "Patrol|Nodes")
+	bool MoveToPatrolNode(int32 NodeIndex);
+
+	/** Toggle between PingPong and Loop traversal modes. */
+	UFUNCTION(BlueprintCallable, Category = "Patrol|Nodes")
+	void SetTraversalMode(EPatrolTraversalMode NewMode);
+
+	/** Get the current traversal mode. */
+	UFUNCTION(BlueprintPure, Category = "Patrol|Nodes")
+	EPatrolTraversalMode GetTraversalMode() const { return TraversalMode; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -108,11 +158,21 @@ private:
 	FTimerHandle DeathTimerHandle;
 
 	// --- Patrol Logic (Timer-driven, NOT Tick) ---
-
 	void StartPatrol();
+	void StopPatrolTimer();
 	void PatrolStep();
 	void PauseAtEndpoint();
 	void ResumePatrol();
+	bool ValidatePatrolArrays() const;
+
+	// --- Waypoint Patrol ---
+	/** True if currently traversing waypoints in reverse (PingPong mode). */
+	bool bWaypointReverse = false;
+
+	void PatrolStepWaypoint();
+	void PatrolStepSimple();
+	void AdvanceWaypointIndex();
+	FVector GetCurrentPatrolTarget() const;
 
 	// --- Overlap Callbacks ---
 
