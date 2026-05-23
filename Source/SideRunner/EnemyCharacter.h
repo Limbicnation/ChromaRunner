@@ -111,7 +111,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Patrol|Nodes")
 	int32 CalculatePatrolMetric();
 
-	/** Navigates actor to PatrolWaypoints[NodeIndex] via UNavigationSystemV1 pathfinding. */
+	/** Moves actor toward PatrolWaypoints[NodeIndex] via direct interpolation. */
 	UFUNCTION(BlueprintCallable, Category = "Patrol|Nodes")
 	bool MoveToPatrolNode(int32 NodeIndex);
 

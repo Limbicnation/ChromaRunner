@@ -10,8 +10,6 @@
 #include "TimerManager.h"
 #include "Engine/DamageEvents.h"
 #include "Algo/Accumulate.h"
-#include "NavigationSystem.h"
-#include "Navigation/NavigationPath.h"
 
 DEFINE_LOG_CATEGORY(LogSideRunnerEnemy);
 
@@ -205,47 +203,17 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 		PatrolDirection = (YDirection > 0.0f) ? 1.0f : -1.0f;
 	}
 
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return false;
-	}
-
-	// Validate path via NavigationSystem
-	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(World);
-	if (!NavSys)
-	{
-		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("MoveToPatrolNode: No NavigationSystem found, falling back to direct movement"));
-		const FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
-		const FVector FallbackMovement(0.0f, Direction.Y * PatrolSpeed * 0.016f, 0.0f);
-		SetActorLocation(CurrentLocation + FallbackMovement);
-		CurrentNodeIndex = NodeIndex;
-		UpdateSpriteDirection();
-		return true;
-	}
-
-	UNavigationPath* NavPath = NavSys->FindPathToLocationSynchronously(
-		CurrentLocation, TargetLocation);
-
-	if (!NavPath || !NavPath->IsValid() || NavPath->GetPathPoints().Num() == 0)
-	{
-		UE_LOG(LogSideRunnerEnemy, Warning,
-			TEXT("MoveToPatrolNode: No valid path from %s to node %d at %s"),
-			*CurrentLocation.ToString(), NodeIndex, *TargetLocation.ToString());
-		return false;
-	}
-
-	const FVector NextPoint = NavPath->GetPathPoints()[0].Location;
-	const FVector MoveDir = (NextPoint - CurrentLocation).GetSafeNormal();
-	const FVector NavMovement(0.0f, MoveDir.Y * PatrolSpeed * 0.016f, 0.0f);
-	SetActorLocation(CurrentLocation + NavMovement);
+	// Direct movement toward waypoint (no navmesh needed for 2.5D side-scroller)
+	const FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
+	const FVector Movement(0.0f, Direction.Y * PatrolSpeed * 0.016f, 0.0f);
+	SetActorLocation(CurrentLocation + Movement);
 
 	CurrentNodeIndex = NodeIndex;
 	UpdateSpriteDirection();
 
 	UE_LOG(LogSideRunnerEnemy, Log,
-		TEXT("MoveToPatrolNode: Moving to node %d at %s (path points: %d)"),
-		NodeIndex, *TargetLocation.ToString(), NavPath->GetPathPoints().Num());
+		TEXT("MoveToPatrolNode: Moving to node %d at %s"),
+		NodeIndex, *TargetLocation.ToString());
 
 	return true;
 }

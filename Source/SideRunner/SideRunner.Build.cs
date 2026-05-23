@@ -17,8 +17,7 @@ public class SideRunner : ModuleRules
             "UMG",				// For C++ UMG widgets
 			"Slate",			// Required for UMG
 			"SlateCore",		// Required for UMG
-			"Paper2D",			// For PaperFlipbookComponent (EnemyCharacter sprite)
-			"NavigationSystem"	// For UNavigationSystemV1 (patrol pathfinding)
+			"Paper2D"			// For PaperFlipbookComponent (EnemyCharacter sprite)
 		});
 
         // PERFORMANCE: Private dependencies for specific features
