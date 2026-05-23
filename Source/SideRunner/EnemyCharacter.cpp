@@ -16,6 +16,9 @@ DEFINE_LOG_CATEGORY(LogSideRunnerEnemy);
 // Patrol timer frequency — 60Hz movement update without using Tick
 static constexpr float PATROL_STEP_INTERVAL = 1.0f / 60.0f;
 
+// Distance threshold to consider a waypoint "reached"
+static constexpr float WAYPOINT_ARRIVAL_THRESHOLD = 10.0f;
+
 AEnemyCharacter::AEnemyCharacter()
 {
 	// PERF: No tick needed — patrol driven by timer
@@ -107,9 +110,11 @@ void AEnemyCharacter::BeginPlay()
 		StompZone->OnComponentBeginOverlap.AddDynamic(this, &AEnemyCharacter::OnStompZoneOverlap);
 	}
 
-	UE_LOG(LogSideRunnerEnemy, Log,
-		TEXT("Enemy [%s] spawned at %s, PatrolDist=%.0f, Speed=%.0f"),
-		*GetName(), *PatrolOrigin.ToString(), PatrolDistance, PatrolSpeed);
+    UE_LOG(LogSideRunnerEnemy, Log,
+        TEXT("Enemy [%s] spawned at %s, PatrolDist=%.0f, Speed=%.0f, Waypoints=%d, Mode=%s"),
+        *GetName(), *PatrolOrigin.ToString(), PatrolDistance, PatrolSpeed,
+        PatrolWaypoints.Num(),
+        *UEnum::GetValueAsString(TraversalMode));
 
 	// Start patrol on next frame (allow physics to settle)
 	StartPatrol();
@@ -218,6 +223,25 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 	return true;
 }
 
+void AEnemyCharacter::SetTraversalMode(EPatrolTraversalMode NewMode)
+{
+    if (TraversalMode == NewMode)
+    {
+        return;
+    }
+
+    TraversalMode = NewMode;
+
+    // Reset reverse flag when switching to Loop (prevents getting stuck)
+    if (TraversalMode == EPatrolTraversalMode::Loop)
+    {
+        bWaypointReverse = false;
+    }
+
+    UE_LOG(LogSideRunnerEnemy, Log, TEXT("Traversal mode changed to %s"),
+        *UEnum::GetValueAsString(TraversalMode));
+}
+
 // ============================================================================
 // Patrol System (Timer-Driven — NO Tick)
 // ============================================================================
@@ -245,6 +269,8 @@ void AEnemyCharacter::StartPatrol()
 
 	bIsPatrolling = true;
 	PatrolDirection = 1.0f;
+	bWaypointReverse = false;
+	CurrentNodeIndex = 0;
 
 	GetWorldTimerManager().SetTimer(
 		PatrolTimerHandle,
@@ -259,6 +285,23 @@ void AEnemyCharacter::PatrolStep()
 {
 	if (bIsDead || !bIsPatrolling) return;
 
+	// Branch: waypoint patrol vs. simple origin-based patrol
+	if (!PatrolWaypoints.IsEmpty())
+	{
+		PatrolStepWaypoint();
+	}
+	else
+	{
+		PatrolStepSimple();
+	}
+}
+
+// ----------------------------------------------------------------------------
+// Simple Patrol (fallback when PatrolWaypoints is empty)
+// ----------------------------------------------------------------------------
+
+void AEnemyCharacter::PatrolStepSimple()
+{
 	const FVector CurrentLocation = GetActorLocation();
 	const float DistanceFromOrigin = CurrentLocation.Y - PatrolOrigin.Y;
 
@@ -274,6 +317,97 @@ void AEnemyCharacter::PatrolStep()
 	SetActorLocation(GetActorLocation() + PatrolMovement);
 
 	UpdateSpriteDirection();
+}
+
+// ----------------------------------------------------------------------------
+// Waypoint Patrol (uses PatrolWaypoints array with traversal mode)
+// ----------------------------------------------------------------------------
+
+void AEnemyCharacter::PatrolStepWaypoint()
+{
+	const FVector CurrentLocation = GetActorLocation();
+	const FVector TargetLocation = GetCurrentPatrolTarget();
+
+	// Check if we've reached the current waypoint
+	const float DistToTarget = FVector::Dist2D(CurrentLocation, TargetLocation);
+	if (DistToTarget <= WAYPOINT_ARRIVAL_THRESHOLD)
+	{
+		// Arrived — advance to next waypoint
+		AdvanceWaypointIndex();
+		return;
+	}
+
+	// Move toward current waypoint
+	const FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
+	const float YDelta = Direction.Y * PatrolSpeed * PATROL_STEP_INTERVAL;
+
+	// Update PatrolDirection for sprite facing
+	PatrolDirection = (YDelta >= 0.0f) ? 1.0f : -1.0f;
+
+	const FVector PatrolMovement(0.0f, YDelta, 0.0f);
+	SetActorLocation(CurrentLocation + PatrolMovement);
+
+	UpdateSpriteDirection();
+}
+
+FVector AEnemyCharacter::GetCurrentPatrolTarget() const
+{
+	if (PatrolWaypoints.IsValidIndex(CurrentNodeIndex))
+	{
+		return PatrolWaypoints[CurrentNodeIndex];
+	}
+	// Fallback to origin if index is somehow invalid
+	return PatrolOrigin;
+}
+
+void AEnemyCharacter::AdvanceWaypointIndex()
+{
+	if (PatrolWaypoints.Num() <= 1)
+	{
+		// Single or no waypoint — nothing to advance
+		return;
+	}
+
+	if (TraversalMode == EPatrolTraversalMode::PingPong)
+	{
+		// PingPong: 0->1->2->...->N->N-1->...->0->1...
+		if (!bWaypointReverse)
+		{
+			// Moving forward
+			if (CurrentNodeIndex >= PatrolWaypoints.Num() - 1)
+			{
+				// Reached last node — reverse
+				bWaypointReverse = true;
+				CurrentNodeIndex = PatrolWaypoints.Num() - 2;
+				PatrolDirection = -1.0f;
+			}
+			else
+			{
+				++CurrentNodeIndex;
+			}
+		}
+		else
+		{
+			// Moving backward
+			if (CurrentNodeIndex <= 0)
+			{
+				// Reached first node — reverse
+				bWaypointReverse = false;
+				CurrentNodeIndex = 1;
+				PatrolDirection = 1.0f;
+			}
+			else
+			{
+				--CurrentNodeIndex;
+			}
+		}
+	}
+	else // Loop
+	{
+		// Loop: 0->1->2->...->N->0->1...
+		CurrentNodeIndex = (CurrentNodeIndex + 1) % PatrolWaypoints.Num();
+		PatrolDirection = 1.0f;
+	}
 }
 
 void AEnemyCharacter::PauseAtEndpoint()
