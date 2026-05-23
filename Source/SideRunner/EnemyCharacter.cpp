@@ -117,7 +117,7 @@ void AEnemyCharacter::BeginPlay()
         *UEnum::GetValueAsString(TraversalMode));
 
 	// Start patrol on next frame (allow physics to settle)
-	StartPatrol();
+	StartPatrolFromBeginning();
 }
 
 void AEnemyCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -268,9 +268,6 @@ void AEnemyCharacter::StartPatrol()
 	if (bIsDead) return;
 
 	bIsPatrolling = true;
-	PatrolDirection = 1.0f;
-	bWaypointReverse = false;
-	CurrentNodeIndex = 0;
 
 	GetWorldTimerManager().SetTimer(
 		PatrolTimerHandle,
@@ -279,6 +276,18 @@ void AEnemyCharacter::StartPatrol()
 		PATROL_STEP_INTERVAL,
 		true // Looping
 	);
+}
+
+void AEnemyCharacter::StartPatrolFromBeginning()
+{
+	if (bIsDead) return;
+
+	bIsPatrolling = true;
+	PatrolDirection = 1.0f;
+	bWaypointReverse = false;
+	CurrentNodeIndex = 0;
+
+	StartPatrol();
 }
 
 void AEnemyCharacter::PatrolStep()
@@ -332,13 +341,14 @@ void AEnemyCharacter::PatrolStepWaypoint()
 	const float DistToTarget = FVector::Dist2D(CurrentLocation, TargetLocation);
 	if (DistToTarget <= WAYPOINT_ARRIVAL_THRESHOLD)
 	{
-		// Arrived — advance to next waypoint
+		// Arrived — advance to next waypoint, then continue moving toward it
 		AdvanceWaypointIndex();
-		return;
+		// FALL THROUGH to move toward the newly selected waypoint
 	}
 
-	// Move toward current waypoint
-	const FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
+	// Move toward current waypoint (either original or newly advanced)
+	const FVector NewTargetLocation = GetCurrentPatrolTarget();
+	const FVector Direction = (NewTargetLocation - CurrentLocation).GetSafeNormal();
 	const float YDelta = Direction.Y * PatrolSpeed * PATROL_STEP_INTERVAL;
 
 	// Update PatrolDirection for sprite facing
@@ -408,6 +418,9 @@ void AEnemyCharacter::AdvanceWaypointIndex()
 		CurrentNodeIndex = (CurrentNodeIndex + 1) % PatrolWaypoints.Num();
 		PatrolDirection = 1.0f;
 	}
+
+	UE_LOG(LogSideRunnerEnemy, Verbose, TEXT("AdvanceWaypointIndex: now targeting node %d (reverse=%s)"),
+		CurrentNodeIndex, bWaypointReverse ? TEXT("true") : TEXT("false"));
 }
 
 void AEnemyCharacter::PauseAtEndpoint()
