@@ -8,10 +8,10 @@
 
 /** Direction the patrolling entity is currently moving. */
 UENUM(BlueprintType)
-enum class EPatrolDirection : int8
+enum class EPatrolDirection : uint8
 {
-	Forward  =  1  UMETA(DisplayName = "Forward"),
-	Backward = -1  UMETA(DisplayName = "Backward")
+	Forward  UMETA(DisplayName = "Forward"),
+	Backward UMETA(DisplayName = "Backward")
 };
 
 // ─── Patrol State Enum ────────────────────────────────────────────────────────
@@ -144,6 +144,11 @@ private:
 	EPatrolState State = EPatrolState::Idle;
 	bool bPatrolEnabled = false;
 	float PauseTimer = 0.0f;
+
+	// ── Helpers ──────────────────────────────────────────────────────────────
+
+	/** Get the direction multiplier for movement calculations. */
+	float GetDirectionMultiplier() const { return (Direction == EPatrolDirection::Forward) ? 1.0f : -1.0f; }
 
 	// ── Core Movement ───────────────────────────────────────────────────────
 

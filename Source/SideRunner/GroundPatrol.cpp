@@ -114,7 +114,7 @@ void UGroundPatrolComponent::MoveInDirection(float DeltaTime)
 	AActor* Owner = GetOwner();
 	if (!Owner) return;
 
-	const float DirMultiplier = static_cast<float>(Direction);
+	const float DirMultiplier = GetDirectionMultiplier();
 	const FVector Movement = PatrolConfig.MovementAxis.GetSafeNormal()
 		* DirMultiplier * PatrolConfig.Speed * DeltaTime;
 
@@ -142,7 +142,7 @@ bool UGroundPatrolComponent::DetectWall() const
 	if (!World) return false;
 
 	const FVector Start = Owner->GetActorLocation();
-	const float DirMultiplier = static_cast<float>(Direction);
+	const float DirMultiplier = GetDirectionMultiplier();
 	const FVector ForwardDir = PatrolConfig.MovementAxis.GetSafeNormal() * DirMultiplier;
 	const FVector End = Start + ForwardDir * PatrolConfig.WallDetectionDistance;
 
@@ -172,7 +172,7 @@ bool UGroundPatrolComponent::DetectLedge() const
 	if (!World) return false;
 
 	const FVector ActorLoc = Owner->GetActorLocation();
-	const float DirMultiplier = static_cast<float>(Direction);
+	const float DirMultiplier = GetDirectionMultiplier();
 	const FVector ForwardDir = PatrolConfig.MovementAxis.GetSafeNormal() * DirMultiplier;
 
 	// Cast from slightly ahead and above the actor, downward
