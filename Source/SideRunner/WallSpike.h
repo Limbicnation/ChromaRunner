@@ -9,7 +9,7 @@
 #include "WallSpike.generated.h"
 
 class ARunnerCharacter;
-class UPlayerHealthComponent;
+class UPlayerHealth;
 
 /**
  * Performance-optimized wall spike that chases the player with configurable behavior.

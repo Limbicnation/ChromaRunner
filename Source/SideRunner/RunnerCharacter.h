@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "PlayerHealthComponent.h"
+#include "PlayerHealth.h"
 #include "RunnerCharacter.generated.h"
 
 // Forward declarations for better compilation performance
@@ -91,7 +91,7 @@ public:
     
     // PERFORMANCE: Health System
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health")
-    UPlayerHealthComponent* HealthComponent;
+    UPlayerHealth* HealthComponent;
     
     // Blueprint events for health system
     UFUNCTION(BlueprintImplementableEvent, Category = "Health")

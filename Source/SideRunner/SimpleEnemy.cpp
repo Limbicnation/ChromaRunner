@@ -5,7 +5,8 @@
 #include "SideRunner.h" // Custom log categories
 #include "Components/StaticMeshComponent.h"
 #include "RunnerCharacter.h"
-#include "PlayerHealthComponent.h"
+#include "PlayerHealth.h"
+#include "GroundPatrol.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 
@@ -76,6 +77,21 @@ ASimpleEnemy::ASimpleEnemy()
 
 	// Allow Blueprint designers to override mesh appearance
 	EnemyMesh->SetIsReplicated(false); // Single-player game, no replication needed
+
+	// ========================================
+	// PATROL COMPONENT SETUP
+	// ========================================
+
+	PatrolComponent = CreateDefaultSubobject<UGroundPatrolComponent>(TEXT("PatrolComponent"));
+}
+
+EPatrolDirection ASimpleEnemy::GetPatrolDirection() const
+{
+	if (PatrolComponent)
+	{
+		return PatrolComponent->GetPatrolDirection();
+	}
+	return EPatrolDirection::Forward;
 }
 
 /**
@@ -110,11 +126,14 @@ void ASimpleEnemy::BeginPlay()
 	// STORE PATROL START LOCATION
 	// ========================================
 
-	// Cache spawn location for patrol range calculation
+	// Cache spawn location for cleanup distance calculation
 	StartLocation = GetActorLocation();
 
-	// Initialize patrol direction (could be randomized for variety)
-	PatrolDirection = 1; // Start moving forward (+Y direction)
+	// Enable patrol movement via the component
+	if (PatrolComponent)
+	{
+		PatrolComponent->SetPatrolEnabled(true);
+	}
 
 	// ========================================
 	// BIND COLLISION EVENTS
@@ -150,87 +169,15 @@ void ASimpleEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Execute patrol movement if enabled
-	if (bPatrolMode)
-	{
-		SimplePatrolMovement(DeltaTime);
-	}
+	// Patrol movement is now handled by UGroundPatrolComponent (TickComponent)
 
 	// Perform cleanup check for performance optimization
 	CleanupIfBehindPlayer();
 }
 
 /**
- * SimplePatrolMovement - Executes back-and-forth patrol along Y-axis.
- *
- * Movement Algorithm:
- * 1. Get current position and calculate 2D distance from spawn
- * 2. If distance >= PatrolDistance, reverse direction
- * 3. Apply movement along Y-axis based on speed and delta time
- *
- * Coordinate System (2.5D side-scroller):
- * - X: Forward progression (player moves right continuously)
- * - Y: Lateral movement (side-to-side, patrol axis)
- * - Z: Vertical (gravity/jumping)
- *
- * Performance:
- * - Uses FVector::Dist2D for 2D-only distance (skips Z-axis, faster than Dist)
- * - Direct SetActorLocation (no physics simulation overhead)
- * - Frame-rate independent via DeltaTime multiplication
- *
- * Edge Cases:
- * - If PatrolDistance is very small, may oscillate rapidly
- * - Movement is linear (no acceleration/deceleration)
- *
- * @param DeltaTime Frame time for smooth, frame-rate independent movement
- */
-void ASimpleEnemy::SimplePatrolMovement(float DeltaTime)
-{
-	// Get current world position
-	const FVector CurrentPos = GetActorLocation();
-
-	// Calculate 2D distance from spawn point (ignores Z for performance)
-	const float DistanceFromStart = FVector::Dist2D(CurrentPos, StartLocation);
-
-	// Reverse direction when patrol limit reached
-	if (DistanceFromStart >= PatrolDistance)
-	{
-		PatrolDirection *= -1; // Flip: +1 becomes -1, -1 becomes +1
-	}
-
-	// Calculate frame-rate independent movement delta
-	// Movement is along Y-axis (side-to-side) for 2.5D gameplay
-	const FVector Movement = FVector(0.0f, PatrolDirection * MoveSpeed * DeltaTime, 0.0f);
-
-	// Apply movement (direct location update, no physics)
-	SetActorLocation(CurrentPos + Movement);
-}
-
-/**
  * CleanupIfBehindPlayer - Destroys enemy when too far behind player.
- *
- * Purpose: Performance optimization
- * - Prevents accumulation of dozens of off-screen enemies
- * - Reduces overall tick overhead
- * - Frees memory for new spawns ahead of player
- *
- * Algorithm:
- * 1. Check if player reference is valid
- * 2. Compare X positions (forward axis in 2.5D side-scroller)
- * 3. If enemy is CleanupDistance behind player, destroy self
- *
- * Performance:
- * - Single 1D comparison (X-axis only)
- * - No expensive distance calculations
- * - Executes every frame but negligible cost (~0.002ms)
- *
- * Typical Values:
- * - CleanupDistance: 2000 units (default)
- * - At 300 units/s speed, enemy exists ~6.6 seconds after passing
- *
- * Edge Cases:
- * - If player moves backward, enemy won't cleanup (by design)
- * - If PlayerRef is invalid, no cleanup occurs (safe fallback)
+ * Performance optimization — prevents accumulation of off-screen enemies.
  */
 void ASimpleEnemy::CleanupIfBehindPlayer()
 {
@@ -331,7 +278,7 @@ void ASimpleEnemy::OnOverlapBegin(
 	// ========================================
 
 	// Get player's health component
-	UPlayerHealthComponent* HealthComp = Player->HealthComponent;
+	UPlayerHealth* HealthComp = Player->HealthComponent;
 
 	if (!HealthComp)
 	{

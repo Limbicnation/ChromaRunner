@@ -5,7 +5,7 @@
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
-#include "PlayerHealthComponent.h"
+#include "PlayerHealth.h"
 #include "Components/BoxComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -214,7 +214,7 @@ void AWallSpike::UpdateTargetPlayer()
 	}
 
 	// CRITICAL FIX: Validate HealthComponent is fully initialized before accessing player state
-	UPlayerHealthComponent* HealthComp = PlayerCharacter->HealthComponent;
+	UPlayerHealth* HealthComp = PlayerCharacter->HealthComponent;
 	if (!IsValid(HealthComp) || !HealthComp->IsFullyInitialized())
 	{
 		// HealthComponent not ready yet - skip this update cycle
@@ -513,7 +513,7 @@ void AWallSpike::ApplyInstantDeathToPlayer(ARunnerCharacter* Player, FVector Hit
 		return;
 
 	// CRITICAL FIX: Validate HealthComponent before accessing player death state
-	UPlayerHealthComponent* HealthComp = Player->HealthComponent;
+	UPlayerHealth* HealthComp = Player->HealthComponent;
 	if (!IsValid(HealthComp) || !HealthComp->IsFullyInitialized())
 	{
 		UE_LOG(LogSideRunnerCombat, Warning, TEXT("ApplyInstantDeathToPlayer: HealthComponent not initialized - skipping"));

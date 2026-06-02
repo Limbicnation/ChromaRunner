@@ -4,7 +4,7 @@
 #include "SideRunnerGameInstance.h"
 #include "SideRunner.h" // Custom log categories
 #include "RunnerCharacter.h"
-#include "PlayerHealthComponent.h"
+#include "PlayerHealth.h"
 #include "Engine/Engine.h"
 
 ASideRunnerPlayerController::ASideRunnerPlayerController()
@@ -180,7 +180,7 @@ void ASideRunnerPlayerController::KillPlayer()
 		return;
 	}
 
-	UPlayerHealthComponent* HealthComp = PlayerCharacter->HealthComponent;
+	UPlayerHealth* HealthComp = PlayerCharacter->HealthComponent;
 	if (IsValid(HealthComp) && HealthComp->IsFullyInitialized())
 	{
 		const float MaxHealthVal = HealthComp->MaxHealth;

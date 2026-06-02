@@ -10,7 +10,7 @@
 #include "Engine.h"
 #include "Kismet/GameplayStatics.h"
 #include "Spikes.h"
-#include "PlayerHealthComponent.h"
+#include "PlayerHealth.h"
 #include "SideRunnerGameInstance.h"
 #include "GameFramework/PlayerStart.h"
 #include "SpawnLevel.h" // For ResetLevelsForRespawn on respawn
@@ -119,7 +119,7 @@ ARunnerCharacter::ARunnerCharacter()
     DoubleJumpZVelocity = 800.0f;
 
     // PERFORMANCE: Create health component with validation
-    HealthComponent = CreateDefaultSubobject<UPlayerHealthComponent>(TEXT("HealthComponent"));
+    HealthComponent = CreateDefaultSubobject<UPlayerHealth>(TEXT("HealthComponent"));
     ensure(HealthComponent); // Debug validation
 
     // Initialize death processing flag
