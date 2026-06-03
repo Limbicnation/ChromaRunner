@@ -86,6 +86,21 @@ void AEnemyCharacter::BeginPlay()
 	// Store spawn origin for patrol bounds
 	PatrolOrigin = GetActorLocation();
 
+	// CONVERT LEGACY WORLD-SPACE WAYPOINTS TO LOCAL SPACE
+	// If designer authored world-space waypoints, convert them to local offsets
+	if (!bWaypointsAreLocalSpace && !PatrolWaypoints.IsEmpty())
+	{
+		for (FVector& Waypoint : PatrolWaypoints)
+		{
+			Waypoint = Waypoint - PatrolOrigin;
+		}
+		bWaypointsAreLocalSpace = true;
+
+		UE_LOG(LogSideRunnerEnemy, Log,
+			TEXT("Enemy [%s] converted %d legacy world-space waypoints to local offsets"),
+			*GetName(), PatrolWaypoints.Num());
+	}
+
 	// Apply tuned speed to movement component
 	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
 	{
@@ -425,12 +440,23 @@ void AEnemyCharacter::PatrolStepWaypoint()
 
 FVector AEnemyCharacter::GetCurrentPatrolTarget() const
 {
-	if (PatrolWaypoints.IsValidIndex(CurrentNodeIndex))
+	if (!PatrolWaypoints.IsValidIndex(CurrentNodeIndex))
 	{
-		return PatrolWaypoints[CurrentNodeIndex];
+		return PatrolOrigin;
 	}
-	// Fallback to origin if index is somehow invalid
-	return PatrolOrigin;
+
+	const FVector& WaypointOrOffset = PatrolWaypoints[CurrentNodeIndex];
+
+	if (bWaypointsAreLocalSpace)
+	{
+		// Convert local offset to world space
+		return PatrolOrigin + WaypointOrOffset;
+	}
+	else
+	{
+		// Legacy world-space waypoint
+		return WaypointOrOffset;
+	}
 }
 
 void AEnemyCharacter::AdvanceWaypointIndex()

@@ -81,10 +81,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
 	TArray<int32> PatrolNodes;
 
-	/** World-space locations the enemy navigates through via waypoint patrol.
+	/** Waypoint locations for patrol navigation.
+	 *  Stored as local-space offsets from spawn point (PatrolOrigin).
+	 *  Converted to world space at runtime—waypoints stay correct when enemy
+	 *  spawns at non-origin transforms during procedural generation.
 	 *  If empty, falls back to simple origin-based patrol using PatrolDistance. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
 	TArray<FVector> PatrolWaypoints;
+
+	/** If true, PatrolWaypoints are local offsets from PatrolOrigin.
+	 *  If false, PatrolWaypoints are treated as world-space coordinates (legacy behavior).
+	 *  When false, BeginPlay auto-converts world-space waypoints to local offsets. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
+	bool bWaypointsAreLocalSpace = true;
 
 	/** Current index into PatrolNodes/PatrolWaypoints being traversed. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
