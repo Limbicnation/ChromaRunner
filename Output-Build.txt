@@ -1,0 +1,231 @@
+﻿Rebuild started at 10:41 PM...
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Tracing\EpicGames.Tracing.csproj (in 16 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.ProjectStore\EpicGames.ProjectStore.csproj (in 18 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Oodle\EpicGames.Oodle.csproj (in 18 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.OIDC\EpicGames.OIDC.csproj (in 43 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Slack\EpicGames.Slack.csproj (in 43 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Core\EpicGames.Core.csproj (in 48 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce\EpicGames.Perforce.csproj (in 49 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Horde\EpicGames.Horde.csproj (in 51 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Managed\EpicGames.Perforce.Managed.csproj (in 50 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Jupiter\EpicGames.Jupiter.csproj (in 51 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.AspNet\EpicGames.AspNet.csproj (in 50 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.IoHash\EpicGames.IoHash.csproj (in 2 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.BuildGraph\EpicGames.BuildGraph.csproj (in 50 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Fixture\EpicGames.Perforce.Fixture.csproj (in 53 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MongoDB\EpicGames.MongoDB.csproj (in 54 ms).
+1>------ Rebuild All started: Project: EpicGames.UBA, Configuration: Development Any CPU ------
+2>------ Rebuild All started: Project: EpicGames.Tracing, Configuration: Development Any CPU ------
+3>------ Rebuild All started: Project: EpicGames.Slack, Configuration: Development Any CPU ------
+4>------ Rebuild All started: Project: EpicGames.ProjectStore, Configuration: Development Any CPU ------
+5>------ Rebuild All started: Project: EpicGames.Oodle, Configuration: Development Any CPU ------
+6>------ Rebuild All started: Project: EpicGames.OIDC, Configuration: Development Any CPU ------
+7>------ Rebuild All started: Project: EpicGames.MongoDB, Configuration: Development Any CPU ------
+8>------ Rebuild All started: Project: EpicGames.Core, Configuration: Development Any CPU ------
+9>------ Rebuild All started: Project: ScriptGeneratorUbtPlugin.ubtplugin, Configuration: Development Any CPU ------
+10>------ Skipped Rebuild All: Project: UE5, Configuration: BuiltWithUnrealBuildTool Win64 ------
+10>Project not selected to build for this solution configuration 
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Plugins\ScriptPlugin\Source\ScriptGeneratorUbtPlugin\ScriptGeneratorUbtPlugin.ubtplugin.csproj (in 0.7 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Serialization\EpicGames.Serialization.csproj (in 53 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Build\EpicGames.Build.csproj (in 123 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UHT\EpicGames.UHT.csproj (in 57 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UBA\EpicGames.UBA.csproj (in 2 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Mutable\RunMutableCommandlet\RunMutableCommandlet.Automation.csproj (in 2 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Redis\EpicGames.Redis.csproj (in 82 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5Rules\UE5Rules.csproj (in 141 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5ProgramRules\UE5ProgramRules.csproj (in 138 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MsBuild\EpicGames.MsBuild.csproj (in 4 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\UnrealBuildTool\UnrealBuildTool.csproj (in 112 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\MarketplaceRules\MarketplaceRules.csproj (in 143 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Apple\Apple.Automation.csproj (in 115 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\SteamDeck\SteamDeck.Automation.csproj (in 144 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\XLocLocalization\XLocLocalization.Automation.csproj (in 144 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\AutomationTool.csproj (in 144 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Localization\Localization.Automation.csproj (in 143 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\IOS\IOS.Automation.csproj (in 144 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\CrowdinLocalization\CrowdinLocalization.Automation.csproj (in 116 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Mac\Mac.Automation.csproj (in 144 ms).
+Restored F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner\Intermediate\Build\BuildRulesProjects\SideRunnerModuleRules\SideRunnerModuleRules.csproj (in 144 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\OneSkyLocalization\OneSkyLocalization.Automation.csproj (in 90 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\SmartlingLocalization\SmartlingLocalization.Automation.csproj (in 145 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\TVOS\TVOS.Automation.csproj (in 146 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\LowLevelTests\LowLevelTests.Automation.csproj (in 146 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Scripts\AutomationScripts.Automation.csproj (in 94 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Platforms\VisionOS\Source\Programs\AutomationTool\VisionOS.Automation.csproj (in 147 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\BuildGraph\BuildGraph.Automation.csproj (in 25 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\CookedEditor\CookedEditor.Automation.csproj (in 99 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Linux\Linux.Automation.csproj (in 18 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Android\Android.Automation.csproj (in 90 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Gauntlet\Gauntlet.Automation.csproj (in 97 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Win\Win.Automation.csproj (in 95 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\LiveLinkHub\LiveLinkHub.Automation.csproj (in 148 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\AutomationUtils\AutomationUtils.Automation.csproj (in 34 ms).
+Restored F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\Turnkey\Turnkey.Automation.csproj (in 104 ms).
+4>EpicGames.ProjectStore -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.ProjectStore\bin\Development\net8.0\EpicGames.ProjectStore.dll
+1>EpicGames.UBA -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UBA\bin\Development\net8.0\EpicGames.UBA.dll
+6>EpicGames.OIDC -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.OIDC\bin\Development\net8.0\EpicGames.OIDC.dll
+3>EpicGames.Slack -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Slack\bin\Development\net8.0\EpicGames.Slack.dll
+8>EpicGames.Core -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Core\bin\Development\net8.0\EpicGames.Core.dll
+11>------ Rebuild All started: Project: EpicGames.Perforce, Configuration: Development Any CPU ------
+12>------ Rebuild All started: Project: EpicGames.MsBuild, Configuration: Development Any CPU ------
+13>------ Rebuild All started: Project: EpicGames.Jupiter, Configuration: Development Any CPU ------
+14>------ Rebuild All started: Project: EpicGames.IoHash, Configuration: Development Any CPU ------
+5>EpicGames.Oodle -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Oodle\bin\Development\net8.0\EpicGames.Oodle.dll
+9>F:\Program Files\Epic Games\UE_5.5\Engine\Plugins\ScriptPlugin\Source\ScriptGeneratorUbtPlugin\ScriptCodeGeneratorBase.cs(12,7,12,22): error CS0246: The type or namespace name 'UnrealBuildTool' could not be found (are you missing a using directive or an assembly reference?)
+9>Done building project "ScriptGeneratorUbtPlugin.ubtplugin.csproj" -- FAILED.
+2>EpicGames.Tracing -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Tracing\bin\Development\net8.0\EpicGames.Tracing.dll
+7>EpicGames.MongoDB -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MongoDB\bin\Development\net8.0\EpicGames.MongoDB.dll
+12>F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MsBuild\EpicGames.MsBuild.csproj : warning NU1903: Package 'Microsoft.Build' 17.11.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-w3q9-fxm7-j8fq
+11>EpicGames.Perforce -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce\bin\Development\net8.0\EpicGames.Perforce.dll
+14>EpicGames.IoHash -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.IoHash\bin\Development\net8.0\EpicGames.IoHash.dll
+15>------ Rebuild All started: Project: EpicGames.Serialization, Configuration: Development Any CPU ------
+13>EpicGames.Jupiter -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Jupiter\bin\Development\net8.0\EpicGames.Jupiter.dll
+15>EpicGames.Serialization -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Serialization\bin\Development\net8.0\EpicGames.Serialization.dll
+16>------ Rebuild All started: Project: EpicGames.Redis, Configuration: Development Any CPU ------
+17>------ Rebuild All started: Project: EpicGames.Perforce.Managed, Configuration: Development Any CPU ------
+18>------ Rebuild All started: Project: EpicGames.Horde, Configuration: Development Any CPU ------
+19>------ Rebuild All started: Project: EpicGames.BuildGraph, Configuration: Development Any CPU ------
+20>------ Rebuild All started: Project: EpicGames.AspNet, Configuration: Development Any CPU ------
+16>EpicGames.Redis -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Redis\bin\Development\net8.0\EpicGames.Redis.dll
+19>EpicGames.BuildGraph -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.BuildGraph\bin\Development\net8.0\EpicGames.BuildGraph.dll
+12>EpicGames.MsBuild -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.MsBuild\bin\Development\net8.0\EpicGames.MsBuild.dll
+12>Done building project "EpicGames.MsBuild.csproj".
+21>------ Rebuild All started: Project: EpicGames.Build, Configuration: Development Any CPU ------
+21>EpicGames.Build -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Build\bin\Development\net8.0\EpicGames.Build.dll
+22>------ Rebuild All started: Project: EpicGames.UHT, Configuration: Development Any CPU ------
+17>EpicGames.Perforce.Managed -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Managed\bin\Development\net8.0\EpicGames.Perforce.Managed.dll
+23>------ Rebuild All started: Project: EpicGames.Perforce.Fixture, Configuration: Development Any CPU ------
+22>EpicGames.UHT -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.UHT\bin\Development\net8.0\EpicGames.UHT.dll
+20>EpicGames.AspNet -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.AspNet\bin\Development\net8.0\EpicGames.AspNet.dll
+23>EpicGames.Perforce.Fixture -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Perforce.Fixture\bin\Development\net8.0\EpicGames.Perforce.Fixture.dll
+18>EpicGames.Horde -> F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\Shared\EpicGames.Horde\bin\Development\net8.0\EpicGames.Horde.dll
+24>------ Rebuild All started: Project: UnrealBuildTool, Configuration: Development Any CPU ------
+24>F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\UnrealBuildTool\UnrealBuildTool.csproj : warning NU1903: Package 'Microsoft.Build' 17.11.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-w3q9-fxm7-j8fq
+24>UnrealBuildTool -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll
+24>Done building project "UnrealBuildTool.csproj".
+25>------ Rebuild All started: Project: UE5Rules, Configuration: Development Any CPU ------
+26>------ Rebuild All started: Project: AutomationUtils.Automation, Configuration: Development Any CPU ------
+27>------ Rebuild All started: Project: AutomationTool, Configuration: Development Any CPU ------
+28>------ Rebuild All started: Project: SideRunner, Configuration: DebugGame_Editor x64 ------
+27>F:\Program Files\Epic Games\UE_5.5\Engine\Source\Programs\AutomationTool\AutomationTool.csproj : warning NU1903: Package 'Microsoft.Build' 17.11.4 has a known high severity vulnerability, https://github.com/advisories/GHSA-w3q9-fxm7-j8fq
+28>Using bundled DotNet SDK version: 8.0.300
+28>Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" SideRunnerEditor Win64 DebugGame -Project="F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner\SideRunner.uproject" -WaitMutex -FromMsBuild -architecture=x64 -Rebuild
+26>AutomationUtils.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationUtils\AutomationUtils.Automation.dll
+29>------ Rebuild All started: Project: SteamDeck.Automation, Configuration: Development Any CPU ------
+30>------ Rebuild All started: Project: Localization.Automation, Configuration: Development Any CPU ------
+31>------ Rebuild All started: Project: BuildGraph.Automation, Configuration: Development Any CPU ------
+32>------ Rebuild All started: Project: Apple.Automation, Configuration: Development Any CPU ------
+28>Log file: C:\Users\gero\AppData\Local\UnrealBuildTool\Log.txt
+28>Cleaning SideRunnerEditor binaries...
+28>Using 'git status' to determine working set for adaptive non-unity build (F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner).
+28>Creating makefile for SideRunnerEditor (no existing makefile)
+28>McpAutomationBridge: Detected 71826MB available memory (of 130163MB total)
+28>McpAutomationBridge: Unity builds enabled
+30>Localization.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Localization\Localization.Automation.dll
+33>------ Rebuild All started: Project: XLocLocalization.Automation, Configuration: Development Any CPU ------
+34>------ Rebuild All started: Project: SmartlingLocalization.Automation, Configuration: Development Any CPU ------
+35>------ Rebuild All started: Project: AutomationScripts.Automation, Configuration: Development Any CPU ------
+36>------ Rebuild All started: Project: OneSkyLocalization.Automation, Configuration: Development Any CPU ------
+37>------ Rebuild All started: Project: CrowdinLocalization.Automation, Configuration: Development Any CPU ------
+32>Apple.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\Apple\Apple.Automation.dll
+29>SteamDeck.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\SteamDeck\SteamDeck.Automation.dll
+38>------ Rebuild All started: Project: Mac.Automation, Configuration: Development Any CPU ------
+39>------ Rebuild All started: Project: IOS.Automation, Configuration: Development Any CPU ------
+40>------ Rebuild All started: Project: Linux.Automation, Configuration: Development Any CPU ------
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\libav\libav.Build.cs(7,14,7,19): warning CS8981: The type name 'libav' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\mimalloc\mimalloc.Build.cs(6,14,6,22): warning CS8981: The type name 'mimalloc' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\nanoflann\nanoflann.Build.cs(6,14,6,23): warning CS8981: The type name 'nanoflann' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\libcurl\libcurl.Build.cs(6,14,6,21): warning CS8981: The type name 'libcurl' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\astcenc\astcenc.Build.cs(6,14,6,21): warning CS8981: The type name 'astcenc' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\coremod\coremod.Build.cs(6,14,6,21): warning CS8981: The type name 'coremod' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\libpas\src\libpas\libpas.Build.cs(7,14,7,20): warning CS8981: The type name 'libpas' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\libstrophe\libstrophe.Build.cs(6,14,6,24): warning CS8981: The type name 'libstrophe' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\portmidi\portmidi.Build.cs(5,14,5,22): warning CS8981: The type name 'portmidi' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\heapprofd\heapprofd.Build.cs(6,14,6,23): warning CS8981: The type name 'heapprofd' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\libzip\libzip.Build.cs(6,14,6,20): warning CS8981: The type name 'libzip' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\xxhash\xxhash.Build.cs(6,14,6,20): warning CS8981: The type name 'xxhash' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\metis\metis.Build.cs(5,14,5,19): warning CS8981: The type name 'metis' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\jemalloc\jemalloc.Build.cs(5,14,5,22): warning CS8981: The type name 'jemalloc' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>F:\Program Files\Epic Games\UE_5.5\Engine\Source\ThirdParty\zlib\zlib.Build.cs(6,14,6,18): warning CS8981: The type name 'zlib' only contains lower-cased ascii characters. Such names may become reserved for the language.
+25>UE5Rules -> F:\Program Files\Epic Games\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5Rules\bin\Development\UE5Rules.dll
+25>Done building project "UE5Rules.csproj".
+41>------ Rebuild All started: Project: UE5ProgramRules, Configuration: Development Any CPU ------
+36>OneSkyLocalization.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\OneSkyLocalization\OneSkyLocalization.Automation.dll
+27>AutomationTool -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationTool.dll
+27>Done building project "AutomationTool.csproj".
+34>SmartlingLocalization.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\SmartlingLocalization\SmartlingLocalization.Automation.dll
+33>XLocLocalization.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\XLocLocalization\XLocLocalization.Automation.dll
+37>CrowdinLocalization.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\CrowdinLocalization\CrowdinLocalization.Automation.dll
+40>Linux.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\Linux\Linux.Automation.dll
+41>UE5ProgramRules -> F:\Program Files\Epic Games\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\UE5ProgramRules\bin\Development\UE5ProgramRules.dll
+42>------ Rebuild All started: Project: MarketplaceRules, Configuration: Development Any CPU ------
+35>AutomationScripts.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Scripts\AutomationScripts.Automation.dll
+43>------ Rebuild All started: Project: Android.Automation, Configuration: Development Any CPU ------
+38>Mac.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\Mac\Mac.Automation.dll
+28>Parsing headers for SideRunnerEditor
+42>MarketplaceRules -> F:\Program Files\Epic Games\UE_5.5\Engine\Intermediate\Build\BuildRulesProjects\MarketplaceRules\bin\Development\MarketplaceRules.dll
+44>------ Rebuild All started: Project: SideRunnerModuleRules, Configuration: Development Any CPU ------
+28>  Running Internal UnrealHeaderTool F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner\SideRunner.uproject F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner\Intermediate\Build\Win64\SideRunnerEditor\DebugGame\SideRunnerEditor.uhtmanifest -WarningsAsErrors -installed
+43>Android.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\Android\Android.Automation.dll
+45>------ Rebuild All started: Project: Gauntlet.Automation, Configuration: Development Any CPU ------
+44>SideRunnerModuleRules -> F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner\Intermediate\Build\BuildRulesProjects\SideRunnerModuleRules\bin\Development\SideRunnerModuleRules.dll
+28>Total of 0 written
+28>Reflection code generated for SideRunnerEditor in 1.421572 seconds
+45>Gauntlet.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Gauntlet\Gauntlet.Automation.dll
+46>------ Rebuild All started: Project: Turnkey.Automation, Configuration: Development Any CPU ------
+47>------ Rebuild All started: Project: RunMutableCommandlet.Automation, Configuration: Development Any CPU ------
+48>------ Rebuild All started: Project: LowLevelTests.Automation, Configuration: Development Any CPU ------
+47>RunMutableCommandlet.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Mutable\RunMutableCommandlet.Automation.dll
+48>LowLevelTests.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\LowLevelTests\LowLevelTests.Automation.dll
+28>Building SideRunnerEditor...
+28>Using Visual Studio 2022 14.38.33145 toolchain (C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.38.33130) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+28>Determining max actions to execute in parallel (16 physical cores, 32 logical cores)
+28>  Executing up to 16 processes, one per physical core
+46>Turnkey.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Turnkey\Turnkey.Automation.dll
+39>IOS.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\IOS\IOS.Automation.dll
+49>------ Rebuild All started: Project: VisionOS.Automation, Configuration: Development Any CPU ------
+50>------ Rebuild All started: Project: TVOS.Automation, Configuration: Development Any CPU ------
+28>Using Unreal Build Accelerator local executor to run 23 action(s)
+28>  Storage capacity 40Gb
+31>BuildGraph.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\BuildGraph\BuildGraph.Automation.dll
+51>------ Rebuild All started: Project: Win.Automation, Configuration: Development Any CPU ------
+28>---- Starting trace: 260321_224138_vs89836 ----
+28>UbaSessionServer - Disable remote execution (remote sessions will finish current processes)
+28>------ Building 23 action(s) started ------
+28>[1/23] Resource Default.rc2
+28>[2/23] Resource Default.rc2
+49>VisionOS.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Platforms\VisionOS\Binaries\DotNET\AutomationTool\AutomationScripts\VisionOS.Automation.dll
+50>TVOS.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\TVOS\TVOS.Automation.dll
+51>Win.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\Platforms\Windows\Win.Automation.dll
+52>------ Rebuild All started: Project: CookedEditor.Automation, Configuration: Development Any CPU ------
+52>CookedEditor.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\CookedEditor\CookedEditor.Automation.dll
+53>------ Rebuild All started: Project: LiveLinkHub.Automation, Configuration: Development Any CPU ------
+53>LiveLinkHub.Automation -> F:\Program Files\Epic Games\UE_5.5\Engine\Binaries\DotNET\AutomationTool\AutomationScripts\LiveLinkHub\LiveLinkHub.Automation.dll
+28>[3/23] Compile [x64] Module.McpAutomationBridge.12.cpp
+28>[4/23] Compile [x64] Module.McpAutomationBridge.3.cpp
+28>[5/23] Compile [x64] Module.McpAutomationBridge.8.cpp
+28>[6/23] Compile [x64] Module.McpAutomationBridge.6.cpp
+28>[7/23] Compile [x64] Module.McpAutomationBridge.4.cpp
+28>[8/23] Compile [x64] Module.McpAutomationBridge.2.cpp
+28>[9/23] Compile [x64] Module.McpAutomationBridge.7.cpp
+28>[10/23] Compile [x64] Module.McpAutomationBridge.5.cpp
+28>[11/23] Compile [x64] Module.McpAutomationBridge.9.cpp
+28>[12/23] Compile [x64] SharedPCH.UnrealEd.Project.NonOptimized.ValApi.Cpp20.cpp
+28>[13/23] Compile [x64] Module.McpAutomationBridge.10.cpp
+28>[14/23] Compile [x64] Module.McpAutomationBridge.1.cpp
+28>[15/23] Compile [x64] Module.McpAutomationBridge.11.cpp
+28>[16/23] Link [x64] UnrealEditor-McpAutomationBridge-Win64-DebugGame.lib
+28>[17/23] Compile [x64] Module.SideRunner.2.cpp
+28>[18/23] Compile [x64] Module.SideRunner.1.cpp
+28>[19/23] Link [x64] UnrealEditor-McpAutomationBridge-Win64-DebugGame.dll
+28>   Creating object F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner\Plugins\McpAutomationBridge\Binaries\Win64\UnrealEditor-McpAutomationBridge-Win64-DebugGame.exp
+28>[20/23] Compile [x64] Module.SideRunner.3.cpp
+28>[21/23] Link [x64] UnrealEditor-SideRunner-Win64-DebugGame.lib
+28>[22/23] Link [x64] UnrealEditor-SideRunner-Win64-DebugGame.dll
+28>   Creating object F:\UnrealEngine_Projects_2024\GitHub_UE_2024\ChromaRunner\Binaries\Win64\UnrealEditor-SideRunner-Win64-DebugGame.exp
+28>[23/23] WriteMetadata SideRunnerEditor-Win64-DebugGame.target (UBA disabled)
+28>Trace file written to C:/Users/gero/AppData/Local/UnrealBuildTool/Log.uba with size 9.7kb
+28>Total time in Unreal Build Accelerator local executor: 39.67 seconds
+28>Total execution time: 46.24 seconds
+========== Rebuild All: 51 succeeded, 1 failed, 1 skipped ==========
+========== Rebuild completed at 10:42 PM and took 52.953 seconds ==========
