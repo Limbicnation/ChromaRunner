@@ -16,7 +16,7 @@ DEFINE_LOG_CATEGORY(LogSideRunnerEnemy);
 // Patrol timer frequency — 60Hz movement update without using Tick
 static constexpr float PATROL_STEP_INTERVAL = 1.0f / 60.0f;
 
-// Distance threshold to consider a waypoint "reached"
+// Default distance threshold to consider a waypoint "reached" (legacy constant for backward compatibility)
 static constexpr float WAYPOINT_ARRIVAL_THRESHOLD = 10.0f;
 
 AEnemyCharacter::AEnemyCharacter()
@@ -334,25 +334,88 @@ void AEnemyCharacter::PatrolStepSimple()
 
 void AEnemyCharacter::PatrolStepWaypoint()
 {
+	// VALIDATE: Ensure we have waypoints to patrol
+	if (PatrolWaypoints.IsEmpty())
+	{
+		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("PatrolStepWaypoint: No waypoints configured, falling back to simple patrol"));
+		PatrolStepSimple();
+		return;
+	}
+
+	// VALIDATE: Ensure current index is within bounds (handles runtime array modification)
+	if (!PatrolWaypoints.IsValidIndex(CurrentNodeIndex))
+	{
+		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("PatrolStepWaypoint: CurrentNodeIndex %d out of bounds (array size: %d), resetting to 0"),
+			CurrentNodeIndex, PatrolWaypoints.Num());
+		CurrentNodeIndex = 0;
+		bWaypointReverse = false;
+		PatrolDirection = 1.0f;
+	}
+
+	// VALIDATE: Minimum waypoints required for patrol
+	if (PatrolWaypoints.Num() < MIN_WAYPOINT_COUNT)
+	{
+		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("PatrolStepWaypoint: Only %d waypoint(s) configured (minimum: %d), enemy will stay at first waypoint"),
+			PatrolWaypoints.Num(), MIN_WAYPOINT_COUNT);
+		// Stay at first waypoint without moving
+		return;
+	}
+
 	const FVector CurrentLocation = GetActorLocation();
 	const FVector TargetLocation = GetCurrentPatrolTarget();
 
-	// Check if we've reached the current waypoint
-	const float DistToTarget = FVector::Dist2D(CurrentLocation, TargetLocation);
-	if (DistToTarget <= WAYPOINT_ARRIVAL_THRESHOLD)
+	// ARRIVAL CHECK: Use squared distance for performance (avoids sqrt)
+	// AcceptanceRadius is exposed to Blueprint, allowing per-enemy tuning
+	const float ArrivalThresholdSquared = AcceptanceRadius * AcceptanceRadius;
+	const float DistToTargetSquared = FVector::DistSquared(CurrentLocation, TargetLocation);
+
+	if (DistToTargetSquared <= ArrivalThresholdSquared)
 	{
-		// Arrived — advance to next waypoint, then continue moving toward it
+		// Store previous index for debugging
+		PreviousNodeIndex = CurrentNodeIndex;
+
+		UE_LOG(LogSideRunnerEnemy, Verbose, TEXT("PatrolStepWaypoint: Arrived at waypoint %d at %s (dist: %.2f)"),
+			CurrentNodeIndex, *TargetLocation.ToString(), FMath::Sqrt(DistToTargetSquared));
+
+		// Check if we should pause at terminal waypoints (PingPong mode)
+		const bool bAtTerminalPoint = (CurrentNodeIndex == 0) || (CurrentNodeIndex == PatrolWaypoints.Num() - 1);
+
+		if (bPauseAtWaypoints && bAtTerminalPoint && TraversalMode == EPatrolTraversalMode::PingPong)
+		{
+			// Pause before advancing
+			UE_LOG(LogSideRunnerEnemy, Log, TEXT("PatrolStepWaypoint: Pausing at terminal waypoint %d before reversal"),
+				CurrentNodeIndex);
+			PauseAtEndpoint();
+			return;
+		}
+
+		// Advance to next waypoint immediately (no pause)
 		AdvanceWaypointIndex();
+
 		// FALL THROUGH to move toward the newly selected waypoint
 	}
 
-	// Move toward current waypoint (either original or newly advanced)
+	// MOVEMENT: Calculate direction toward current waypoint
 	const FVector NewTargetLocation = GetCurrentPatrolTarget();
 	const FVector Direction = (NewTargetLocation - CurrentLocation).GetSafeNormal();
+
+	if (Direction.IsNearlyZero())
+	{
+		// Already at target or invalid direction
+		return;
+	}
+
+	// Frame-rate independent movement: speed * timer_interval (60Hz = ~0.0167s)
 	const float YDelta = Direction.Y * PatrolSpeed * PATROL_STEP_INTERVAL;
 
 	// Update PatrolDirection for sprite facing
-	PatrolDirection = (YDelta >= 0.0f) ? 1.0f : -1.0f;
+	const float NewPatrolDirection = (YDelta >= 0.0f) ? 1.0f : -1.0f;
+	if (PatrolDirection != NewPatrolDirection)
+	{
+		PatrolDirection = NewPatrolDirection;
+		UE_LOG(LogSideRunnerEnemy, Verbose, TEXT("PatrolStepWaypoint: Sprite facing changed to %s"),
+			PatrolDirection >= 0.0f ? TEXT("right") : TEXT("left"));
+	}
 
 	const FVector PatrolMovement(0.0f, YDelta, 0.0f);
 	SetActorLocation(CurrentLocation + PatrolMovement);
@@ -372,55 +435,113 @@ FVector AEnemyCharacter::GetCurrentPatrolTarget() const
 
 void AEnemyCharacter::AdvanceWaypointIndex()
 {
-	if (PatrolWaypoints.Num() <= 1)
+	// VALIDATE: Ensure we have waypoints to patrol
+	if (PatrolWaypoints.IsEmpty())
 	{
-		// Single or no waypoint — nothing to advance
+		UE_LOG(LogSideRunnerEnemy, Warning, TEXT("AdvanceWaypointIndex: No waypoints configured, cannot advance"));
 		return;
 	}
 
+	// EDGE CASE: Single waypoint — stay at index 0
+	if (PatrolWaypoints.Num() == 1)
+	{
+		if (CurrentNodeIndex != 0)
+		{
+			UE_LOG(LogSideRunnerEnemy, Warning, TEXT("AdvanceWaypointIndex: Only 1 waypoint, resetting index to 0"));
+			CurrentNodeIndex = 0;
+		}
+		return;
+	}
+
+	// EDGE CASE: Two waypoints — special handling for ping-pong
+	if (PatrolWaypoints.Num() == 2 && TraversalMode == EPatrolTraversalMode::PingPong)
+	{
+		// Simply toggle between 0 and 1
+		CurrentNodeIndex = (CurrentNodeIndex == 0) ? 1 : 0;
+		PatrolDirection = (CurrentNodeIndex == 0) ? -1.0f : 1.0f;
+
+		UE_LOG(LogSideRunnerEnemy, Log, TEXT("AdvanceWaypointIndex: 2-waypoint ping-pong, now targeting node %d"),
+			CurrentNodeIndex);
+		return;
+	}
+
+	// MAIN LOGIC: Handle each traversal mode
 	if (TraversalMode == EPatrolTraversalMode::PingPong)
 	{
 		// PingPong: 0->1->2->...->N->N-1->...->0->1...
 		if (!bWaypointReverse)
 		{
-			// Moving forward
+			// Moving forward through the array
 			if (CurrentNodeIndex >= PatrolWaypoints.Num() - 1)
 			{
-				// Reached last node — reverse
+				// REVERSAL: Reached last waypoint, switch to reverse traversal
 				bWaypointReverse = true;
-				CurrentNodeIndex = PatrolWaypoints.Num() - 2;
+				CurrentNodeIndex = FMath::Max(0, PatrolWaypoints.Num() - 2); // Clamp to prevent negative
 				PatrolDirection = -1.0f;
+
+				UE_LOG(LogSideRunnerEnemy, Log, TEXT("AdvanceWaypointIndex: REVERSAL at last waypoint (%d), now targeting %d in reverse"),
+					PatrolWaypoints.Num() - 1, CurrentNodeIndex);
 			}
 			else
 			{
+				// Normal forward advancement
 				++CurrentNodeIndex;
+
+				UE_LOG(LogSideRunnerEnemy, Verbose, TEXT("AdvanceWaypointIndex: Forward advance to node %d"),
+					CurrentNodeIndex);
 			}
 		}
 		else
 		{
-			// Moving backward
+			// Moving backward through the array
 			if (CurrentNodeIndex <= 0)
 			{
-				// Reached first node — reverse
+				// REVERSAL: Reached first waypoint, switch to forward traversal
 				bWaypointReverse = false;
-				CurrentNodeIndex = 1;
+				CurrentNodeIndex = FMath::Min(PatrolWaypoints.Num() - 1, 1); // Clamp to prevent overflow
 				PatrolDirection = 1.0f;
+
+				UE_LOG(LogSideRunnerEnemy, Log, TEXT("AdvanceWaypointIndex: REVERSAL at first waypoint (0), now targeting %d in forward"),
+					CurrentNodeIndex);
 			}
 			else
 			{
+				// Normal backward advancement
 				--CurrentNodeIndex;
+
+				UE_LOG(LogSideRunnerEnemy, Verbose, TEXT("AdvanceWaypointIndex: Backward advance to node %d"),
+					CurrentNodeIndex);
 			}
 		}
 	}
-	else // Loop
+	else // EPatrolTraversalMode::Loop
 	{
-		// Loop: 0->1->2->...->N->0->1...
+		// Loop: 0->1->2->...->N->0->1... (wraps around)
+		const int32 OldIndex = CurrentNodeIndex;
 		CurrentNodeIndex = (CurrentNodeIndex + 1) % PatrolWaypoints.Num();
+
+		// Maintain forward direction for visual consistency
 		PatrolDirection = 1.0f;
+
+		if (OldIndex == PatrolWaypoints.Num() - 1)
+		{
+			UE_LOG(LogSideRunnerEnemy, Log, TEXT("AdvanceWaypointIndex: LOOP wrap from %d to %d"),
+				OldIndex, CurrentNodeIndex);
+		}
+		else
+		{
+			UE_LOG(LogSideRunnerEnemy, Verbose, TEXT("AdvanceWaypointIndex: Loop advance to node %d"),
+				CurrentNodeIndex);
+		}
 	}
 
-	UE_LOG(LogSideRunnerEnemy, Verbose, TEXT("AdvanceWaypointIndex: now targeting node %d (reverse=%s)"),
-		CurrentNodeIndex, bWaypointReverse ? TEXT("true") : TEXT("false"));
+	// FINAL SAFETY: Clamp index to valid range (defensive programming)
+	if (!PatrolWaypoints.IsValidIndex(CurrentNodeIndex))
+	{
+		UE_LOG(LogSideRunnerEnemy, Error, TEXT("AdvanceWaypointIndex: Index %d out of bounds after update! Array size: %d. Clamping."),
+			CurrentNodeIndex, PatrolWaypoints.Num());
+		CurrentNodeIndex = FMath::Clamp(CurrentNodeIndex, 0, PatrolWaypoints.Num() - 1);
+	}
 }
 
 void AEnemyCharacter::PauseAtEndpoint()

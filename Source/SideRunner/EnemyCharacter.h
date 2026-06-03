@@ -90,6 +90,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
 	int32 CurrentNodeIndex = 0;
 
+	/** Previous waypoint index (for debugging and ping-pong tracking). */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
+	int32 PreviousNodeIndex = INDEX_NONE;
+
+	/** Distance threshold to consider a waypoint "reached" (squared comparison for performance). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes", meta = (ClampMin = "10.0", UIMin = "10.0"))
+	float AcceptanceRadius = 50.0f;
+
+	/** Whether to pause at terminal waypoints before reversing direction (PingPong mode only). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol|Nodes")
+	bool bPauseAtWaypoints = true;
+
 	/** Cached total of all PatrolNodes values. Updated by CalculatePatrolMetric. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Patrol|Nodes")
 	int32 TotalPatrolDuration = 0;
@@ -146,6 +158,11 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	// --- Patrol Constants (constexpr for compile-time optimization) ---
+	static constexpr float WAYPOINT_ARRIVAL_THRESHOLD_DEFAULT = 10.0f;  // Default distance units
+	static constexpr float WAYPOINT_ARRIVAL_THRESHOLD_SQUARED = 100.0f; // 10^2 for default check
+	static constexpr int32 MIN_WAYPOINT_COUNT = 2;  // Minimum waypoints for patrol
+
 	// --- Patrol State ---
 
 	FVector PatrolOrigin;
