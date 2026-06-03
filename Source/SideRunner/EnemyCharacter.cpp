@@ -213,8 +213,11 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 	// Stop timer-driven patrol to prevent dual movement conflict
 	StopPatrolTimer();
 
-	const FVector TargetLocation = PatrolWaypoints[NodeIndex];
+	// Set CurrentNodeIndex BEFORE calling GetCurrentPatrolTarget()
+	CurrentNodeIndex = NodeIndex;
+
 	const FVector CurrentLocation = GetActorLocation();
+	const FVector TargetLocation = GetCurrentPatrolTarget();
 
 	// Update PatrolDirection so UpdateSpriteDirection faces the correct way
 	const float YDirection = TargetLocation.Y - CurrentLocation.Y;
@@ -227,8 +230,6 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 	const FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
 	const FVector Movement(0.0f, Direction.Y * PatrolSpeed * 0.016f, 0.0f);
 	SetActorLocation(CurrentLocation + Movement);
-
-	CurrentNodeIndex = NodeIndex;
 	UpdateSpriteDirection();
 
 	UE_LOG(LogSideRunnerEnemy, Log,
