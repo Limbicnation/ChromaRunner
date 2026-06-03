@@ -443,11 +443,10 @@ void AEnemyCharacter::PatrolStepWaypoint()
 
 	const FVector PatrolMovement(0.0f, YDelta, 0.0f);
 	const FVector NewLocation = CurrentLocation + PatrolMovement;
-	
-		// Use SetActorLocation with teleport for Characters
-		// CharacterMovementComponent overrides direct location changes without teleport flag
-		SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
-	}
+
+	// Use SetActorLocation with teleport for Characters
+	// CharacterMovementComponent overrides direct location changes without teleport flag
+	SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
 
 	UpdateSpriteDirection();
 }
