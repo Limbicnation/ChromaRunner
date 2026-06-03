@@ -231,9 +231,9 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 	const FVector Movement(0.0f, Direction.Y * PatrolSpeed * 0.016f, 0.0f);
 	const FVector NewLocation = CurrentLocation + Movement;
 	
-	// Use SetActorLocation with bTeleport=true for Characters
+	// Use SetActorLocation with teleport for Characters
 	// CharacterMovementComponent overrides direct location changes without teleport flag
-	SetActorLocation(NewLocation, false, true);
+	SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	UpdateSpriteDirection();
 
 	UE_LOG(LogSideRunnerEnemy, Log,
@@ -345,9 +345,9 @@ void AEnemyCharacter::PatrolStepSimple()
 	const FVector PatrolMovement(0.0f, PatrolDirection * PatrolSpeed * PATROL_STEP_INTERVAL, 0.0f);
 	const FVector NewLocation = GetActorLocation() + PatrolMovement;
 	
-		// Use SetActorLocation with bTeleport=true for Characters
+		// Use SetActorLocation with teleport for Characters
 		// CharacterMovementComponent overrides direct location changes without teleport flag
-		SetActorLocation(NewLocation, false, true);
+		SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
 
 	UpdateSpriteDirection();
 }
@@ -444,9 +444,9 @@ void AEnemyCharacter::PatrolStepWaypoint()
 	const FVector PatrolMovement(0.0f, YDelta, 0.0f);
 	const FVector NewLocation = CurrentLocation + PatrolMovement;
 	
-		// Use SetActorLocation with bTeleport=true for Characters
+		// Use SetActorLocation with teleport for Characters
 		// CharacterMovementComponent overrides direct location changes without teleport flag
-		SetActorLocation(NewLocation, false, true);
+		SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 
 	UpdateSpriteDirection();
