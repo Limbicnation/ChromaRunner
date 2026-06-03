@@ -229,7 +229,17 @@ bool AEnemyCharacter::MoveToPatrolNode(int32 NodeIndex)
 	// Direct movement toward waypoint (no navmesh needed for 2.5D side-scroller)
 	const FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
 	const FVector Movement(0.0f, Direction.Y * PatrolSpeed * 0.016f, 0.0f);
-	SetActorLocation(CurrentLocation + Movement);
+	const FVector NewLocation = CurrentLocation + Movement;
+	
+	// Use TeleportTo instead of SetActorLocation for Characters
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->TeleportTo(NewLocation);
+	}
+	else
+	{
+		SetActorLocation(NewLocation);
+	}
 	UpdateSpriteDirection();
 
 	UE_LOG(LogSideRunnerEnemy, Log,
@@ -339,7 +349,17 @@ void AEnemyCharacter::PatrolStepSimple()
 
 	// Move along Y axis (side-scroller direction)
 	const FVector PatrolMovement(0.0f, PatrolDirection * PatrolSpeed * PATROL_STEP_INTERVAL, 0.0f);
-	SetActorLocation(GetActorLocation() + PatrolMovement);
+	const FVector NewLocation = GetActorLocation() + PatrolMovement;
+	
+	// Use TeleportTo instead of SetActorLocation for Characters
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->TeleportTo(NewLocation);
+	}
+	else
+	{
+		SetActorLocation(NewLocation);
+	}
 
 	UpdateSpriteDirection();
 }
@@ -434,7 +454,18 @@ void AEnemyCharacter::PatrolStepWaypoint()
 	}
 
 	const FVector PatrolMovement(0.0f, YDelta, 0.0f);
-	SetActorLocation(CurrentLocation + PatrolMovement);
+	const FVector NewLocation = CurrentLocation + PatrolMovement;
+	
+	// Use TeleportTo instead of SetActorLocation for Characters
+	// CharacterMovementComponent overrides direct location changes
+	if (UCharacterMovementComponent* MoveComp = GetCharacterMovement())
+	{
+		MoveComp->TeleportTo(NewLocation);
+	}
+	else
+	{
+		SetActorLocation(NewLocation);
+	}
 
 	UpdateSpriteDirection();
 }
